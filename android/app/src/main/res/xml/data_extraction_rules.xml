@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Nothing leaves the device, on any Android version.
+
+  Dhimmah's own About screen tells the user "بياناتك على جهازك فقط" — your data is
+  on your device only. Android's default is the opposite: with no `allowBackup`
+  attribute the whole app data directory, including the SQLite ledger of names,
+  phone numbers and amounts, is uploaded to the user's cloud backup.
+
+  Two reasons to close it rather than rely on the default:
+
+  * It makes the promise the app already makes true, which matters for the
+    privacy policy and the Data safety form as much as for the user.
+  * A restored ledger is unopenable anyway: the PIN digest lives in the Android
+    keystore, which is never backed up, so the restored database arrives with the
+    lock enabled and no credential to satisfy it.
+
+  Export, which the user triggers deliberately, is the supported way to move data.
+  `allowBackup="false"` covers API 30 and below; these rules cover API 31+, where
+  device-to-device transfer is governed separately from cloud backup.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+        <exclude domain="external" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" />
+        <exclude domain="database" />
+        <exclude domain="sharedpref" />
+        <exclude domain="file" />
+        <exclude domain="external" />
+    </device-transfer>
+</data-extraction-rules>

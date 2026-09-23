@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12 draws its own splash: the icon over a disc. The disc's colour
+         comes from the adaptive icon's background layer, which is why the mark
+         sits on its own teal; matching the window behind it to the app's paper
+         keeps the whole screen one colour. (windowSplashScreenIconBackgroundColor
+         is ignored from API 33, so it is not relied on here.)
+ -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowSplashScreenBackground">@color/dhimmah_background</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/dhimmah_background</item>
+    </style>
+</resources>

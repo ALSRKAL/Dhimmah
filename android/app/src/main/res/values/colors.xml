@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The window behind the first Flutter frame. This must equal AppPalette's
+         `background` for the matching brightness — BrandColors.paper in light and
+         BrandColors.nightPage in dark — or every cold start flashes a colour the
+         app is not about to draw. -->
+    <color name="dhimmah_background">#FFF7F5F2</color>
+</resources>

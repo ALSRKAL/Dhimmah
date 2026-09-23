@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The window shown while the Flutter engine starts. The app icon is drawn by
+     the system splash screen on Android 12+; on older versions this plain
+     background is what the user sees, and it matches the app's own surface so
+     there is no flash of a different colour. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/dhimmah_background" />
+</layer-list>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The launcher icon is adaptive. Without this file Android treats the app as
+     having only a legacy bitmap icon and wraps it in its own background disc on
+     the splash screen — and on Android 13 and later the splash icon background
+     cannot be overridden, so the disc is white on warm paper. Declaring the
+     layers lets the system use the mark's own green ground instead. -->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@mipmap/ic_launcher_background" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_monochrome" />
+</adaptive-icon>

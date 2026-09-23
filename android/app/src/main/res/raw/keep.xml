@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Keeps resources that only Dart refers to.
+
+  The notification small icon is named in Dart (NotificationService) and never in
+  Android code or the manifest, so the release resource shrinker sees no
+  reference to it and removes it. Without this the app throws on startup with
+  "resource @drawable/ic_notification could not be found".
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_notification" />
