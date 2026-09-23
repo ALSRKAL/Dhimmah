@@ -1,0 +1,467 @@
+import 'dart:async';
+
+import 'package:flutter/widgets.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+
+import '../core/formatting/app_formatting.dart';
+import '../core/money/currency.dart';
+import '../core/notifications/notification_composer.dart';
+import '../core/notifications/notification_service.dart';
+import '../core/security/biometric_service.dart';
+import '../core/security/pin_service.dart';
+import '../core/utils/dates.dart';
+import '../data/database/app_database.dart';
+import '../data/read_models/ledger_queries.dart';
+import '../data/repositories/activity_repository_impl.dart';
+import '../data/repositories/debt_repository_impl.dart';
+import '../data/repositories/obligation_repository_impl.dart';
+import '../data/repositories/person_repository_impl.dart';
+import '../data/repositories/reminder_repository_impl.dart';
+import '../data/repositories/settings_repository_impl.dart';
+import '../data/services/data_export_service.dart';
+import '../data/services/ledger_service.dart';
+import '../data/services/statement_service.dart';
+import '../domain/entities/app_settings.dart';
+import '../domain/entities/debt.dart';
+import '../domain/entities/ledger_views.dart';
+import '../domain/entities/monthly_report.dart';
+import '../domain/entities/obligation.dart';
+import '../domain/entities/person.dart';
+import '../domain/entities/reminder.dart';
+import '../domain/enums/preference_enums.dart';
+import '../domain/enums/recurrence.dart';
+import '../domain/repositories/repositories.dart';
+import '../l10n/generated/app_localizations.dart';
+
+// ---------------------------------------------------------------------------
+// Infrastructure
+// ---------------------------------------------------------------------------
+
+/// The open database. Closing is wired to the provider's disposal so hot restart
+/// and tests do not leak file handles.
+final Provider<AppDatabase> databaseProvider = Provider<AppDatabase>((Ref ref) {
+  final AppDatabase database = AppDatabase.open();
+  ref.onDispose(() => unawaited(database.close()));
+  return database;
+});
+
+/// A clock, injected so tests can move time instead of waiting for it.
+final Provider<DateTime Function()> clockProvider =
+    Provider<DateTime Function()>((Ref ref) => DateTime.now);
+
+/// The installed app's version, as the platform reports it.
+///
+/// Read from the build rather than written down: the About screen used to print
+/// a hardcoded `1.0.0`, which is correct exactly until the first release and
+/// then quietly lies about which build a user is running.
+///
+/// This is display only. Whether an update exists is Google Play's answer — see
+/// `app_update_controller.dart` — and the app never compares these numbers to
+/// decide anything.
+final FutureProvider<AppVersion> appVersionProvider =
+    FutureProvider<AppVersion>((Ref ref) => AppVersion.read());
+
+/// The two numbers the platform holds, and nothing else.
+@immutable
+class AppVersion {
+  const AppVersion({required this.name, required this.build});
+
+  /// `versionName` — what a person reads.
+  final String name;
+
+  /// `versionCode` — what Google Play compares, and what support asks for.
+  final String build;
+
+  /// Reads them from the installed package.
+  ///
+  /// Falls back to the values in `pubspec.yaml`'s shape rather than to an empty
+  /// string: on a platform where the plugin has no implementation — which is
+  /// every widget test — the screen should still say something true-looking
+  /// rather than "Version ()".
+  static Future<AppVersion> read() async {
+    try {
+      final PackageInfo info = await PackageInfo.fromPlatform();
+      return AppVersion(name: info.version, build: info.buildNumber);
+    } on Object {
+      return const AppVersion(name: '—', build: '—');
+    }
+  }
+}
+
+/// Today, as a plain date.
+///
+/// Everything that decides whether something is late reads this, so a single
+/// refresh at midnight or on resume moves the whole app forward together.
+class TodayNotifier extends Notifier<DateTime> {
+  @override
+  DateTime build() => dateOnly(DateTime.now());
+
+  /// Re-reads the clock; only notifies when the calendar day actually changed.
+  void refresh() {
+    final DateTime now = dateOnly(DateTime.now());
+    if (now != state) state = now;
+  }
+}
+
+final NotifierProvider<TodayNotifier, DateTime> todayProvider =
+    NotifierProvider<TodayNotifier, DateTime>(TodayNotifier.new);
+
+final Provider<NotificationService> notificationServiceProvider =
+    Provider<NotificationService>((Ref ref) {
+  final NotificationService service = NotificationService();
+  ref.onDispose(service.dispose);
+  return service;
+});
+
+final Provider<PinService> pinServiceProvider =
+    Provider<PinService>((Ref ref) => PinService());
+
+final Provider<BiometricService> biometricServiceProvider =
+    Provider<BiometricService>((Ref ref) => BiometricService());
+
+// ---------------------------------------------------------------------------
+// Repositories
+// ---------------------------------------------------------------------------
+
+final Provider<PersonRepository> personRepositoryProvider =
+    Provider<PersonRepository>(
+  (Ref ref) => PersonRepositoryImpl(ref.watch(databaseProvider)),
+);
+
+final Provider<DebtRepository> debtRepositoryProvider =
+    Provider<DebtRepository>(
+  (Ref ref) => DebtRepositoryImpl(ref.watch(databaseProvider)),
+);
+
+final Provider<PaymentRepository> paymentRepositoryProvider =
+    Provider<PaymentRepository>(
+  (Ref ref) => PaymentRepositoryImpl(ref.watch(databaseProvider)),
+);
+
+final Provider<ObligationRepository> obligationRepositoryProvider =
+    Provider<ObligationRepository>(
+  (Ref ref) => ObligationRepositoryImpl(ref.watch(databaseProvider)),
+);
+
+final Provider<ReminderRepository> reminderRepositoryProvider =
+    Provider<ReminderRepository>(
+  (Ref ref) => ReminderRepositoryImpl(ref.watch(databaseProvider)),
+);
+
+final Provider<ActivityRepository> activityRepositoryProvider =
+    Provider<ActivityRepository>(
+  (Ref ref) => ActivityRepositoryImpl(ref.watch(databaseProvider)),
+);
+
+final Provider<SettingsRepository> settingsRepositoryProvider =
+    Provider<SettingsRepository>(
+  (Ref ref) => SettingsRepositoryImpl(ref.watch(databaseProvider)),
+);
+
+final Provider<LedgerQueries> ledgerQueriesProvider = Provider<LedgerQueries>(
+  (Ref ref) => LedgerQueries(
+    database: ref.watch(databaseProvider),
+    people: ref.watch(personRepositoryProvider),
+    debts: ref.watch(debtRepositoryProvider),
+    payments: ref.watch(paymentRepositoryProvider),
+    obligations: ref.watch(obligationRepositoryProvider),
+    reminders: ref.watch(reminderRepositoryProvider),
+    activity: ref.watch(activityRepositoryProvider),
+  ),
+);
+
+// ---------------------------------------------------------------------------
+// Settings
+// ---------------------------------------------------------------------------
+
+/// Live settings. Screens read this rather than holding their own copy, which is
+/// what makes a language or theme change apply everywhere at once.
+final StreamProvider<AppSettings> settingsProvider =
+    StreamProvider<AppSettings>((Ref ref) {
+  return ref.watch(settingsRepositoryProvider).watch();
+});
+
+/// Settings with the defaults folded in, for widgets that must render before the
+/// first snapshot arrives.
+final Provider<AppSettings> effectiveSettingsProvider =
+    Provider<AppSettings>((Ref ref) {
+  return ref.watch(settingsProvider).value ?? AppSettings.initial;
+});
+
+class SettingsController {
+  SettingsController(this._ref);
+
+  final Ref _ref;
+
+  SettingsRepository get _repository => _ref.read(settingsRepositoryProvider);
+
+  Future<void> update(AppSettings Function(AppSettings current) transform) async {
+    final AppSettings next = await _repository.update(transform);
+    // A change to languages, times or windows invalidates the scheduled set.
+    await _ref.read(ledgerServiceProvider).refreshNotifications();
+    // ignore: unused_local_variable
+    next;
+  }
+
+  Future<void> setLanguage(AppLanguage language) =>
+      update((AppSettings s) => s.copyWith(language: language));
+
+  Future<void> setThemeMode(AppThemeMode mode) =>
+      update((AppSettings s) => s.copyWith(themeMode: mode));
+
+  Future<void> setNumerals(NumeralsStyle style) =>
+      update((AppSettings s) => s.copyWith(numerals: style));
+
+  Future<void> setDefaultCurrency(AppCurrency currency) =>
+      update((AppSettings s) => s.copyWith(defaultCurrency: currency));
+
+  Future<void> setNotificationsEnabled(bool enabled) =>
+      update((AppSettings s) => s.copyWith(notificationsEnabled: enabled));
+
+  Future<void> setNotificationTime(int hour, int minute) => update(
+        (AppSettings s) =>
+            s.copyWith(notificationHour: hour, notificationMinute: minute),
+      );
+
+  Future<void> setDefaultReminderLeads(List<ReminderLead> leads) => update(
+        (AppSettings s) =>
+            s.copyWith(defaultReminderLeads: ReminderLead.sorted(leads)),
+      );
+
+  Future<void> setDueSoonWindow(int days) =>
+      update((AppSettings s) => s.copyWith(dueSoonWindowDays: days));
+
+  Future<void> setMonthEndEnabled(bool enabled) =>
+      update((AppSettings s) => s.copyWith(monthEndSummaryEnabled: enabled));
+
+  Future<void> setMonthEndDay(MonthEndDay day) =>
+      update((AppSettings s) => s.copyWith(monthEndDay: day));
+
+  Future<void> setMonthEndTime(int hour, int minute) => update(
+        (AppSettings s) => s.copyWith(monthEndHour: hour, monthEndMinute: minute),
+      );
+
+  Future<void> setLockEnabled(bool enabled) =>
+      update((AppSettings s) => s.copyWith(lockEnabled: enabled));
+
+  Future<void> setBiometricEnabled(bool enabled) =>
+      update((AppSettings s) => s.copyWith(biometricEnabled: enabled));
+
+  Future<void> completeOnboarding({
+    required AppLanguage language,
+    required AppCurrency currency,
+    required bool notificationsEnabled,
+  }) =>
+      update(
+        (AppSettings s) => s.copyWith(
+          language: language,
+          defaultCurrency: currency,
+          notificationsEnabled: notificationsEnabled,
+          onboardingCompleted: true,
+        ),
+      );
+}
+
+final Provider<SettingsController> settingsControllerProvider =
+    Provider<SettingsController>(SettingsController.new);
+
+// ---------------------------------------------------------------------------
+// Localisation-aware helpers
+// ---------------------------------------------------------------------------
+
+/// The active [AppLocalizations], resolved from the effective settings.
+///
+/// Services run outside the widget tree, so they cannot ask a `BuildContext` for
+/// their strings; this gives them the same instance the UI is using.
+final Provider<AppLocalizations> localizationsProvider =
+    Provider<AppLocalizations>((Ref ref) {
+  final AppSettings settings = ref.watch(effectiveSettingsProvider);
+  return lookupAppLocalizations(Locale(settings.language.code));
+});
+
+final Provider<AppFormatting> formattingProvider = Provider<AppFormatting>(
+  (Ref ref) {
+    final AppSettings settings = ref.watch(effectiveSettingsProvider);
+    return AppFormatting.of(
+      language: settings.language,
+      numerals: settings.numerals,
+      defaultCurrency: settings.defaultCurrency,
+      localizations: ref.watch(localizationsProvider),
+    );
+  },
+);
+
+final Provider<NotificationComposer> notificationComposerProvider =
+    Provider<NotificationComposer>(
+  (Ref ref) => NotificationComposer(
+    localizations: ref.watch(localizationsProvider),
+    formatting: ref.watch(formattingProvider),
+  ),
+);
+
+// ---------------------------------------------------------------------------
+// Application service
+// ---------------------------------------------------------------------------
+
+final Provider<LedgerService> ledgerServiceProvider = Provider<LedgerService>(
+  (Ref ref) => LedgerService(
+    database: ref.watch(databaseProvider),
+    people: ref.watch(personRepositoryProvider),
+    debts: ref.watch(debtRepositoryProvider),
+    payments: ref.watch(paymentRepositoryProvider),
+    obligations: ref.watch(obligationRepositoryProvider),
+    reminders: ref.watch(reminderRepositoryProvider),
+    activity: ref.watch(activityRepositoryProvider),
+    settings: ref.watch(settingsRepositoryProvider),
+    notifications: ref.watch(notificationServiceProvider),
+    localizations: () => ref.read(localizationsProvider),
+    composer: () => ref.read(notificationComposerProvider),
+    clock: () => ref.read(clockProvider)(),
+  ),
+);
+
+/// Builds and renders a person's debt statement.
+final Provider<StatementService> statementServiceProvider =
+    Provider<StatementService>(
+  (Ref ref) => StatementService(
+    localizations: ref.watch(localizationsProvider),
+    formatting: ref.watch(formattingProvider),
+    settings: ref.watch(effectiveSettingsProvider),
+  ),
+);
+
+/// Exports the ledger to a file the user can keep.
+final Provider<DataExportService> dataExportServiceProvider =
+    Provider<DataExportService>(
+  (Ref ref) => DataExportService(
+    people: ref.watch(personRepositoryProvider),
+    debts: ref.watch(debtRepositoryProvider),
+    payments: ref.watch(paymentRepositoryProvider),
+    obligations: ref.watch(obligationRepositoryProvider),
+    reminders: ref.watch(reminderRepositoryProvider),
+    activity: ref.watch(activityRepositoryProvider),
+    localizations: ref.watch(localizationsProvider),
+    formatting: ref.watch(formattingProvider),
+  ),
+);
+
+// ---------------------------------------------------------------------------
+// Read models
+// ---------------------------------------------------------------------------
+
+final StreamProvider<DashboardSnapshot> dashboardProvider =
+    StreamProvider<DashboardSnapshot>((Ref ref) {
+  final AppSettings settings = ref.watch(effectiveSettingsProvider);
+  return ref.watch(ledgerQueriesProvider).watchDashboard(
+        dueSoonWindowDays: settings.dueSoonWindowDays,
+        defaultCurrency: settings.defaultCurrency,
+        asOf: ref.watch(todayProvider),
+      );
+});
+
+final StreamProvider<List<DebtView>> debtViewsProvider =
+    StreamProvider<List<DebtView>>((Ref ref) {
+  final AppSettings settings = ref.watch(effectiveSettingsProvider);
+  return ref.watch(ledgerQueriesProvider).watchDebtViews(
+        dueSoonWindowDays: settings.dueSoonWindowDays,
+        asOf: ref.watch(todayProvider),
+      );
+});
+
+final StreamProvider<List<PersonDirectoryEntry>> peopleDirectoryProvider =
+    StreamProvider<List<PersonDirectoryEntry>>((Ref ref) {
+  final AppSettings settings = ref.watch(effectiveSettingsProvider);
+  return ref.watch(ledgerQueriesProvider).watchPersonDirectory(
+        dueSoonWindowDays: settings.dueSoonWindowDays,
+        asOf: ref.watch(todayProvider),
+      );
+});
+
+final StreamProvider<List<ObligationInstance>> obligationInstancesProvider =
+    StreamProvider<List<ObligationInstance>>((Ref ref) {
+  return ref.watch(ledgerQueriesProvider).watchObligationInstances(
+        asOf: ref.watch(todayProvider),
+      );
+});
+
+final StreamProvider<List<Reminder>> remindersProvider =
+    StreamProvider<List<Reminder>>((Ref ref) {
+  return ref
+      .watch(ledgerQueriesProvider)
+      .watchReminders(asOf: ref.watch(todayProvider));
+});
+
+/// One reminder, for the edit form.
+final reminderByIdProvider =
+    StreamProvider.family<Reminder?, String>((Ref ref, String id) {
+  return ref.watch(reminderRepositoryProvider).watchById(id);
+});
+
+/// One obligation, for the edit form.
+final obligationByIdProvider =
+    StreamProvider.family<Obligation?, String>((Ref ref, String id) {
+  return ref.watch(obligationRepositoryProvider).watchById(id);
+});
+
+/// One person, for the edit form.
+final personByIdProvider = StreamProvider.family<Person?, String>((Ref ref, String id) {
+  return ref.watch(personRepositoryProvider).watchById(id);
+});
+
+/// One debt, for the edit form.
+final debtByIdProvider = StreamProvider.family<Debt?, String>((Ref ref, String id) {
+  return ref.watch(debtRepositoryProvider).watchById(id);
+});
+
+final personLedgerProvider = StreamProvider.family<PersonLedger?, String>((Ref ref, String personId) {
+  final AppSettings settings = ref.watch(effectiveSettingsProvider);
+  return ref.watch(ledgerQueriesProvider).watchPersonLedger(
+        personId,
+        dueSoonWindowDays: settings.dueSoonWindowDays,
+        asOf: ref.watch(todayProvider),
+      );
+});
+
+final debtDetailProvider = StreamProvider.family<DebtDetail?, String>((Ref ref, String debtId) {
+  final AppSettings settings = ref.watch(effectiveSettingsProvider);
+  return ref.watch(ledgerQueriesProvider).watchDebtDetail(
+        debtId,
+        dueSoonWindowDays: settings.dueSoonWindowDays,
+        asOf: ref.watch(todayProvider),
+      );
+});
+
+/// Arguments for the monthly report, so the family key is a value type.
+typedef ReportArgs = ({int year, int month, AppCurrency currency});
+
+final monthlyReportProvider = StreamProvider.family<MonthlyReport, ReportArgs>((Ref ref, ReportArgs args) {
+  return ref.watch(ledgerQueriesProvider).watchMonthlyReport(
+        year: args.year,
+        month: args.month,
+        currency: args.currency,
+        trendMonths: 6,
+        asOf: ref.watch(todayProvider),
+      );
+});
+
+/// The currencies actually in use, derived from the records rather than from a
+/// setting, so the report picker only offers currencies that have data.
+final Provider<List<AppCurrency>> currenciesInUseProvider =
+    Provider<List<AppCurrency>>((Ref ref) {
+  final AsyncValue<List<DebtView>> views = ref.watch(debtViewsProvider);
+  final Set<AppCurrency> used = <AppCurrency>{};
+  for (final DebtView view in views.value ?? const <DebtView>[]) {
+    used.add(view.currency);
+  }
+  for (final ObligationInstance instance
+      in ref.watch(obligationInstancesProvider).value ??
+          const <ObligationInstance>[]) {
+    used.add(instance.obligation.currency);
+  }
+  final List<AppCurrency> sorted = used.toList()
+    ..sort((AppCurrency a, AppCurrency b) => a.code.compareTo(b.code));
+  final AppCurrency fallback = ref.watch(effectiveSettingsProvider).defaultCurrency;
+  if (sorted.isEmpty) return <AppCurrency>[fallback];
+  return sorted;
+});
