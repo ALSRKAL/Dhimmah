@@ -1,0 +1,926 @@
+{
+  "actionArchive": "أرشفة",
+  "actionCancel": "إلغاء",
+  "actionClear": "مسح",
+  "actionClose": "إغلاق",
+  "actionConfirm": "تأكيد",
+  "actionCopy": "نسخ",
+  "actionDelete": "حذف",
+  "actionDisable": "تعطيل",
+  "actionDone": "تم",
+  "actionEdit": "تعديل",
+  "actionEnable": "تفعيل",
+  "actionOk": "حسنًا",
+  "actionRetry": "إعادة المحاولة",
+  "actionSave": "حفظ",
+  "actionSelect": "اختيار",
+  "actionShare": "مشاركة",
+  "actionUnarchive": "استعادة",
+  "actionUndo": "تراجع",
+  "activityCleared": "تم حذف كل البيانات",
+  "activityDebtArchived": "تمت أرشفة دين",
+  "activityDebtClosed": "تم إغلاق دين",
+  "activityDebtCreated": "تم إنشاء دين",
+  "activityDebtDeleted": "تم حذف دين",
+  "activityDebtReopened": "تمت إعادة فتح دين",
+  "activityDebtUpdated": "تم تعديل دين",
+  "activityExported": "تم تصدير بيانات",
+  "activityImported": "تم استيراد بيانات",
+  "activityMonthSummary": "تم إنشاء الملخص الشهري",
+  "activityObligationCreated": "تم إنشاء التزام",
+  "activityObligationPaid": "تم دفع التزام",
+  "activityObligationSkipped": "تم تخطي دورة",
+  "activityPaymentDeleted": "تم حذف دفعة",
+  "activityPaymentRecorded": "تم تسجيل دفعة",
+  "activityPersonCreated": "تمت إضافة شخص",
+  "activityPersonDeleted": "تم حذف شخص",
+  "activityPersonUpdated": "تم تعديل بيانات شخص",
+  "activityReminderCompleted": "تم إنجاز تذكير",
+  "activityReminderCreated": "تم إنشاء تذكير",
+  "addDebtAction": "إضافة دين",
+  "addDebtIOwe": "دين عليّ",
+  "addDebtIOweHint": "مبلغ يجب عليّ دفعه",
+  "addDebtOwedToMe": "دين لي",
+  "addDebtOwedToMeHint": "مبلغ مستحق لي",
+  "addObligation": "التزام",
+  "addObligationHint": "إيجار، فاتورة، اشتراك…",
+  "addPersonAction": "إضافة شخص جديد",
+  "addReminder": "تذكير",
+  "addReminderHint": "موعد لا يجب نسيانه",
+  "addTitle": "إضافة",
+  "allRecords": "كل السجلات",
+  "appName": "ذِمّة",
+  "appTagline": "اعرف ما لك وما عليك",
+  "appTaglineShort": "ذمّتك المالية، منظمة في مكان واحد.",
+  "appVersion": "الإصدار {version} ({build})",
+  "@appVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "build": {
+        "type": "String"
+      }
+    }
+  },
+  "attentionDueSoon": "قريب الاستحقاق",
+  "attentionDueToday": "يستحق اليوم",
+  "attentionOverdue": "متأخر",
+  "biometricNotEnrolled": "لم تُسجَّل أي بصمة على هذا الجهاز بعد.",
+  "biometricUnavailable": "البصمة غير متاحة على هذا الجهاز.",
+  "brandPromise": "هذا المكان يحفظ كل شيء عليّ ولي، ويذكّرني بما يجب أن أدفعه وما يجب أن أستلمه.",
+  "categoryHousing": "سكن",
+  "categoryInstallment": "أقساط",
+  "categoryInsurance": "تأمين",
+  "categoryLoan": "قرض",
+  "categoryOther": "أخرى",
+  "categorySalary": "رواتب",
+  "categorySubscription": "اشتراكات",
+  "categoryTax": "ضرائب",
+  "categoryTelecom": "اتصالات",
+  "categoryUtilities": "فواتير",
+  "chooseOption": "اختر",
+  "clearDataBody": "سيتم حذف جميع الأشخاص والديون والدفعات والالتزامات والتذكيرات نهائيًا. لا يمكن التراجع.",
+  "clearDataTitle": "حذف كل البيانات؟",
+  "collapse": "طي",
+  "copiedToClipboard": "تم النسخ",
+  "currencySymbolWithCode": "{code} {symbol}",
+  "@currencySymbolWithCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
+  "dashboardAgainstYou": "عليك",
+  "dashboardBalanced": "متوازن",
+  "dashboardDueSoon": "المستحق قريبًا",
+  "dashboardDueSoonHint": "خلال {days} أيام",
+  "@dashboardDueSoonHint": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dashboardEmptyAddDebt": "إضافة أول دين",
+  "dashboardEmptyAddObligation": "إضافة التزام",
+  "dashboardEmptyBody": "ابدأ بإضافة أول دين أو التزام، وسيتولى التطبيق التذكير والتنظيم.",
+  "dashboardEmptyTitle": "ممتاز، لا توجد ديون مسجّلة حاليًا.",
+  "dashboardGreeting": "مرحبًا",
+  "dashboardIOwe": "عليّ",
+  "dashboardIOweHint": "إجمالي ما يجب عليّ دفعه",
+  "dashboardInYourFavour": "لك",
+  "dashboardNetPosition": "الصافي",
+  "dashboardObligations": "التزامات قادمة",
+  "dashboardOtherCurrencies": "أرصدة بعملات أخرى",
+  "dashboardOverdue": "المتأخر",
+  "dashboardOverdueHint": "تجاوز موعد الاستحقاق",
+  "dashboardOwedToMe": "لي",
+  "dashboardOwedToMeHint": "إجمالي ما هو مستحق لي",
+  "dashboardRecentActivity": "آخر العمليات",
+  "dashboardSubtitle": "هذه نظرة سريعة على ذمتك المالية",
+  "dashboardUpcoming": "الاستحقاقات القادمة",
+  "dashboardViewAll": "عرض الكل",
+  "dateDayCount": "{count, plural, =1{يوم واحد} =2{يومان} few{{count} أيام} other{{count} يومًا}}",
+  "@dateDayCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "dateDaysAgo": "{days, plural, =1{منذ يوم واحد} =2{منذ يومين} few{منذ {days} أيام} other{منذ {days} يومًا}}",
+  "@dateDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dateDueOn": "يستحق في {date}",
+  "@dateDueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "dateInDays": "{days, plural, =1{خلال يوم واحد} =2{خلال يومين} few{خلال {days} أيام} other{خلال {days} يومًا}}",
+  "@dateInDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dateNoDueDate": "بدون استحقاق",
+  "dateOverdueBy": "{days, plural, =1{متأخر يومًا واحدًا} =2{متأخر يومين} few{متأخر {days} أيام} other{متأخر {days} يومًا}}",
+  "@dateOverdueBy": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dateToday": "اليوم",
+  "dateTomorrow": "غدًا",
+  "dateYesterday": "أمس",
+  "debtArchived": "تمت الأرشفة",
+  "debtClosed": "تم إغلاق الدين",
+  "debtCreated": "تم إنشاء الدين",
+  "debtFormEdit": "تعديل الدين",
+  "debtFormNewIOwe": "دين عليّ",
+  "debtFormNewOwedToMe": "دين لي",
+  "debtFormSubtitle": "سجّل التفاصيل في ثوانٍ",
+  "debtRestored": "تمت الاستعادة",
+  "debtSettled": "تم سداد الدين بالكامل",
+  "debtUpdated": "تم تحديث الدين",
+  "deleteConfirmBody": "لا يمكن التراجع عن هذا الإجراء.",
+  "deleteConfirmTitle": "تأكيد الحذف",
+  "detailClosedOn": "أُغلق في {date}",
+  "@detailClosedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "detailDueOn": "تاريخ الاستحقاق",
+  "detailIssuedOn": "تاريخ الدين",
+  "detailNoPayments": "لم تُسجَّل أي دفعة بعد.",
+  "detailOverpaid": "المبلغ المدفوع تجاوز أصل الدين بمقدار {amount}.",
+  "@detailOverpaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "detailPaid": "تم دفع",
+  "detailProgress": "{percent}% مدفوع",
+  "@detailProgress": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "detailRecordPayment": "تسجيل دفعة",
+  "detailRemaining": "المتبقي",
+  "detailTimeline": "سجل العمليات",
+  "detailTotal": "إجمالي الدين",
+  "expand": "توسيع",
+  "exportCsv": "CSV — جدول البيانات",
+  "exportCsvBody": "افتحه في Excel أو Sheets",
+  "exportDone": "تم التصدير",
+  "exportFailed": "تعذّر التصدير. حاول مرة أخرى.",
+  "exportJson": "JSON — نسخة كاملة",
+  "exportJsonBody": "ملف يحتوي كل سجلاتك",
+  "exportPdf": "PDF — تقرير",
+  "exportPdfBody": "تقرير مرتب للمشاركة أو الطباعة",
+  "fieldAdvancedHint": "الوصف، التذكير، التاريخ، الملاحظات",
+  "fieldAdvancedOptions": "خيارات إضافية",
+  "fieldAdvancedSet": "مضبوط",
+  "fieldAmount": "المبلغ",
+  "fieldCategory": "التصنيف",
+  "fieldCurrency": "العملة",
+  "fieldDate": "تاريخ الدين",
+  "fieldDayOfMonth": "يوم الاستحقاق في الشهر",
+  "fieldDirection": "نوع العملية",
+  "fieldDueDate": "تاريخ الاستحقاق",
+  "fieldDueDateNone": "بدون تاريخ استحقاق",
+  "fieldEndDate": "تاريخ الانتهاء",
+  "fieldFrequency": "التكرار",
+  "fieldNote": "ملاحظات",
+  "fieldNoteHint": "أي تفاصيل إضافية…",
+  "fieldObligationName": "الاسم",
+  "fieldObligationNameHint": "مثال: إيجار المنزل",
+  "fieldOptional": "اختياري",
+  "fieldPerson": "اسم الشخص",
+  "fieldPersonHint": "اختر شخصًا أو أضف جديدًا",
+  "fieldPersonNone": "بدون شخص",
+  "fieldRecurrence": "تكرار الدين",
+  "fieldReminder": "التذكير",
+  "fieldStartDate": "تاريخ البداية",
+  "fieldTitle": "الوصف",
+  "fieldTitleHint": "مثال: سلفة، قرض سيارة",
+  "filterActive": "نشط",
+  "filterAll": "الكل",
+  "filterApply": "تطبيق",
+  "filterArchived": "مؤرشف",
+  "filterDebts": "ديون",
+  "filterDueSoon": "قريب الاستحقاق",
+  "filterObligations": "التزامات",
+  "filterPartiallyPaid": "مدفوع جزئيًا",
+  "filterPeriod": "الفترة",
+  "filterReset": "إعادة تعيين",
+  "filterSort": "الترتيب",
+  "filterStatus": "الحالة",
+  "filterTitle": "الفلاتر",
+  "filterType": "النوع",
+  "filterUnpaid": "غير مدفوع",
+  "filtersApplied": "{count, plural, =0{بدون فلاتر} =1{فلتر واحد} other{{count} فلاتر}}",
+  "@filtersApplied": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "importDone": "تم استيراد {count} سجلًا",
+  "@importDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "ioweEmptyBody": "عندما تسجّل دينًا عليك سيظهر هنا مع موعده.",
+  "ioweEmptyTitle": "لا توجد ديون عليك.",
+  "ioweSubtitle": "الأموال التي يجب عليّ دفعها",
+  "ioweTitle": "عليّ",
+  "languageArabic": "العربية",
+  "languageEnglish": "الإنجليزية",
+  "leadCount": "{count, plural, =0{بدون تذكير} =1{تذكير واحد} =2{تذكيران} few{{count} تذكيرات} other{{count} تذكيرًا}}",
+  "@leadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "leadNone": "بدون تذكير",
+  "leadOnDueDate": "في يوم الاستحقاق",
+  "leadOneDayBefore": "قبل يوم",
+  "leadOneWeekBefore": "قبل أسبوع",
+  "leadSummary": "التذكير: {lead}",
+  "@leadSummary": {
+    "placeholders": {
+      "lead": {
+        "type": "String"
+      }
+    }
+  },
+  "leadThreeDaysBefore": "قبل 3 أيام",
+  "leadTwoDaysBefore": "قبل يومين",
+  "leadTwoWeeksBefore": "قبل أسبوعين",
+  "ledgerAllPeople": "الأشخاص",
+  "ledgerSwitchIOwe": "عليّ",
+  "ledgerSwitchOwedToMe": "لي",
+  "loading": "جارٍ التحميل…",
+  "@@locale": "ar",
+  "lockAttemptsLeft": "المحاولات المتبقية: {count}",
+  "@lockAttemptsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lockBiometricReason": "تأكيد هويتك لفتح ذِمّة",
+  "lockConfirmPin": "أعد إدخال الرمز للتأكيد",
+  "lockCreatePin": "أنشئ رمزًا مكونًا من {length} أرقام",
+  "@lockCreatePin": {
+    "placeholders": {
+      "length": {
+        "type": "int"
+      }
+    }
+  },
+  "lockCurrentPin": "الرمز الحالي",
+  "lockDisabledForSession": "القفل معطّل حتى إغلاق التطبيق.",
+  "lockEnterPin": "أدخل الرمز للمتابعة",
+  "lockNewPin": "الرمز الجديد",
+  "lockPinMismatch": "الرمزان غير متطابقين.",
+  "lockPinUpdated": "تم تحديث الرمز",
+  "lockTitle": "قفل التطبيق",
+  "lockTooManyAttempts": "محاولات كثيرة. حاول بعد قليل.",
+  "lockUseBiometric": "استخدم البصمة",
+  "lockWrongPin": "الرمز غير صحيح. حاول مرة أخرى.",
+  "longPressForOptions": "اضغط مطولًا للمزيد",
+  "monthEndDayNumber": "يوم {day}",
+  "@monthEndDayNumber": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "monthEndLastDay": "آخر يوم من الشهر",
+  "moreFollowUpSection": "المتابعة",
+  "moreTitle": "المزيد",
+  "navHome": "الرئيسية",
+  "navIOwe": "عليّ",
+  "navLedger": "السجل",
+  "navMore": "المزيد",
+  "navObligations": "الالتزامات",
+  "navObligationsShort": "التزامات",
+  "navOwedToMe": "لي",
+  "navPeople": "الأشخاص",
+  "navReminders": "التذكيرات",
+  "navReports": "التقارير",
+  "navSettings": "الإعدادات",
+  "netLabel": "الصافي",
+  "noInternetNeeded": "يعمل بدون إنترنت",
+  "notifChannelDueBody": "دفعة مستحقة اليوم أو متأخرة",
+  "notifChannelDueName": "مستحق الآن",
+  "notifChannelRemindersBody": "تنبيهات الديون والالتزامات قبل موعدها",
+  "notifChannelRemindersName": "تذكيرات الاستحقاق",
+  "notifChannelSummaryBody": "ملخص ذمتك في نهاية كل شهر",
+  "notifChannelSummaryName": "الملخص الشهري",
+  "notifChannelUpcomingBody": "دفعة تستحق خلال الأيام القادمة",
+  "notifChannelUpcomingName": "استحقاقات قادمة",
+  "notifDueSoonBody": "{name} — {amount} · {when}",
+  "@notifDueSoonBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "notifDueSoonTitle": "دفعة مستحقة قريبًا",
+  "notifDueTodayBody": "{name} — {amount} يستحق اليوم.",
+  "@notifDueTodayBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "notifDueTodayTitle": "موعد سداد اليوم",
+  "notifMonthEndBody": "عليّ {iOwe} · لي {owedToMe} · مدفوع {paid}",
+  "@notifMonthEndBody": {
+    "placeholders": {
+      "iOwe": {
+        "type": "String"
+      },
+      "owedToMe": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      }
+    }
+  },
+  "notifMonthEndBodyWithOverdue": "عليّ {iOwe} · لي {owedToMe} · مدفوع {paid} · متأخر {overdue}",
+  "@notifMonthEndBodyWithOverdue": {
+    "placeholders": {
+      "iOwe": {
+        "type": "String"
+      },
+      "owedToMe": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "overdue": {
+        "type": "String"
+      }
+    }
+  },
+  "notifMonthEndTitle": "ملخص ذمتك لهذا الشهر",
+  "notifObligationTitle": "التزام مستحق",
+  "notifOverdueBody": "{name} — {amount} · {when}",
+  "@notifOverdueBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "notifOverdueTitle": "دفعة متأخرة",
+  "notifPermissionDenied": "الإشعارات غير مفعّلة في إعدادات النظام.",
+  "notifReminderBody": "{title}",
+  "@notifReminderBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "notifReminderTitle": "تذكير",
+  "notifWeeklyDigestTitle": "{count} التزامات قادمة هذا الأسبوع",
+  "@notifWeeklyDigestTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "numeralsArabicIndic": "أرقام عربية (١٢٣٤)",
+  "numeralsLatin": "أرقام غربية (1234)",
+  "obligationArchived": "التزام مؤرشف",
+  "obligationEndedOn": "ينتهي في {date}",
+  "@obligationEndedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "obligationFormEdit": "تعديل الالتزام",
+  "obligationFormNew": "التزام جديد",
+  "obligationHistory": "السجل",
+  "obligationMarkPaid": "تسجيل الدفع",
+  "obligationMarkedPaid": "تم تسجيل الدفع",
+  "obligationMarkedSkipped": "تم تخطي هذه الدورة",
+  "obligationMonthlyAmount": "المبلغ",
+  "obligationNextDue": "الاستحقاق القادم {date}",
+  "@obligationNextDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "obligationSkip": "تخطي هذه الدورة",
+  "obligationUndoPayment": "إلغاء الدفع",
+  "obligationsEmptyBody": "أضف الإيجار أو الفواتير أو الاشتراكات ليتابعها التطبيق تلقائيًا.",
+  "obligationsEmptyTitle": "لا توجد التزامات قادمة.",
+  "obligationsSubtitle": "كل ما يجب دفعه بشكل متكرر",
+  "obligationsTitle": "الالتزامات",
+  "onboardingBack": "السابق",
+  "onboardingCurrencyBody": "ستُستخدم في السجلات الجديدة. كل سجل يمكن أن يكون بعملة مختلفة.",
+  "onboardingCurrencyTitle": "عملتك الافتراضية",
+  "onboardingEnableNotifications": "تفعيل التنبيهات",
+  "onboardingLanguageBody": "يمكنك تغييرها لاحقًا من الإعدادات.",
+  "onboardingLanguageTitle": "اختر لغتك",
+  "onboardingMaybeLater": "لاحقًا",
+  "onboardingNext": "التالي",
+  "onboardingNotificationsBody": "نحتاج إذنك لإرسال تنبيهات الاستحقاق. الإشعارات محلية ولا تغادر جهازك.",
+  "onboardingNotificationsDenied": "لم يتم منح الإذن. يمكنك تفعيله من الإعدادات.",
+  "onboardingNotificationsTitle": "التذكيرات",
+  "onboardingReadyTitle": "كل شيء جاهز.",
+  "onboardingSkip": "تخطي",
+  "onboardingSlide1Body": "سجّل ما عليك وما لك، واعرف مركزك المالي فورًا عند فتح التطبيق.",
+  "onboardingSlide1Title": "ذمّتك المالية، منظمة في مكان واحد.",
+  "onboardingSlide2Body": "ديون، دفعات جزئية، والتزامات متكررة — ويُحسب المتبقي تلقائيًا.",
+  "onboardingSlide2Title": "سجّل ما عليك وما لك.",
+  "onboardingSlide3Body": "تذكيرات محلية تعمل بدون إنترنت، وملخص لذمتك في نهاية كل شهر.",
+  "onboardingSlide3Title": "لا تنسَ أي موعد.",
+  "onboardingStart": "ابدأ الآن",
+  "owedToMeEmptyBody": "سجّل ما لك عند الآخرين لتتابعه.",
+  "owedToMeEmptyTitle": "لا توجد أموال مستحقة لك.",
+  "owedToMeSubtitle": "الأموال المستحقة لي",
+  "owedToMeTitle": "لي",
+  "paymentAmount": "المبلغ",
+  "paymentDate": "التاريخ",
+  "paymentDeleteBody": "سيعود الرصيد إلى ما كان عليه قبل تسجيلها.",
+  "paymentDeleteTitle": "حذف الدفعة؟",
+  "paymentDeleted": "تم حذف الدفعة",
+  "paymentEditTitle": "تعديل الدفعة",
+  "paymentExceedsRemaining": "المبلغ أكبر من المتبقي ({amount}). سيُسدَّد الدين بالكامل.",
+  "@paymentExceedsRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentNote": "ملاحظة",
+  "paymentPayFull": "سداد كامل المتبقي",
+  "paymentRemainingAfter": "المتبقي بعد الدفعة: {amount}",
+  "@paymentRemainingAfter": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "paymentSave": "حفظ الدفعة",
+  "paymentSaved": "تم تسجيل الدفعة",
+  "paymentTitle": "تسجيل دفعة",
+  "paymentWillSettle": "هذه الدفعة ستُغلق الدين بالكامل.",
+  "peopleEmptyBody": "أضف شخصًا لتربط به الديون وتتابع الرصيد.",
+  "peopleEmptyTitle": "لا يوجد أشخاص بعد.",
+  "peopleTitle": "الأشخاص",
+  "periodAny": "أي وقت",
+  "periodCustom": "مخصص",
+  "periodFrom": "من {date}",
+  "@periodFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "periodFromLabel": "من تاريخ",
+  "periodThisMonth": "هذا الشهر",
+  "periodThisWeek": "هذا الأسبوع",
+  "periodTo": "إلى {date}",
+  "@periodTo": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "periodToLabel": "إلى تاريخ",
+  "periodToday": "اليوم",
+  "personAddDebt": "إضافة دين لهذا الشخص",
+  "personArchived": "شخص مؤرشف",
+  "personAvatarColor": "لون الصورة الرمزية",
+  "personBalance": "الرصيد",
+  "personDebtCount": "{count, plural, =0{لا توجد ديون} =1{دين واحد} =2{دينان} few{{count} ديون} other{{count} دينًا}}",
+  "@personDebtCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personDebtsSection": "الديون",
+  "personDeleteBody": "ستبقى الديون محفوظة لكن بدون ارتباط بهذا الشخص.",
+  "personDeleteTitle": "حذف الشخص؟",
+  "personDeleted": "تم حذف الشخص",
+  "personFormEdit": "تعديل الشخص",
+  "personNameLabel": "اسم الشخص",
+  "personNew": "شخص جديد",
+  "personNoDebts": "لا توجد ديون مرتبطة بهذا الشخص.",
+  "personPhoneLabel": "رقم الهاتف",
+  "progressLabel": "نسبة السداد",
+  "recordDeleted": "تم الحذف",
+  "recordSaved": "تم الحفظ",
+  "recordsCount": "{count, plural, =0{لا توجد سجلات} =1{سجل واحد} =2{سجلان} few{{count} سجلات} other{{count} سجلًا}}",
+  "@recordsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recurrenceCustom": "مخصص",
+  "recurrenceEveryN": "كل {count} {unit}",
+  "@recurrenceEveryN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
+  "recurrenceMonthly": "شهري",
+  "recurrenceNone": "لا يتكرر",
+  "recurrenceQuarterly": "كل 3 أشهر",
+  "recurrenceWeekly": "أسبوعي",
+  "recurrenceYearly": "سنوي",
+  "reminderCompletedMessage": "تم إنجاز التذكير",
+  "reminderCreated": "تم إنشاء التذكير",
+  "reminderFormEdit": "تعديل التذكير",
+  "reminderMarkDone": "تم",
+  "reminderNew": "تذكير جديد",
+  "reminderReopen": "إعادة فتح",
+  "reminderTitleHint": "مثال: تجديد التأمين",
+  "reminderTitleLabel": "العنوان",
+  "remindersCompleted": "مكتملة",
+  "remindersEmptyBody": "أنشئ تذكيرًا لأي موعد لا تريد نسيانه.",
+  "remindersEmptyTitle": "لا توجد تذكيرات.",
+  "remindersLater": "لاحقًا",
+  "remindersOverdue": "متأخر",
+  "remindersSubtitle": "كل ما لا يجب نسيانه",
+  "remindersThisWeek": "هذا الأسبوع",
+  "remindersTitle": "التذكيرات",
+  "remindersToday": "اليوم",
+  "remindersTomorrow": "غدًا",
+  "reportAccountSummary": "ملخص الحساب",
+  "reportActiveDebts": "ديون نشطة",
+  "reportChartPaidVsNew": "المدفوع مقابل الديون الجديدة",
+  "reportClosedDebts": "ديون مغلقة",
+  "reportColumnAmount": "المبلغ",
+  "reportColumnBalance": "الرصيد",
+  "reportColumnDate": "التاريخ",
+  "reportColumnDebt": "الدين",
+  "reportColumnDirection": "النوع",
+  "reportColumnDue": "الاستحقاق",
+  "reportColumnOperation": "العملية",
+  "reportColumnPaid": "المدفوع",
+  "reportColumnRemaining": "المتبقي",
+  "reportColumnTotal": "الإجمالي",
+  "reportCurrentPosition": "المركز الحالي",
+  "reportDebtsBreakdown": "تفصيل الديون",
+  "reportDeclaration": "هذا المستند صادر من تطبيق ذِمّة بناءً على السجلات التي أدخلها صاحبه، ويُعرض للمراجعة والتذكير فقط.",
+  "reportDocumentId": "معرّف المستند",
+  "reportDocumentNumber": "رقم المستند",
+  "reportEmptyBody": "جرّب اختيار شهر آخر، أو أضف عملية جديدة.",
+  "reportEmptyTitle": "لا توجد بيانات لهذا الشهر.",
+  "reportExportPdf": "تصدير PDF",
+  "reportFutureMonth": "هذا الشهر لم يبدأ بعد.",
+  "reportGeneratedBy": "تم إنشاء هذا المستند بواسطة تطبيق ذِمّة",
+  "reportInsightAllClear": "لا توجد متأخرات، وكل شيء تحت السيطرة.",
+  "reportInsightClosed": "{count, plural, =0{لم تُغلق أي ديون هذا الشهر.} =1{تم إغلاق دين واحد هذا الشهر.} =2{تم إغلاق ديان هذا الشهر.} few{تم إغلاق {count} ديون هذا الشهر.} other{تم إغلاق {count} دينًا هذا الشهر.}}",
+  "@reportInsightClosed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportInsightOverdue": "{count, plural, =0{لا ديون متأخرة.} =1{دين واحد متأخر يحتاج متابعة.} =2{ديان متأخران يحتاجان متابعة.} few{{count} ديون متأخرة تحتاج متابعة.} other{{count} دينًا متأخرًا يحتاج متابعة.}}",
+  "@reportInsightOverdue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportInsightQuiet": "لم تُسجَّل عمليات هذا الشهر بعد.",
+  "reportInsightUpcoming": "{count, plural, =0{لا التزامات مستحقة خلال الأيام القادمة.} =1{لديك التزام واحد يستحق خلال الأيام القادمة.} =2{لديك التزامان يستحقان خلال الأيام القادمة.} few{لديك {count} التزامات تستحق خلال الأيام القادمة.} other{لديك {count} التزامًا يستحق خلال الأيام القادمة.}}",
+  "@reportInsightUpcoming": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportIssuedOn": "تاريخ الإصدار",
+  "reportMonthlyTitle": "التقرير الشهري",
+  "reportNeedsAttention": "يحتاج انتباهك",
+  "reportNeedsAttentionEmpty": "لا شيء متأخر ولا مستحق اليوم.",
+  "reportNewDebts": "ديون جديدة",
+  "reportObligations": "إجمالي الالتزامات",
+  "reportOpenPdf": "فتح الملف",
+  "reportOptionBreakdown": "تفصيل كل دين",
+  "reportOptionNotes": "الملاحظات",
+  "reportOptionPayments": "تفاصيل الدفعات",
+  "reportOptionPhone": "رقم الهاتف",
+  "reportOptionsTitle": "خيارات الكشف",
+  "reportOverdue": "المتأخرات",
+  "reportPageOf": "صفحة {page} من {total}",
+  "@reportPageOf": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "reportPaidOut": "ما تم دفعه",
+  "reportPaymentHistory": "سجل الدفعات",
+  "reportPeopleCount": "عدد الأشخاص",
+  "reportPickMonth": "اختر الشهر",
+  "reportReceived": "ما تم استلامه",
+  "reportSavePdf": "طباعة أو حفظ",
+  "reportSettled": "إجمالي ما تم سداده",
+  "reportSharePdf": "مشاركة PDF",
+  "reportShareStatement": "مشاركة كشف",
+  "reportStatementFor": "كشف حساب",
+  "reportStatementReady": "تم إنشاء كشف الحساب",
+  "reportStatementReadyBody": "يمكنك مراجعته قبل الإرسال.",
+  "reportStatementTitle": "كشف حساب",
+  "reportTrend": "آخر {months} أشهر",
+  "@reportTrend": {
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
+  "reportTrendNewDebt": "ديون جديدة",
+  "reportTrendSettled": "المدفوع",
+  "reportsSubtitle": "ملخص شهري بسيط وواضح",
+  "reportsTitle": "التقارير",
+  "requiredMark": "مطلوب",
+  "saveChanges": "حفظ التعديلات",
+  "saveDebt": "حفظ الدين",
+  "saving": "جارٍ الحفظ…",
+  "searchAction": "بحث",
+  "searchEmptyBody": "جرّب كلمة أخرى أو أزل الفلاتر.",
+  "searchEmptyTitle": "لا توجد نتائج مطابقة.",
+  "searchHint": "ابحث في الأسماء والالتزامات والملاحظات",
+  "searchRecent": "آخر ما بحثت عنه",
+  "searchTitle": "البحث",
+  "seeAll": "الكل",
+  "settingsAbout": "حول التطبيق",
+  "settingsAboutBody": "ذِمّة تطبيق شخصي لإدارة ما لك وما عليك. يعمل بالكامل بدون إنترنت، وبياناتك محفوظة على جهازك فقط.",
+  "settingsAppLock": "قفل التطبيق",
+  "settingsAppLockBody": "اطلب رمزًا عند فتح التطبيق",
+  "settingsAppearance": "المظهر",
+  "settingsBiometric": "فتح بالبصمة",
+  "settingsBiometricBody": "استخدم بصمة الإصبع أو الوجه",
+  "settingsChangePin": "تغيير الرمز",
+  "settingsClearData": "حذف جميع البيانات",
+  "settingsCurrenciesInUse": "العملات المستخدمة",
+  "settingsCurrency": "العملة الافتراضية",
+  "settingsDangerZone": "منطقة الخطر",
+  "settingsData": "البيانات",
+  "settingsDueSoonWindow": "نافذة «قريب الاستحقاق»",
+  "settingsExport": "تصدير البيانات",
+  "settingsExportBody": "احتفظ بنسخة من بياناتك",
+  "settingsImport": "استيراد البيانات",
+  "settingsLanguage": "اللغة",
+  "settingsLicenses": "التراخيص",
+  "settingsMonthEnd": "ملخص نهاية الشهر",
+  "settingsMonthEndBody": "ملخص تلقائي لذمتك في نهاية كل شهر",
+  "settingsMonthEndDay": "يوم الإشعار",
+  "settingsMonthEndTime": "وقت الإشعار",
+  "settingsNotificationTime": "وقت الإشعار",
+  "settingsNotifications": "التنبيهات",
+  "settingsNumerals": "شكل الأرقام",
+  "settingsPrivacyNote": "بياناتك على جهازك فقط",
+  "settingsRateApp": "قيّم التطبيق",
+  "settingsReminderLead": "التذكير قبل الاستحقاق",
+  "settingsRemindersEnabled": "التذكيرات",
+  "settingsRemindersEnabledBody": "إشعارات محلية تعمل بدون إنترنت",
+  "settingsSecurity": "الأمان",
+  "settingsSendFeedback": "أرسل ملاحظاتك",
+  "settingsTheme": "الوضع",
+  "settingsTitle": "الإعدادات",
+  "shareFooter": "أُرسلت من تطبيق ذِمّة",
+  "shareLineDirectionIOwe": "عليّ",
+  "shareLineDirectionOwedToMe": "لي",
+  "shareLineDue": "موعد الاستحقاق: {date}",
+  "@shareLineDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "shareLinePaid": "المدفوع: {amount}",
+  "@shareLinePaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "shareLinePaidOn": "تاريخ الدفع: {date}",
+  "@shareLinePaidOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "shareLineRemaining": "المتبقي: {amount}",
+  "@shareLineRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "shareLineTotal": "إجمالي الدين: {amount}",
+  "@shareLineTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "sharePaymentBody": "{person} · {amount} · {date}",
+  "@sharePaymentBody": {
+    "placeholders": {
+      "person": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "sharePaymentTitle": "إيصال دفعة",
+  "shareSubject": "تفاصيل الدين",
+  "somethingWentWrong": "حدث خطأ غير متوقع.",
+  "sortAmountHighest": "الأعلى مبلغًا",
+  "sortAmountLowest": "الأقل مبلغًا",
+  "sortDueLatest": "الأبعد استحقاقًا",
+  "sortDueSoonest": "الأقرب استحقاقًا",
+  "sortNameAscending": "الاسم (أ–ي)",
+  "sortOldestAdded": "الأقدم إضافة",
+  "sortRecentlyAdded": "الأحدث إضافة",
+  "startupFailedBody": "حدث خطأ أثناء فتح البيانات على جهازك.",
+  "startupFailedRetry": "إعادة المحاولة",
+  "startupFailedSafe": "لم يُغيَّر أي شيء في سجلاتك.",
+  "startupFailedTitle": "تعذّر فتح دفاترك",
+  "startupFailedTooNew": "هذه البيانات كُتبت بنسخة أحدث من ذِمّة. حدِّث التطبيق ثم أعد المحاولة.",
+  "statusActive": "جاري",
+  "statusArchived": "مؤرشف",
+  "statusCancelled": "ملغى",
+  "statusCompleted": "مكتمل",
+  "statusDismissed": "متجاهَل",
+  "statusDueSoon": "قريب الاستحقاق",
+  "statusDueToday": "مستحق اليوم",
+  "statusOverdue": "متأخر",
+  "statusPaid": "مدفوع بالكامل",
+  "statusPartiallyPaid": "مدفوع جزئيًا",
+  "statusSkipped": "متجاوز",
+  "statusUnpaid": "غير مدفوع",
+  "statusUpcoming": "قادم",
+  "swipeToDelete": "اسحب للحذف",
+  "themeDark": "ليلي",
+  "themeLight": "نهاري",
+  "themeSystem": "حسب النظام",
+  "todayLabel": "اليوم",
+  "totalLabel": "الإجمالي",
+  "unitDay": "يوم",
+  "unitMonth": "شهر",
+  "unitWeek": "أسبوع",
+  "unitYear": "سنة",
+  "unknownPerson": "بدون اسم",
+  "updateAvailableBody": "يوجد إصدار أحدث من ذِمّة جاهز على Google Play.",
+  "updateAvailableTitle": "تحديث جديد متوفر",
+  "updateDownloadingBody": "يمكنك متابعة عملك في ذِمّة أثناء التنزيل.",
+  "updateDownloadingTitle": "جارٍ تنزيل التحديث",
+  "updateLater": "لاحقًا",
+  "updateNow": "تحديث الآن",
+  "updatePercent": "{percent}%",
+  "@updatePercent": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
+  "updateReadyBody": "أُكمل التنزيل. سيتولّى Google Play التثبيت ويعيد تشغيل ذِمّة.",
+  "updateReadyTitle": "التحديث جاهز للتثبيت",
+  "updateRestartAndInstall": "إعادة التشغيل والتحديث",
+  "validationAmountTooLarge": "المبلغ كبير جدًا.",
+  "validationDayOfMonth": "اختر يومًا بين 1 و 31.",
+  "validationDueBeforeIssue": "تاريخ الاستحقاق قبل تاريخ الدين.",
+  "validationEndBeforeStart": "تاريخ الانتهاء قبل تاريخ البداية.",
+  "validationInvalidAmount": "أدخل مبلغًا صحيحًا أكبر من صفر.",
+  "validationNameExists": "يوجد شخص بهذا الاسم بالفعل.",
+  "validationNameTooLong": "الاسم طويل جدًا.",
+  "validationNameTooShort": "الاسم قصير جدًا.",
+  "validationNegative": "لا يمكن إدخال قيمة سالبة.",
+  "validationNoteTooLong": "الملاحظات طويلة جدًا.",
+  "validationOverPayment": "المبلغ أكبر من المتبقي ({amount}).",
+  "@validationOverPayment": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "validationPhoneInvalid": "أدخل رقم هاتف صحيحًا.",
+  "validationRequired": "هذا الحقل مطلوب.",
+  "validationTitleTooLong": "الوصف طويل جدًا."
+}
