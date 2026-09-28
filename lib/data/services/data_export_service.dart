@@ -113,9 +113,13 @@ class DataExportService {
         'archivedAt': person.archivedAt?.toIso8601String(),
       };
 
+  // A record can be shared, so the export carries the whole participant list as
+  // well as the one-value `personId`, which names the first of them. The record
+  // itself appears once: exporting it per participant would multiply the money.
   Map<String, Object?> _debt(Debt debt) => <String, Object?>{
         'id': debt.id,
         'personId': debt.personId,
+        'personIds': debt.personIds,
         'direction': debt.direction.name,
         'title': debt.title,
         'amountMinor': debt.principalMinor,
@@ -222,7 +226,7 @@ class DataExportService {
         <String>[
           toIsoDate(debt.issuedAt),
           'debt',
-          _csvCell(nameById[debt.personId] ?? ''),
+          _csvCell(_participantNames(debt, nameById)),
           _csvCell(debt.title),
           debt.direction.name,
           (debt.principalMinor / debt.currency.minorFactor).toStringAsFixed(2),
@@ -240,7 +244,7 @@ class DataExportService {
           'payment',
           _csvCell(
             nameById[payment.personId] ??
-                (debt == null ? '' : nameById[debt.personId] ?? ''),
+                (debt == null ? '' : _participantNames(debt, nameById)),
           ),
           _csvCell(debt?.title ?? ''),
           debt?.direction.name ?? '',
@@ -254,6 +258,13 @@ class DataExportService {
 
     return buffer.toString();
   }
+
+  /// `أحمد، علي`, or an empty cell for a record that names nobody.
+  static String _participantNames(Debt debt, Map<String, String> nameById) =>
+      <String>[
+        for (final String id in debt.personIds)
+          if (nameById[id] != null) nameById[id]!,
+      ].join('، ');
 
   /// Quotes and escapes a CSV cell.
   static String _csvCell(String value) {

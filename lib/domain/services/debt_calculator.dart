@@ -59,14 +59,14 @@ abstract final class DebtCalculator {
     required List<Payment> payments,
     required DateTime asOf,
     required int dueSoonWindowDays,
-    Person? person,
+    List<Person> participants = const <Person>[],
   }) =>
       buildViewFromTotals(
         debt: debt,
         totals: totalsOf(payments),
         asOf: asOf,
         dueSoonWindowDays: dueSoonWindowDays,
-        person: person,
+        participants: participants,
       );
 
   /// The same view, from totals the database has already summed.
@@ -80,12 +80,12 @@ abstract final class DebtCalculator {
     required PaymentTotals totals,
     required DateTime asOf,
     required int dueSoonWindowDays,
-    Person? person,
+    List<Person> participants = const <Person>[],
   }) {
     final int remaining = remainingOf(debt.principalMinor, totals.paidMinor);
     return DebtView(
       debt: debt,
-      person: person,
+      participants: participants,
       paidMinor: totals.paidMinor,
       remainingMinor: remaining,
       paymentCount: totals.count,
@@ -136,6 +136,10 @@ abstract final class DebtCalculator {
   }
 
   /// Groups outstanding balances by currency. Currencies never cross-add.
+  ///
+  /// Each view contributes its amount exactly once, whoever the record is with:
+  /// the caller passes the records, never one entry per participant, so a record
+  /// linked to three people cannot become three times its value.
   static List<CurrencyTotals> totalsByCurrency(
     Iterable<DebtView> views, {
     required DateTime asOf,

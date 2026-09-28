@@ -82,6 +82,15 @@ class ActivityDao extends DatabaseAccessor<AppDatabase>
 
   Future<void> deleteAll() => delete(activityEntries).go();
 
+  /// How many activity entries exist, so a backup can say what it left out.
+  Future<int> countAll() async {
+    final Expression<int> count = activityEntries.id.count();
+    final TypedResult row = await (selectOnly(activityEntries)
+          ..addColumns(<Expression<Object>>[count]))
+        .getSingle();
+    return row.read(count) ?? 0;
+  }
+
   // --- Monthly summaries ---------------------------------------------------
 
   Stream<MonthlySummaryRow?> watchSummary(int year, int month, String currencyCode) {
@@ -92,6 +101,27 @@ class ActivityDao extends DatabaseAccessor<AppDatabase>
                 t.currencyCode.equals(currencyCode),
           ))
         .watchSingleOrNull();
+  }
+
+  /// Every stored month, for a backup to carry.
+  Future<List<MonthlySummaryRow>> getAllSummaries() =>
+      (select(monthlySummaries)
+            ..orderBy(<OrderingTerm Function($MonthlySummariesTable)>[
+              (t) => OrderingTerm.asc(t.year),
+              (t) => OrderingTerm.asc(t.month),
+              (t) => OrderingTerm.asc(t.currencyCode),
+            ]))
+          .get();
+
+  /// Every activity entry, newest first, for a backup to carry a bounded slice of.
+  Future<List<ActivityEntryRow>> getAll({int? limit}) {
+    final SimpleSelectStatement<$ActivityEntriesTable, ActivityEntryRow> query =
+        select(activityEntries)
+          ..orderBy(<OrderingTerm Function($ActivityEntriesTable)>[
+            (t) => OrderingTerm.desc(t.occurredAt),
+          ]);
+    if (limit != null) query.limit(limit);
+    return query.get();
   }
 
   Future<MonthlySummaryRow?> getSummary(int year, int month, String currencyCode) {

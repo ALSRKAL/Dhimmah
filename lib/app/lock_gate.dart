@@ -9,6 +9,7 @@ import '../core/theme/app_palette.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/widgets/dhimmah_logo.dart';
 import '../core/widgets/pin_keypad.dart';
+import '../domain/entities/app_settings.dart';
 import '../l10n/generated/app_localizations.dart';
 
 /// Covers the app while the lock is engaged.
@@ -71,9 +72,13 @@ class _LockGateState extends ConsumerState<LockGate>
     }
     if (!mounted) return;
     if (!configured) {
-      final bool lockEnabled =
-          ref.read(effectiveSettingsProvider).lockEnabled;
-      if (lockEnabled) {
+      // Read the row itself, not the settings stream. The keystore can answer
+      // before drift has emitted on a cold start, and the stream's fallback
+      // here would say `lockEnabled == false`, skip the correction, and leave
+      // the stale flag on disk for another launch to trip over.
+      final AppSettings settings =
+          await ref.read(settingsRepositoryProvider).get();
+      if (settings.lockEnabled) {
         await ref.read(settingsControllerProvider).setLockEnabled(false);
       }
     }

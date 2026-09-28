@@ -12,7 +12,9 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_value_view.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/money_text.dart';
+import '../../core/widgets/status_chip.dart';
 import '../../domain/entities/obligation.dart';
+import '../../domain/enums/obligation_enums.dart';
 import '../../l10n/enum_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'obligation_actions.dart';
@@ -228,6 +230,23 @@ class ObligationCard extends ConsumerWidget {
                       style: theme.textTheme.bodySmall,
                       maxLines: 2,
                     ),
+                    // The one state the date alone does not carry: on the device
+                    // an obligation three days late read "Next due 27 September"
+                    // with nothing marking it as late, while the dashboard and
+                    // the detail both flagged it. Only overdue and due-today get
+                    // a chip here; "upcoming" is what the date already says.
+                    if (current != null &&
+                        !obligation.isArchived &&
+                        (current.occurrence.status == ObligationStatus.overdue ||
+                            current.occurrence.status ==
+                                ObligationStatus.dueToday)) ...<Widget>[
+                      const SizedBox(height: AppSpacing.xs),
+                      Align(
+                        alignment: AlignmentDirectional.centerStart,
+                        child: current.occurrence.status
+                            .chip(context, localizations, dense: true),
+                      ),
+                    ],
                   ],
                 ),
               ),

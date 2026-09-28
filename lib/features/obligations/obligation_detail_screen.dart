@@ -171,10 +171,21 @@ class _ObligationMenu extends ConsumerWidget {
           confirmLabel: localizations.actionDelete,
         );
         if (!confirmed || !context.mounted) return;
+        // See the debt delete: the write unmounts this menu, so the finale
+        // takes its handles before the await.
+        final ScaffoldMessengerState messenger =
+            ScaffoldMessenger.of(context);
+        final Color iconColor = context.palette.owedToMe;
+        // The router object itself, not its Navigator: go_router keeps its
+        // own page list, and a raw Navigator pop leaves the two disagreeing.
+        final GoRouter router = GoRouter.of(context);
         await service.deleteObligation(obligationId);
-        if (!context.mounted) return;
-        context.pop();
-        AppFeedback.info(context, localizations.recordDeleted);
+        AppFeedback.infoDetached(
+          messenger: messenger,
+          message: localizations.recordDeleted,
+          iconColor: iconColor,
+        );
+        router.pop();
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
         PopupMenuItem<String>(

@@ -51,10 +51,6 @@ class ReminderRepositoryImpl implements ReminderRepository {
   }
 
   @override
-  Future<void> setNotificationId(String id, int? notificationId) =>
-      _db.remindersDao.setNotificationId(id, notificationId);
-
-  @override
   Future<void> delete(String id) => _db.remindersDao.deleteById(id);
 
   static List<Reminder> _toEntities(List<ReminderRow> rows) =>

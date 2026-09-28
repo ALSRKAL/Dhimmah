@@ -13,6 +13,17 @@ enum DebtDirection {
 
   DebtDirection get opposite =>
       this == DebtDirection.iOwe ? DebtDirection.owedToMe : DebtDirection.iOwe;
+
+  /// The direction a route named, or null when it named nothing usable.
+  ///
+  /// Null is a real answer, not a failure: a link that says nothing about the
+  /// side, or says something this build does not know, must leave the form
+  /// asking the user rather than picking for them.
+  static DebtDirection? fromName(String? name) => switch (name) {
+        'iOwe' => DebtDirection.iOwe,
+        'owedToMe' => DebtDirection.owedToMe,
+        _ => null,
+      };
 }
 
 /// The single label shown on a record. It answers "where does this stand?"

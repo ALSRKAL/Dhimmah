@@ -1,4 +1,5 @@
 {
+  "@@locale": "ar",
   "actionArchive": "أرشفة",
   "actionCancel": "إلغاء",
   "actionClear": "مسح",
@@ -113,7 +114,7 @@
   "dashboardGreeting": "مرحبًا",
   "dashboardIOwe": "عليّ",
   "dashboardIOweHint": "إجمالي ما يجب عليّ دفعه",
-  "dashboardInYourFavour": "لك",
+  "dashboardInYourFavour": "لمصلحتك",
   "dashboardNetPosition": "الصافي",
   "dashboardObligations": "التزامات قادمة",
   "dashboardOtherCurrencies": "أرصدة بعملات أخرى",
@@ -180,6 +181,8 @@
   "debtSettled": "تم سداد الدين بالكامل",
   "debtUpdated": "تم تحديث الدين",
   "deleteConfirmBody": "لا يمكن التراجع عن هذا الإجراء.",
+  "deleteUndoableBody": "سيُحذف الدين، ويمكنك التراجع خلال ثوانٍ.",
+  "recordGone": "هذا السجل لم يعد موجودًا.",
   "deleteConfirmTitle": "تأكيد الحذف",
   "detailClosedOn": "أُغلق في {date}",
   "@detailClosedOn": {
@@ -312,7 +315,6 @@
   "ledgerSwitchIOwe": "عليّ",
   "ledgerSwitchOwedToMe": "لي",
   "loading": "جارٍ التحميل…",
-  "@@locale": "ar",
   "lockAttemptsLeft": "المحاولات المتبقية: {count}",
   "@lockAttemptsLeft": {
     "placeholders": {
@@ -368,8 +370,10 @@
   "noInternetNeeded": "يعمل بدون إنترنت",
   "notifChannelDueBody": "دفعة مستحقة اليوم أو متأخرة",
   "notifChannelDueName": "مستحق الآن",
-  "notifChannelRemindersBody": "تنبيهات الديون والالتزامات قبل موعدها",
-  "notifChannelRemindersName": "تذكيرات الاستحقاق",
+  "notifChannelBackupName": "مشكلة في النسخ الاحتياطي",
+  "notifChannelBackupBody": "تنبيه عندما يتعذّر على ذِمّة حفظ نسخة من بياناتك",
+  "backupAlertTitle": "النسخ الاحتياطية تحتاج انتباهك",
+  "backupAlertBody": "لم يتمكن ذِمّة من حفظ نسخة من تغييراتك. بياناتك محفوظة داخل التطبيق، وسيُعيد المحاولة تلقائيًا.",
   "notifChannelSummaryBody": "ملخص ذمتك في نهاية كل شهر",
   "notifChannelSummaryName": "الملخص الشهري",
   "notifChannelUpcomingBody": "دفعة تستحق خلال الأيام القادمة",
@@ -884,7 +888,7 @@
   "unitMonth": "شهر",
   "unitWeek": "أسبوع",
   "unitYear": "سنة",
-  "unknownPerson": "بدون اسم",
+  "unknownPerson": "بدون عنوان",
   "updateAvailableBody": "يوجد إصدار أحدث من ذِمّة جاهز على Google Play.",
   "updateAvailableTitle": "تحديث جديد متوفر",
   "updateDownloadingBody": "يمكنك متابعة عملك في ذِمّة أثناء التنزيل.",
@@ -922,5 +926,318 @@
   },
   "validationPhoneInvalid": "أدخل رقم هاتف صحيحًا.",
   "validationRequired": "هذا الحقل مطلوب.",
-  "validationTitleTooLong": "الوصف طويل جدًا."
+  "validationTitleTooLong": "الوصف طويل جدًا.",
+  "debtFormWithPerson": "الدين مع {name}",
+  "@debtFormWithPerson": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "debtSavedMoved": "تم الحفظ، وانتقل الدين إلى «{side}».",
+  "@debtSavedMoved": {
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
+  },
+  "debtSavedParticipantRemoved": "تم الحفظ، ولم يعد الدين مرتبطًا بـ {name}.",
+  "@debtSavedParticipantRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldPeople": "الأشخاص",
+  "fieldPersonPlaceholder": "اختر شخصًا أو أكثر",
+  "participantsAdd": "إضافة شخص",
+  "participantsAddMore": "إضافة أشخاص آخرين",
+  "participantsSearchHint": "ابحث عن شخص",
+  "participantsSelected": "المحددون",
+  "requiredFieldsMissing": "{count, plural, =1{حقل مطلوب واحد لم يكتمل.} =2{حقلان مطلوبان لم يكتملا.} few{{count} حقول مطلوبة لم تكتمل.} many{{count} حقلًا مطلوبًا لم يكتمل.} other{{count} حقل مطلوب لم يكتمل.}}",
+  "@requiredFieldsMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsavedChangesBody": "لم تُحفظ التغييرات التي أدخلتها. هل تريد الخروج؟",
+  "unsavedChangesLeave": "خروج بدون حفظ",
+  "unsavedChangesStay": "متابعة التعديل",
+  "unsavedChangesTitle": "تغييرات غير محفوظة",
+  "validationSelectDirection": "اختر نوع الدين: عليّ أو لي.",
+  "validationSelectParticipant": "اختر شخصًا واحدًا على الأقل.",
+  "reminderNotArmedOff": "التذكيرات متوقفة في الإعدادات، فلن يصلك إشعار عن هذا الدين.",
+  "reminderNotArmedDenied": "الإشعارات غير مسموح بها من النظام، فلن يصلك إشعار عن هذا الدين.",
+  "settingsBackup": "النسخ الاحتياطي والاستعادة",
+  "backupSectionHint": "نسخة من كل بياناتك في ملف واحد يمكنك الاحتفاظ به.",
+  "backupAutoTitle": "النسخ التلقائي",
+  "backupAutoStateOn": "مفعّل",
+  "backupAutoStateOff": "متوقف",
+  "backupAutoOnBody": "يحفظ ذِمّة تغييراتك تلقائيًا بعد كل تغيير مهم، وعند مغادرة التطبيق.",
+  "backupAutoOffBody": "بياناتك الحالية محفوظة داخل التطبيق. لن تُنشأ نسخ جديدة تلقائيًا حتى تُشغّل «الحفظ التلقائي» مرة أخرى.",
+  "backupDetailAutomatic": "الحفظ التلقائي",
+  "backupDetailLastCopy": "آخر نسخة",
+  "backupDetailRestorable": "نسخ للاستعادة",
+  "backupDetailPending": "تغييرات غير محفوظة",
+  "backupDetailFolder": "مجلد النسخ",
+  "backupDetailAttempts": "محاولات فاشلة",
+  "backupHistoryLatest": "أحدث نسخة",
+  "backupHistoryVerified": "متحقق منها",
+  "backupFolderTitle": "مجلد النسخ الاحتياطية",
+  "backupFolderSetupTitle": "أنشئ مكانًا لنسخك الاحتياطية",
+  "backupFolderSetupBody": "سيستخدم ذِمّة هذا المجلد لحفظ النسخ الاحتياطية وفتحها مباشرة عند الاستعادة.",
+  "backupFolderChoose": "اختيار مجلد النسخ الاحتياطية",
+  "backupFolderChange": "تغيير المجلد",
+  "backupFolderCheck": "فحص الآن",
+  "backupFolderLater": "لاحقًا",
+  "backupFolderAvailable": "متاح",
+  "backupFolderMissing": "مجلد النسخ الاحتياطية غير متاح",
+  "backupFolderLostAccess": "لم يعد للتطبيق وصول إلى هذا المجلد: إمّا أن الإذن أُلغي، أو أن المجلد نُقل أو حُذف.",
+  "backupFolderReauthorize": "إعادة السماح",
+  "backupFolderBackupsCount": "{count, plural, =0{لا نسخ صالحة} =1{نسخة واحدة صالحة} =2{نسختان صالحتان} few{{count} نسخ صالحة} many{{count} نسخة صالحة} other{{count} نسخة صالحة}}",
+  "@backupFolderBackupsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupFolderEmpty": "لا توجد نسخ احتياطية في هذا المجلد",
+  "backupFolderConfirmTitle": "استخدام هذا المجلد؟",
+  "backupFolderConfirmBody": "لا يمكن إنشاء مجلد «Dhimmah Backups» هنا. هل تريد حفظ النسخ في المجلد الذي اخترته؟",
+  "backupFolderUseIt": "استخدم هذا المجلد",
+  "backupFolderDecline": "اختيار مجلد آخر",
+  "backupFolderInvalidNote": "ملفات تشبه النسخ لكنها غير صالحة: {count}",
+  "@backupFolderInvalidNote": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupFolderNotWritable": "المجلد لا يقبل الكتابة",
+  "backupFolderError": "تعذّر الوصول إلى المجلد",
+  "backupFolderVerifying": "جارٍ فحص المجلد",
+  "backupHistoryInternal": "داخل التطبيق",
+  "backupHistoryFolder": "في مجلد النسخ",
+  "backupExternalDeleted": "حُذفت النسخة من المجلد",
+  "backupExternalDeleteFailed": "تعذّر حذف النسخة من المجلد",
+  "backupNowAction": "حفظ نسخة خارجية",
+  "backupSaveExternalBody": "ملف تحفظه أنت في المكان الذي تختاره.",
+  "backupShareTile": "مشاركة النسخة",
+  "backupShareTileBody": "أرسل نسخة إلى تطبيق آخر.",
+  "backupExternalSaved": "حُفظت النسخة خارجيًا وتحقّقنا منها",
+  "backupExternalSavedBody": "الملف: {name} · {size}",
+  "@backupExternalSavedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "backupExternalFailedWrite": "تعذّر كتابة الملف في المكان الذي اخترته",
+  "backupExternalFailedReadBack": "كُتب الملف لكن تعذّر التحقق منه بعد الحفظ",
+  "backupExternalFailedIncomplete": "الملف المحفوظ فارغ أو ناقص",
+  "backupExternalFailedInvalid": "الملف المحفوظ لم يجتز التحقق من المحتوى",
+  "backupExternalFailedUnavailable": "هذا الجهاز لا يوفّر اختيار مكان للحفظ",
+  "backupRestoreAction": "استعد من ملف",
+  "backupPreviousAction": "النسخ السابقة",
+  "backupCopiesCount": "{count, plural, =0{لا توجد نسخ} =1{نسخة واحدة} =2{نسختان} few{{count} نسخ} many{{count} نسخة} other{{count} نسخة}}",
+  "@backupCopiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupPreviousTitle": "النسخ السابقة",
+  "backupPreviousEmpty": "لا توجد نسخ محفوظة على هذا الجهاز.",
+  "backupProtectionProtected": "بياناتك محمية",
+  "backupProtectionPending": "هناك تغييرات بانتظار الحفظ",
+  "backupProtectionBackingUp": "جارٍ حفظ التغييرات",
+  "backupProtectionNever": "بياناتك غير محمية بعد",
+  "backupProtectionRecoverable": "توجد نسخة يمكن استعادتها",
+  "backupProtectionAttention": "النسخ الاحتياطية تحتاج انتباهك",
+  "backupProtectionStorage": "تعذّر الحفظ في مكان النسخ",
+  "backupProtectionNoLocation": "لم يُحدَّد مكان دائم للنسخ",
+  "backupProtectionLastSuccess": "آخر نسخة ناجحة · {when}",
+  "@backupProtectionLastSuccess": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backupProtectionNeverWorked": "لم تُحفظ نسخة بعد",
+  "backupProtectionDetails": "تفاصيل الحماية",
+  "backupProtectionHideDetails": "إخفاء التفاصيل",
+  "backupProtectionCopiesInside": "{count, plural, =0{لا شيء داخل التطبيق} =1{نسخة واحدة داخل التطبيق} =2{نسختان داخل التطبيق} few{{count} نسخ داخل التطبيق} many{{count} نسخة داخل التطبيق} other{{count} نسخة داخل التطبيق}}",
+  "@backupProtectionCopiesInside": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProtectionCopiesOutside": "{count, plural, =0{لا شيء في مجلدك} =1{نسخة واحدة في مجلدك} =2{نسختان في مجلدك} few{{count} نسخ في مجلدك} many{{count} نسخة في مجلدك} other{{count} نسخة في مجلدك}}",
+  "@backupProtectionCopiesOutside": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProtectionWaiting": "{count, plural, =0{لا سجلات} =1{سجل واحد} =2{سجلان} few{{count} سجلات} many{{count} سجلًا} other{{count} سجل}}",
+  "@backupProtectionWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProtectionFolderNone": "لم يُختر بعد",
+  "backupProtectionAutoOff": "الحفظ التلقائي متوقف",
+  "backupProtectionFailedTimes": "{count, plural, =1{مرة واحدة} =2{مرتان} few{{count} مرات} many{{count} مرة} other{{count} مرة}}",
+  "@backupProtectionFailedTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProtectionDataSafe": "بياناتك الحالية محفوظة داخل التطبيق ولم تتأثر.",
+  "backupProtectionHowTitle": "كيف يحمي ذِمّة بياناتك؟",
+  "backupProtectionHowBody": "يحفظ ذِمّة نسخة من تغييراتك من تلقاء نفسه، ويتحقق من كل نسخة بعد كتابتها بقراءتها مرة أخرى. تُحفظ نقاط استعادة تكفي للرجوع خطوة إلى الوراء، ولا تُحذف النسخة اليدوية أبدًا. الاستعادة لا تبدأ إلا بتأكيد منك، وقبلها تُؤخذ نسخة أمان من بياناتك الحالية. وإذا تعذّر الحفظ، فبياناتك في التطبيق تبقى كما هي.",
+  "backupEntryAuto": "نسخة تلقائية",
+  "backupEntryManual": "نسخة يدوية",
+  "backupEntrySafety": "نسخة قبل استعادة",
+  "backupShareAction": "مشاركة",
+  "backupDeleteAction": "حذف",
+  "backupDeleted": "حُذفت النسخة",
+  "backupDeleteFailed": "تعذّر حذف النسخة، وما زالت في القائمة",
+  "backupCreated": "تم إنشاء النسخة الاحتياطية",
+  "backupStepReading": "قراءة السجلات",
+  "backupStepBuilding": "تجهيز بيانات النسخة",
+  "backupStepHashing": "حساب بصمة التحقق",
+  "backupStepWriting": "كتابة الملف",
+  "backupStepVerifying": "التحقق من الملف بعد كتابته",
+  "backupStepRetaining": "ترتيب النسخ السابقة",
+  "restoreStepReading": "قراءة الملف",
+  "restoreStepDecoding": "فك محتوى الملف",
+  "restoreStepChecking": "التحقق من سلامة الملف",
+  "restoreStepValidating": "تدقيق البيانات",
+  "restoreStepPlanning": "تحديد ما سيُكتب",
+  "restoreStepSnapshot": "أخذ نسخة أمان من بياناتك الحالية",
+  "restoreStepWriting": "كتابة البيانات",
+  "restoreStepVerifying": "التحقق من النتيجة",
+  "restoreStepRebuilding": "إعادة بناء الجداول والتذكيرات",
+  "backupCreateFailed": "تعذّر إنشاء النسخة الاحتياطية",
+  "backupRestoreTitle": "استعادة نسخة احتياطية",
+  "backupRestoreQuestion": "هل تريد استعادة هذه البيانات؟",
+  "backupRestoreFrom": "نسخة احتياطية من",
+  "backupRestoreCounts": "{people, plural, zero{{people} أشخاص} one{شخص واحد} two{شخصان} few{{people} أشخاص} many{{people} شخصًا} other{{people} شخص}} · {debts, plural, zero{{debts} ديون} one{دين واحد} two{دينان} few{{debts} ديون} many{{debts} دينًا} other{{debts} دين}} · {payments, plural, zero{{payments} دفعات} one{دفعة واحدة} two{دفعتان} few{{payments} دفعات} many{{payments} دفعة} other{{payments} دفعة}}",
+  "@backupRestoreCounts": {
+    "placeholders": {
+      "people": {
+        "type": "int"
+      },
+      "debts": {
+        "type": "int"
+      },
+      "payments": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreMore": "{obligations, plural, zero{{obligations} التزامات} one{التزام واحد} two{التزامان} few{{obligations} التزامات} many{{obligations} التزامًا} other{{obligations} التزام}} · {reminders, plural, zero{{reminders} تذكيرات} one{تذكير واحد} two{تذكيران} few{{reminders} تذكيرات} many{{reminders} تذكيرًا} other{{reminders} تذكير}} · {links, plural, zero{{links} ارتباطات} one{ارتباط واحد} two{ارتباطان} few{{links} ارتباطات} many{{links} ارتباطًا} other{{links} ارتباط}}",
+  "@backupRestoreMore": {
+    "placeholders": {
+      "obligations": {
+        "type": "int"
+      },
+      "reminders": {
+        "type": "int"
+      },
+      "links": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreLastChange": "آخر تغيير في النسخة: {when}",
+  "@backupRestoreLastChange": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backupRestoreCurrencies": "{count, plural, =1{العملة: {codes}} other{العملات: {codes}}}",
+  "@backupRestoreCurrencies": {
+    "placeholders": {
+      "codes": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreUnencrypted": "الملف غير مشفّر: من يفتحه يقرأ بياناتك.",
+  "backupRestoreSafetyNote": "سيأخذ Dhimmah نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.",
+  "backupRestoreMode": "طريقة الاستعادة",
+  "backupModeReplace": "استبدال",
+  "backupModeReplaceBody": "تصبح النسخة هي بياناتك، وتُستبدل بيانات الجهاز الحالية.",
+  "backupModeMerge": "دمج",
+  "backupModeMergeBody": "تُضاف السجلات الجديدة، وتُحدَّث الأحدث، ويُبلَّغ عن أي تعارض بدل تخمينه.",
+  "backupRestoreConfirm": "استعادة",
+  "backupRestoreDone": "تمت الاستعادة بنجاح",
+  "backupRestoreSummary": "{people, plural, zero{{people} أشخاص} one{شخص واحد} two{شخصان} few{{people} أشخاص} many{{people} شخصًا} other{{people} شخص}} · {debts, plural, zero{{debts} ديون} one{دين واحد} two{دينان} few{{debts} ديون} many{{debts} دينًا} other{{debts} دين}} · {payments, plural, zero{{payments} دفعات} one{دفعة واحدة} two{دفعتان} few{{payments} دفعات} many{{payments} دفعة} other{{payments} دفعة}}",
+  "@backupRestoreSummary": {
+    "placeholders": {
+      "people": {
+        "type": "int"
+      },
+      "debts": {
+        "type": "int"
+      },
+      "payments": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreSkipped": "سجلات موجودة أصلًا: {count}",
+  "@backupRestoreSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreConflictsTitle": "سجلات تحتاج مراجعة",
+  "backupRestoreConflictsBody": "{count, plural, =1{سجل واحد مختلف في النسخة ولم يكن أحدث؛ أُبقي الموجود عندك.} other{{count} سجلًا مختلفة في النسخة ولم تكن أحدث؛ أُبقي الموجود عندك.}}",
+  "@backupRestoreConflictsBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreFailed": "تعذّرت الاستعادة، ولم تتغيّر بياناتك.",
+  "backupRestoreInvalid": "تعذّر استعادة النسخة لأن الملف غير صالح أو تالف.",
+  "backupRestoreNotOurs": "هذا الملف ليس نسخة احتياطية صالحة لـDhimmah.",
+  "backupRestoreTooNew": "هذه النسخة من إصدار أحدث من التطبيق. حدّث Dhimmah ثم حاول مرة أخرى.",
+  "backupRestoreContinue": "متابعة إلى Dhimmah",
+  "backupFoundTitle": "وجدنا نسخة احتياطية",
+  "backupFoundBody": "لا توجد بيانات على هذا الجهاز، وهناك نسخة محفوظة يمكن استعادتها.",
+  "backupPrivacyTitle": "أين تُحفظ النسخ؟",
+  "backupPrivacyBody": "النسخ التلقائية داخل التطبيق ولا يقرؤها غيره. وعند المشاركة تختار أنت المكان — الملفات أو Drive أو غيره — والملف غير مشفّر. حذف التطبيق يحذف النسخ التي داخله، فاحتفظ بنسخة خارج الجهاز إن كانت بياناتك تهمّك.",
+  "backupSeparateFromExport": "التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد."
 }

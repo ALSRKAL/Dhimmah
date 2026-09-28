@@ -439,18 +439,24 @@ class _ReminderFormScreenState extends ConsumerState<ReminderFormScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.sm,
-          AppSpacing.lg,
-          AppSpacing.md,
-        ),
-        child: FilledButton(
-          onPressed: _busy ? null : _save,
-          style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
-          child: Text(
-            _isEditing ? localizations.saveChanges : localizations.actionSave,
+      // The pinned Save rides above the IME by hand: with edge-to-edge the
+      // window never resizes, and the Scaffold leaves its bottomNavigationBar
+      // at the window bottom — behind the keyboard.
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: FilledButton(
+            onPressed: _busy ? null : _save,
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+            child: Text(
+              _isEditing ? localizations.saveChanges : localizations.actionSave,
+            ),
           ),
         ),
       ),

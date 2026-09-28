@@ -33,8 +33,18 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
   int _colorIndex = 0;
   bool _initialised = false;
   bool _busy = false;
+  bool _dirty = false;
+  bool _saved = false;
 
   bool get _isEditing => widget.personId != null;
+
+  /// Leaving with unsaved edits is confirmed, but only when there is something
+  /// to lose: a form the user opened and closed is not a decision. The debt
+  /// form has the same guard — the person form going silent was proven on the
+  /// device to discard typed text with no word of it.
+  void _markDirty() {
+    if (!_dirty) setState(() => _dirty = true);
+  }
 
   @override
   void dispose() {
@@ -81,7 +91,14 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
 
-    return Scaffold(
+    return PopScope<Object?>(
+      canPop: _saved || (!_dirty && !_busy),
+      onPopInvokedWithResult: (bool didPop, Object? result) async {
+        if (didPop || _busy) return;
+        final bool leave = await _confirmDiscard(localizations);
+        if (leave && mounted) this.context.pop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(
           _isEditing ? localizations.personFormEdit : localizations.personNew,
@@ -105,6 +122,7 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
               autofocus: !_isEditing,
               maxLength: 120,
               textInputAction: TextInputAction.next,
+              onChanged: (_) => _markDirty(),
               validator: (String? value) {
                 final String text = value?.trim() ?? '';
                 if (text.isEmpty) return localizations.validationRequired;
@@ -117,10 +135,14 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
               label:
                   '${localizations.personPhoneLabel} · ${localizations.fieldOptional}',
               controller: _phone,
-              hint: '+967 7XX XXX XXX',
+              // The isolate keeps the example number LTR inside the RTL field:
+              // bare, it rendered group-reversed with the + on the wrong end
+              // ("7XX … 967+") — proven at zoom on the device.
+              hint: '\u2066+967 7XX XXX XXX\u2069',
               prefixIcon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
               maxLength: 32,
+              onChanged: (_) => _markDirty(),
             ),
             const SizedBox(height: AppSpacing.md),
             AppTextField(
@@ -131,6 +153,7 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
               maxLines: 3,
               maxLength: 300,
               keyboardType: TextInputType.multiline,
+              onChanged: (_) => _markDirty(),
             ),
             const SizedBox(height: AppSpacing.lg),
             FieldLabel(localizations.personAvatarColor),
@@ -142,7 +165,10 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
                   _Swatch(
                     color: BrandColors.accentSwatches[i],
                     selected: i == _colorIndex,
-                    onTap: () => setState(() => _colorIndex = i),
+                    onTap: () {
+                      setState(() => _colorIndex = i);
+                      _markDirty();
+                    },
                   ),
               ],
             ),
@@ -150,31 +176,41 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.sm,
-          AppSpacing.lg,
-          AppSpacing.md,
-        ),
-        child: FilledButton(
-          onPressed: _busy ? null : _save,
-          style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
-          child: _busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
+      // The pinned Save rides above the IME by hand: with edge-to-edge the
+      // window never resizes, and the Scaffold leaves its bottomNavigationBar
+      // at the window bottom — behind the keyboard, untappable (measured on
+      // the Note 20 and in a widget test). The bottom sheet does the same.
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: FilledButton(
+            onPressed: _busy ? null : _save,
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+            child: _busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(
+                    _isEditing
+                        ? localizations.saveChanges
+                        : localizations.actionSave,
                   ),
-                )
-              : Text(
-                  _isEditing ? localizations.saveChanges : localizations.actionSave,
-                ),
+          ),
         ),
       ),
       backgroundColor: palette.background,
+      ),
     );
   }
 
@@ -198,6 +234,7 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
         await service.createPerson(draft);
       }
       if (!mounted) return;
+      _saved = true;
       AppFeedback.info(context, localizations.recordSaved);
       context.pop();
     } on Object {
@@ -205,6 +242,27 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
       setState(() => _busy = false);
       AppFeedback.error(context, localizations.somethingWentWrong);
     }
+  }
+
+  Future<bool> _confirmDiscard(AppLocalizations localizations) async {
+    final bool? leave = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text(localizations.unsavedChangesTitle),
+        content: Text(localizations.unsavedChangesBody),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(localizations.unsavedChangesStay),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(localizations.unsavedChangesLeave),
+          ),
+        ],
+      ),
+    );
+    return leave ?? false;
   }
 }
 

@@ -203,16 +203,24 @@ class SettingsSwitchTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SettingsTile(
-      title: title,
-      subtitle: subtitle,
-      icon: icon,
-      iconColor: iconColor,
-      enabled: enabled,
-      onTap: enabled && onChanged != null ? () => onChanged!(!value) : null,
-      trailing: Switch(
-        value: value,
-        onChanged: enabled ? onChanged : null,
+    // One control, read as one thing.
+    //
+    // Without this the switch announces itself with an empty label — a screen
+    // reader says "switch, on" and never says *what* is on, which was measured
+    // on this tile rather than assumed. Merging makes the row a single node
+    // whose name is the title and whose state is the switch.
+    return MergeSemantics(
+      child: SettingsTile(
+        title: title,
+        subtitle: subtitle,
+        icon: icon,
+        iconColor: iconColor,
+        enabled: enabled,
+        onTap: enabled && onChanged != null ? () => onChanged!(!value) : null,
+        trailing: Switch(
+          value: value,
+          onChanged: enabled ? onChanged : null,
+        ),
       ),
     );
   }

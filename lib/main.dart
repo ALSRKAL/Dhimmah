@@ -103,15 +103,18 @@ void _reportBootstrapFailure(String what, Object error) {
   }
 }
 
-/// Brings the schedule and the pending notifications up to date before the first
-/// frame, so the dashboard opens on real numbers rather than filling in later.
+/// Brings the schedule up to date before the first frame, so the dashboard opens
+/// on real numbers rather than filling in later.
+///
+/// Only the periods: a commitment whose month has turned over has to exist
+/// before the screens read it. The pending notifications are deliberately *not*
+/// rebuilt here — they are not on screen, and at ten thousand records the read
+/// behind them is long enough to be seen on a cold start. The app rebuilds them
+/// after the first frame instead.
 Future<void> _warmUp(ProviderContainer container) async {
   final LedgerService service = container.read(ledgerServiceProvider);
   try {
-    // Materialise any obligation period that came due while the app was closed,
-    // then rebuild the whole pending-notification set from the current records.
     await service.ensureOccurrences();
-    await service.refreshNotifications();
   } on Object catch (error) {
     // A failure here must not stop the app from opening: the ledger still works,
     // and the next launch tries again.

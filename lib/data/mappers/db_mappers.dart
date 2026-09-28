@@ -59,9 +59,14 @@ extension PersonMapper on Person {
 }
 
 extension DebtRowMapper on DebtRow {
-  Debt toEntity() => Debt(
+  /// Builds the record with the people it is with.
+  ///
+  /// [personIds] is required rather than optional so a read path that forgets to
+  /// load the links is a compile error: a debt built without them would look like
+  /// a record that names nobody, and would then be saved that way.
+  Debt toEntity({required List<String> personIds}) => Debt(
         id: id,
-        personId: personId,
+        personIds: personIds,
         direction: direction,
         title: title,
         principalMinor: principalMinor,
@@ -391,6 +396,7 @@ extension SettingRowMapper on Setting {
         lockEnabled: lockEnabled,
         biometricEnabled: biometricEnabled,
         onboardingCompleted: onboardingCompleted,
+        backupAutoEnabled: backupAutoEnabled,
         lastSummarySentOn: lastSummarySentOn,
         lastExportedAt: lastExportedAt,
       );
@@ -415,6 +421,7 @@ extension AppSettingsMapper on AppSettings {
         lockEnabled: Value<bool>(lockEnabled),
         biometricEnabled: Value<bool>(biometricEnabled),
         onboardingCompleted: Value<bool>(onboardingCompleted),
+        backupAutoEnabled: Value<bool>(backupAutoEnabled),
         lastSummarySentOn: Value<DateTime?>(lastSummarySentOn),
         lastExportedAt: Value<DateTime?>(lastExportedAt),
       );

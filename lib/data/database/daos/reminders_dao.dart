@@ -72,11 +72,6 @@ class RemindersDao extends DatabaseAccessor<AppDatabase>
     );
   }
 
-  Future<void> setNotificationId(String id, int? notificationId) {
-    return (update(reminders)..where((t) => t.id.equals(id))).write(
-      RemindersCompanion(notificationId: Value<int?>(notificationId)),
-    );
-  }
 
   Future<int> deleteById(String id) =>
       (delete(reminders)..where((t) => t.id.equals(id))).go();

@@ -22,7 +22,7 @@ class Debt {
     required this.issuedAt,
     required this.createdAt,
     required this.updatedAt,
-    this.personId,
+    this.personIds = const <String>[],
     this.dueAt,
     this.note,
     this.reminderLeads = const <ReminderLead>[],
@@ -35,8 +35,23 @@ class Debt {
 
   final String id;
 
-  /// Null when the debt was recorded without linking a person.
-  final String? personId;
+  /// Everyone this record is with, in the order the user chose them.
+  ///
+  /// A debt used to belong to at most one person. It can now belong to several —
+  /// one bill split between friends is still *one* record, not one per person —
+  /// so the participants are a list. An empty list means the record names nobody,
+  /// which is how debts recorded before people were required still load.
+  final List<String> personIds;
+
+  /// The participant a single-person record is with, and null for a shared one.
+  ///
+  /// Callers that need "the person" — a payment's attribution, a notification's
+  /// heading — mean this. Anything that answers *who is this debt with* must use
+  /// [personIds] instead, or a shared record would silently belong to one person.
+  String? get personId => personIds.isEmpty ? null : personIds.first;
+
+  /// Whether more than one person shares this record.
+  bool get isShared => personIds.length > 1;
 
   final DebtDirection direction;
 
@@ -124,7 +139,7 @@ class Debt {
   }
 
   Debt copyWith({
-    Object? personId = _unset,
+    List<String>? personIds,
     DebtDirection? direction,
     String? title,
     int? principalMinor,
@@ -142,8 +157,7 @@ class Debt {
   }) {
     return Debt(
       id: id,
-      personId:
-          identical(personId, _unset) ? this.personId : personId as String?,
+      personIds: personIds ?? this.personIds,
       direction: direction ?? this.direction,
       title: title ?? this.title,
       principalMinor: principalMinor ?? this.principalMinor,
@@ -169,7 +183,7 @@ class Debt {
   bool operator ==(Object other) =>
       other is Debt &&
       other.id == id &&
-      other.personId == personId &&
+      _sameIds(other.personIds, personIds) &&
       other.direction == direction &&
       other.title == title &&
       other.principalMinor == principalMinor &&
@@ -189,7 +203,7 @@ class Debt {
   @override
   int get hashCode => Object.hash(
         id,
-        personId,
+        Object.hashAll(personIds),
         direction,
         title,
         principalMinor,
@@ -208,6 +222,16 @@ class Debt {
       );
 
   static bool _sameLeads(List<ReminderLead> a, List<ReminderLead> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+
+  /// Order-sensitive on purpose: the participants' order is the user's, and it
+  /// decides which one a single-person field reads.
+  static bool _sameIds(List<String> a, List<String> b) {
     if (a.length != b.length) return false;
     for (int i = 0; i < a.length; i++) {
       if (a[i] != b[i]) return false;

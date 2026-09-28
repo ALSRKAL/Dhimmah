@@ -261,12 +261,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
-extension on NotificationPermission {
-  /// Desktop and other unsupported platforms must not block onboarding.
-  bool get isGrantedOrUnsupported =>
-      this == NotificationPermission.granted ||
-      this == NotificationPermission.unsupported;
-}
 
 class _PromiseSlide extends StatelessWidget {
   const _PromiseSlide({

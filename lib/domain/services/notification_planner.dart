@@ -17,6 +17,14 @@ enum NotificationKind {
   obligationOverdue,
   reminderDue,
   monthEndSummary,
+
+  /// The app itself cannot keep its promise: a backup that will not write, or a
+  /// folder whose permission was taken back.
+  ///
+  /// Not planned from a record like the others — it is raised by the backup
+  /// layer when protection actually breaks — but it is a notification kind like
+  /// any other, so its wording lives with every other sentence the app sends.
+  backupProblem,
 }
 
 /// One notification the app wants delivered, described in domain terms.
@@ -108,6 +116,16 @@ abstract final class NotificationPlanner {
   /// recomputes the whole set every time it opens.
   static const Duration horizon = Duration(days: 400);
 
+  /// The longest lead a record can carry, in days.
+  ///
+  /// Derived from the enum rather than written down, because it is the bound a
+  /// caller uses to decide how far it has to read before the soonest
+  /// notifications are certainly covered: a record due later than
+  /// `that moment + this many days` cannot deliver before it.
+  static final int maxLeadDays = ReminderLead.values
+      .map((ReminderLead lead) => lead.daysBefore)
+      .reduce((int a, int b) => a > b ? a : b);
+
   /// Builds the full set of pending notifications.
   static List<NotificationIntent> plan({
     required List<DebtView> debts,
@@ -122,15 +140,15 @@ abstract final class NotificationPlanner {
   }) {
     if (!settings.notificationsEnabled) return const <NotificationIntent>[];
 
-    final DateTime current = dateOnly(now);
-    final DateTime horizonEnd = addDays(current, horizon.inDays);
-    final List<NotificationIntent> intents = <NotificationIntent>[];
-
-    intents.addAll(_planDebts(debts, settings, current, now, horizonEnd));
-    intents.addAll(
-      _planObligations(obligations, settings, current, now, horizonEnd),
-    );
-    intents.addAll(_planReminders(reminders, settings, current, now, horizonEnd));
+    final List<NotificationIntent> intents = <NotificationIntent>[
+      ...planDebts(debts: debts, settings: settings, now: now),
+      ...planObligations(
+        obligations: obligations,
+        settings: settings,
+        now: now,
+      ),
+      ...planReminders(reminders: reminders, settings: settings, now: now),
+    ];
 
     if (settings.monthEndSummaryEnabled) {
       intents.addAll(
@@ -149,6 +167,48 @@ abstract final class NotificationPlanner {
       (NotificationIntent a, NotificationIntent b) => a.when.compareTo(b.when),
     );
     return intents;
+  }
+
+  /// The notifications a set of debts asks for.
+  ///
+  /// Public because the delivery path plans debts in pages — reading the whole
+  /// ledger to build a few hundred notifications is what made every save slow at
+  /// scale — and both paths have to produce the same intents.
+  static List<NotificationIntent> planDebts({
+    required List<DebtView> debts,
+    required AppSettings settings,
+    required DateTime now,
+  }) {
+    if (!settings.notificationsEnabled) return const <NotificationIntent>[];
+    final DateTime current = dateOnly(now);
+    final DateTime horizonEnd = addDays(current, horizon.inDays);
+    return _planDebts(debts, settings, current, now, horizonEnd).toList();
+  }
+
+  /// The notifications a set of commitment periods asks for.
+  static List<NotificationIntent> planObligations({
+    required List<ObligationInstance> obligations,
+    required AppSettings settings,
+    required DateTime now,
+  }) {
+    if (!settings.notificationsEnabled) return const <NotificationIntent>[];
+    final DateTime current = dateOnly(now);
+    final DateTime horizonEnd = addDays(current, horizon.inDays);
+    return _planObligations(obligations, settings, current, now, horizonEnd)
+        .toList();
+  }
+
+  /// The notifications the user's own reminders ask for.
+  static List<NotificationIntent> planReminders({
+    required List<Reminder> reminders,
+    required AppSettings settings,
+    required DateTime now,
+  }) {
+    if (!settings.notificationsEnabled) return const <NotificationIntent>[];
+    final DateTime current = dateOnly(now);
+    final DateTime horizonEnd = addDays(current, horizon.inDays);
+    return _planReminders(reminders, settings, current, now, horizonEnd)
+        .toList();
   }
 
   static Iterable<NotificationIntent> _planDebts(
@@ -328,17 +388,8 @@ abstract final class NotificationPlanner {
     required int paidMinor,
     required int overdueMinor,
   }) {
-    if (!settings.notificationsEnabled || !settings.monthEndSummaryEnabled) {
-      return null;
-    }
-    // The month that just ended, or the current month if its moment has passed.
-    final DateTime? candidateMonth = _lastElapsedSummaryMonth(settings, now);
-    if (candidateMonth == null) return null;
-
-    final DateTime? lastSent = settings.lastSummarySentOn;
-    if (lastSent != null && !lastSent.isBefore(startOfMonth(candidateMonth))) {
-      return null; // Already delivered for that month.
-    }
+    if (!isCatchUpSummaryDue(settings: settings, now: now)) return null;
+    final DateTime candidateMonth = _lastElapsedSummaryMonth(settings, now)!;
 
     return NotificationIntent(
       kind: NotificationKind.monthEndSummary,
@@ -354,6 +405,25 @@ abstract final class NotificationPlanner {
         currency: settings.defaultCurrency,
       ),
     );
+  }
+
+  /// Whether a month-end summary is owed, without working out its figures.
+  ///
+  /// The figures need the whole ledger; this needs two settings and a date. The
+  /// delivery path asks this first, so a save on a large ledger does not read
+  /// every record to discover that no summary is due.
+  static bool isCatchUpSummaryDue({
+    required AppSettings settings,
+    required DateTime now,
+  }) {
+    if (!settings.notificationsEnabled || !settings.monthEndSummaryEnabled) {
+      return false;
+    }
+    final DateTime? candidateMonth = _lastElapsedSummaryMonth(settings, now);
+    if (candidateMonth == null) return false;
+
+    final DateTime? lastSent = settings.lastSummarySentOn;
+    return lastSent == null || lastSent.isBefore(startOfMonth(candidateMonth));
   }
 
   /// The most recent month whose summary moment has already passed.

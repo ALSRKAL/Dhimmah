@@ -6,6 +6,7 @@ part of 'debts_dao.dart';
 mixin _$DebtsDaoMixin on DatabaseAccessor<AppDatabase> {
   $PeopleTable get people => attachedDatabase.people;
   $DebtsTable get debts => attachedDatabase.debts;
+  $DebtPeopleTable get debtPeople => attachedDatabase.debtPeople;
   $PaymentsTable get payments => attachedDatabase.payments;
   DebtsDaoManager get managers => DebtsDaoManager(this);
 }
@@ -17,6 +18,8 @@ class DebtsDaoManager {
       $$PeopleTableTableManager(_db.attachedDatabase, _db.people);
   $$DebtsTableTableManager get debts =>
       $$DebtsTableTableManager(_db.attachedDatabase, _db.debts);
+  $$DebtPeopleTableTableManager get debtPeople =>
+      $$DebtPeopleTableTableManager(_db.attachedDatabase, _db.debtPeople);
   $$PaymentsTableTableManager get payments =>
       $$PaymentsTableTableManager(_db.attachedDatabase, _db.payments);
 }

@@ -70,13 +70,17 @@ abstract final class AttentionList {
   /// The window, in days, inside which something counts as "due soon".
   static const int defaultWindowDays = 7;
 
-  /// Builds the list, most urgent first, capped at [limit].
+  /// Builds the list, most urgent first.
+  ///
+  /// [limit] caps the returned rows; null returns everything, which is what the
+  /// section's totals need — they must sum every item, not only the five that
+  /// fit on the screen.
   static List<AttentionItem> build({
     required List<DebtView> debts,
     required List<ObligationInstance> obligations,
     required DateTime asOf,
     int windowDays = defaultWindowDays,
-    int limit = 5,
+    int? limit = 5,
   }) {
     final List<AttentionItem> items = <AttentionItem>[];
 
@@ -140,7 +144,29 @@ abstract final class AttentionList {
       return a.dueAt.compareTo(b.dueAt);
     });
 
-    return items.take(limit).toList(growable: false);
+    return limit == null ? items : items.take(limit).toList(growable: false);
+  }
+
+  /// The section's two figures, taken from the items themselves.
+  ///
+  /// Summed per currency over every item — including obligations, which the
+  /// debt-only totals used to leave out: a late rent bill sat under a "late"
+  /// figure that did not count it (measured on the device).
+  static ({int overdueMinor, int dueSoonMinor}) totalsFor(
+    List<AttentionItem> items,
+    AppCurrency currency,
+  ) {
+    int overdue = 0;
+    int dueSoon = 0;
+    for (final AttentionItem item in items) {
+      if (item.currency != currency) continue;
+      if (item.reason == AttentionReason.overdue) {
+        overdue += item.amountMinor;
+      } else {
+        dueSoon += item.amountMinor;
+      }
+    }
+    return (overdueMinor: overdue, dueSoonMinor: dueSoon);
   }
 
   /// How many items fall in each reason, for the section's summary line.

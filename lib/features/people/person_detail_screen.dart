@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/backup_providers.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/money/money.dart';
@@ -101,7 +102,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
               sortLocked: true,
               // The header card already names this person. Leading every row with
               // their name too would say it once per row.
-              personIsKnown: true,
+              knownPersonId: personId,
               headerSlivers: <Widget>[
                 SliverToBoxAdapter(child: _PersonHeader(ledger: data)),
                 SliverToBoxAdapter(
@@ -170,10 +171,34 @@ class _PersonMenu extends ConsumerWidget {
           confirmLabel: localizations.actionDelete,
         );
         if (!confirmed || !context.mounted) return;
-        await service.deletePerson(personId);
+        // Deleting a person takes their debts and links with them, and there is
+        // no undo. A copy of what is about to go, before it goes — skipped when
+        // an automatic snapshot already covered this minute, so a run of
+        // deletions costs one copy rather than one each.
+        try {
+          await ref
+              .read(backupControllerProvider)
+              .safetyBeforeDestructive();
+        } on Object {
+          // A copy that could not be taken must not stop the user deleting their
+          // own record: that would refuse an action over a bookkeeping failure.
+        }
         if (!context.mounted) return;
-        context.pop();
-        AppFeedback.info(context, localizations.personDeleted);
+        // See the debt delete: the write unmounts this menu, so the finale
+        // takes its handles before the await.
+        final ScaffoldMessengerState messenger =
+            ScaffoldMessenger.of(context);
+        final Color iconColor = context.palette.owedToMe;
+        // The router object itself, not its Navigator: go_router keeps its
+        // own page list, and a raw Navigator pop leaves the two disagreeing.
+        final GoRouter router = GoRouter.of(context);
+        await service.deletePerson(personId);
+        AppFeedback.infoDetached(
+          messenger: messenger,
+          message: localizations.personDeleted,
+          iconColor: iconColor,
+        );
+        router.pop();
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
         PopupMenuItem<String>(

@@ -68,8 +68,9 @@ class DebtListFilter {
     return DebtListFilter(
       status: status ?? this.status,
       sort: sort ?? this.sort,
-      currency:
-          identical(currency, _unset) ? this.currency : currency as AppCurrency?,
+      currency: identical(currency, _unset)
+          ? this.currency
+          : currency as AppCurrency?,
       window: window ?? this.window,
       from: identical(from, _unset) ? this.from : from as DateTime?,
       to: identical(to, _unset) ? this.to : to as DateTime?,
@@ -77,7 +78,11 @@ class DebtListFilter {
   }
 
   /// Whether [view] passes this filter.
-  bool test(DebtView view, {required int dueSoonWindowDays, required DateTime asOf}) {
+  bool test(
+    DebtView view, {
+    required int dueSoonWindowDays,
+    required DateTime asOf,
+  }) {
     if (currency != null && view.currency != currency) return false;
     if (!_matchesWindow(view, asOf)) return false;
     // The archived facet is authoritative: an archived record never appears in
@@ -126,7 +131,7 @@ class DebtListBody extends ConsumerStatefulWidget {
     this.onEmptyAction,
     this.headerSlivers = const <Widget>[],
     this.sortLocked = false,
-    this.personIsKnown = false,
+    this.knownPersonId,
     super.key,
   });
 
@@ -150,9 +155,10 @@ class DebtListBody extends ConsumerStatefulWidget {
   /// Hides the sort control where the order is dictated by the screen.
   final bool sortLocked;
 
-  /// True on a person's own page, where the rows lead with the debt's name
-  /// rather than repeating theirs.
-  final bool personIsKnown;
+  /// The person whose page this list is on, when it is on one. Their rows lead
+  /// with the debt's own name rather than repeating theirs, and a shared record
+  /// names the others instead.
+  final String? knownPersonId;
 
   @override
   ConsumerState<DebtListBody> createState() => _DebtListBodyState();
@@ -165,8 +171,9 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
   Widget build(BuildContext context) {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final DateTime asOf = ref.watch(todayProvider);
-    final int dueSoonWindow =
-        ref.watch(effectiveSettingsProvider).dueSoonWindowDays;
+    final int dueSoonWindow = ref
+        .watch(effectiveSettingsProvider)
+        .dueSoonWindowDays;
 
     final DebtListFilter effective = widget.presetFilter == null
         ? _filter
@@ -182,8 +189,11 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
           ))
             view,
     ];
-    final List<DebtView> sorted =
-        DebtCalculator.sort(scoped, effective.sort, asOf: asOf);
+    final List<DebtView> sorted = DebtCalculator.sort(
+      scoped,
+      effective.sort,
+      asOf: asOf,
+    );
 
     return CustomScrollView(
       slivers: <Widget>[
@@ -211,16 +221,19 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
               tone: widget.emptyTitle == null && _filter.isDefault
                   ? EmptyTone.positive
                   : EmptyTone.neutral,
-              title: widget.emptyTitle ??
+              title:
+                  widget.emptyTitle ??
                   (_filter.isDefault
                       ? localizations.ioweEmptyTitle
                       : localizations.searchEmptyTitle),
-              body: widget.emptyBody ??
+              body:
+                  widget.emptyBody ??
                   (_filter.isDefault ? null : localizations.searchEmptyBody),
               actionLabel: _filter.isDefault ? widget.emptyActionLabel : null,
               onAction: _filter.isDefault ? widget.onEmptyAction : null,
-              secondaryLabel:
-                  _filter.isDefault ? null : localizations.filterReset,
+              secondaryLabel: _filter.isDefault
+                  ? null
+                  : localizations.filterReset,
               onSecondary: _filter.isDefault
                   ? null
                   : () => setState(() => _filter = const DebtListFilter()),
@@ -238,7 +251,7 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
                     view: view,
                     asOf: asOf,
                     showDirectionBadge: widget.direction == null,
-                    personIsKnown: widget.personIsKnown,
+                    knownPersonId: widget.knownPersonId,
                     onTap: () => context.push(AppRoutes.debtPath(view.debt.id)),
                     onLongPress: () => _openRowActions(context, view),
                   ),
@@ -267,74 +280,85 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
   Future<void> _openRowActions(BuildContext context, DebtView view) async {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
+    // On a person's page the sheet speaks the same way the row does: about the
+    // person whose page it is, not about everyone the record is linked to.
+    final String heading = widget.knownPersonId == null
+        ? view.displayName
+        : view.displayNameFor(widget.knownPersonId!);
 
     await showAppSheet<void>(
       context,
-      isScrollControlled: false,
+      // The sheet grows with its content and scrolls when it cannot fit: a
+      // heading and four rows are taller than the default cap at 1.5x text on a
+      // short screen, and a menu that clips its last row is a menu with an
+      // unreachable action. `test/widget/layout_resilience_test.dart` drives it
+      // at the largest scale.
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.xl,
-                AppSpacing.sm,
-                AppSpacing.xl,
-                AppSpacing.md,
-              ),
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: Text(
-                  view.displayName,
-                  style: Theme.of(context).textTheme.titleMedium,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.xl,
+                  AppSpacing.sm,
+                  AppSpacing.xl,
+                  AppSpacing.md,
+                ),
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    heading,
+                    style: Theme.of(context).textTheme.titleMedium,
+                  ),
                 ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.edit_outlined),
-              title: Text(localizations.actionEdit),
-              onTap: () {
-                Navigator.of(context).pop();
-                context.push(AppRoutes.debtEditPath(view.debt.id));
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                view.debt.isArchived
-                    ? Icons.unarchive_outlined
-                    : Icons.archive_outlined,
+              ListTile(
+                leading: const Icon(Icons.edit_outlined),
+                title: Text(localizations.actionEdit),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.push(AppRoutes.debtEditPath(view.debt.id));
+                },
               ),
-              title: Text(
-                view.debt.isArchived
-                    ? localizations.actionUnarchive
-                    : localizations.actionArchive,
+              ListTile(
+                leading: Icon(
+                  view.debt.isArchived
+                      ? Icons.unarchive_outlined
+                      : Icons.archive_outlined,
+                ),
+                title: Text(
+                  view.debt.isArchived
+                      ? localizations.actionUnarchive
+                      : localizations.actionArchive,
+                ),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  final bool wasArchived = view.debt.isArchived;
+                  await ref
+                      .read(ledgerServiceProvider)
+                      .setDebtArchived(view.debt.id, !wasArchived);
+                  if (!context.mounted) return;
+                  AppFeedback.info(
+                    context,
+                    wasArchived
+                        ? localizations.debtRestored
+                        : localizations.debtArchived,
+                  );
+                },
               ),
-              onTap: () async {
-                Navigator.of(context).pop();
-                final bool wasArchived = view.debt.isArchived;
-                await ref
-                    .read(ledgerServiceProvider)
-                    .setDebtArchived(view.debt.id, !wasArchived);
-                if (!context.mounted) return;
-                AppFeedback.info(
-                  context,
-                  wasArchived
-                      ? localizations.debtRestored
-                      : localizations.debtArchived,
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_outline, color: palette.overdue),
-              textColor: palette.overdue,
-              title: Text(localizations.actionDelete),
-              onTap: () async {
-                Navigator.of(context).pop();
-                await _deleteWithUndo(context, view);
-              },
-            ),
-            const SizedBox(height: AppSpacing.sm),
-          ],
+              ListTile(
+                leading: Icon(Icons.delete_outline, color: palette.overdue),
+                textColor: palette.overdue,
+                title: Text(localizations.actionDelete),
+                onTap: () async {
+                  Navigator.of(context).pop();
+                  await _deleteWithUndo(context, view);
+                },
+              ),
+              const SizedBox(height: AppSpacing.sm),
+            ],
+          ),
         ),
       ),
     );
@@ -407,10 +431,9 @@ class _ListControls extends StatelessWidget {
         children: <Widget>[
           Text(
             localizations.recordsCount(count),
-            style: Theme.of(context)
-                .textTheme
-                .labelMedium
-                ?.copyWith(color: palette.textSecondary),
+            style: Theme.of(
+              context,
+            ).textTheme.labelMedium?.copyWith(color: palette.textSecondary),
           ),
           const Spacer(),
           if (onOpenFilters != null)
@@ -431,12 +454,12 @@ class _ListControls extends StatelessWidget {
               onSelected: onSort,
               itemBuilder: (BuildContext context) =>
                   <PopupMenuEntry<DebtSortOrder>>[
-                for (final DebtSortOrder order in DebtSortOrder.values)
-                  PopupMenuItem<DebtSortOrder>(
-                    value: order,
-                    child: Text(order.label(localizations)),
-                  ),
-              ],
+                    for (final DebtSortOrder order in DebtSortOrder.values)
+                      PopupMenuItem<DebtSortOrder>(
+                        value: order,
+                        child: Text(order.label(localizations)),
+                      ),
+                  ],
             ),
         ],
       ),

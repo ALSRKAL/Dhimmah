@@ -29,7 +29,7 @@ class DebtRowTile extends StatelessWidget {
     required this.asOf,
     this.onLongPress,
     this.showDirectionBadge = false,
-    this.personIsKnown = false,
+    this.knownPersonId,
     super.key,
   });
 
@@ -41,12 +41,15 @@ class DebtRowTile extends StatelessWidget {
   /// Shown on mixed lists where "I owe" and "owed to me" appear together.
   final bool showDirectionBadge;
 
-  /// True where the screen is already about one person — their own page.
+  /// Set on a screen that is already about one person — their own page.
   ///
-  /// There, leading every row with their name repeats one fact once per row, so
-  /// the debt's own name takes the lead and the person drops out of the subtitle
-  /// that held it. On a mixed list the person is the useful heading and stays.
-  final bool personIsKnown;
+  /// There the row speaks for that person's side of the record: the debt's own
+  /// name takes the lead, and the other people the record is also linked to are
+  /// not named, because the page is about this relationship and not about them.
+  /// On a mixed list the people are the useful heading and stay.
+  final String? knownPersonId;
+
+  bool get personIsKnown => knownPersonId != null;
 
   @override
   Widget build(BuildContext context) {
@@ -57,8 +60,8 @@ class DebtRowTile extends StatelessWidget {
     final DebtDirection direction = view.debt.direction;
     final Color amountColor = palette.forDirection(direction);
 
-    final String lead = personIsKnown && view.debt.title.trim().isNotEmpty
-        ? view.debt.title.trim()
+    final String lead = personIsKnown
+        ? view.displayNameFor(knownPersonId!)
         : view.displayName;
     final List<String> subtitleParts = <String>[
       if (!personIsKnown && view.subtitle != null) view.subtitle!,

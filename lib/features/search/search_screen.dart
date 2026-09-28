@@ -9,9 +9,11 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/person_avatar.dart';
 import '../../core/widgets/record_rows.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/obligation.dart';
+import '../../domain/entities/person.dart';
 import '../../domain/entities/reminder.dart';
 import '../../l10n/generated/app_localizations.dart';
 
@@ -60,9 +62,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ref.watch(obligationInstancesProvider).value ?? const <ObligationInstance>[];
     final List<Reminder> reminders =
         ref.watch(remindersProvider).value ?? const <Reminder>[];
+    final List<PersonDirectoryEntry> people =
+        ref.watch(peopleDirectoryProvider).value ??
+            const <PersonDirectoryEntry>[];
 
     final String needle = _query.trim().toLowerCase();
     final bool searching = needle.isNotEmpty;
+
+    // People first: the screen promises "names", and before this a person with
+    // no records was unfindable here — even though the People tab lists them.
+    final List<PersonDirectoryEntry> peopleHits = searching
+        ? <PersonDirectoryEntry>[
+            for (final PersonDirectoryEntry entry in people)
+              if (entry.person.name.toLowerCase().contains(needle) ||
+                  (entry.person.phone ?? '').contains(needle))
+                entry,
+          ]
+        : const <PersonDirectoryEntry>[];
 
     final List<DebtView> debtHits = searching
         ? <DebtView>[
@@ -88,7 +104,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         : const <Reminder>[];
 
     final bool hasResults =
-        debtHits.isNotEmpty || obligationHits.isNotEmpty || reminderHits.isNotEmpty;
+        peopleHits.isNotEmpty ||
+        debtHits.isNotEmpty ||
+        obligationHits.isNotEmpty ||
+        reminderHits.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(
@@ -138,6 +157,38 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     AppSpacing.massive,
                   ),
                   children: <Widget>[
+                    if (peopleHits.isNotEmpty) ...<Widget>[
+                      SectionHeader(
+                        title:
+                            '${localizations.navPeople} · ${peopleHits.length}',
+                      ),
+                      AppCard(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: <Widget>[
+                            for (int i = 0; i < peopleHits.length; i++)
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  ListTile(
+                                    leading:
+                                        PersonAvatar.of(peopleHits[i].person),
+                                    title: Text(peopleHits[i].person.name),
+                                    onTap: () => context.push(
+                                      AppRoutes.personPath(
+                                        peopleHits[i].person.id,
+                                      ),
+                                    ),
+                                  ),
+                                  if (i != peopleHits.length - 1)
+                                    const AppDivider(indent: 70),
+                                ],
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                    ],
                     if (debtHits.isNotEmpty) ...<Widget>[
                       SectionHeader(
                         title:
@@ -224,8 +275,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (view.debt.title.toLowerCase().contains(needle)) return true;
     final String? note = view.debt.note;
     if (note != null && note.toLowerCase().contains(needle)) return true;
-    final String? phone = view.person?.phone;
-    if (phone != null && phone.toLowerCase().contains(needle)) return true;
+    // Every participant, not just the first: a shared record has to be findable
+    // by any of the people it is with, and by their numbers.
+    for (final Person person in view.participants) {
+      if (person.name.toLowerCase().contains(needle)) return true;
+      final String? phone = person.phone;
+      if (phone != null && phone.toLowerCase().contains(needle)) return true;
+    }
     return false;
   }
 

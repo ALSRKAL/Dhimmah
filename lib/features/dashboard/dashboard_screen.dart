@@ -63,12 +63,20 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // One pass over what is urgent, then the schedule, then history. The
           // attention list absorbs the old "upcoming" strip because the two
           // showed the same records at different levels of urgency.
-          final List<AttentionItem> attention = AttentionList.build(
+          // Built once without a cap: the two figures above the list must sum
+          // every item — including the obligations the debt-only totals used to
+          // skip — while the list itself still shows only the most urgent few.
+          final List<AttentionItem> allAttention = AttentionList.build(
             debts: data.upcoming,
             obligations: data.upcomingObligations,
             asOf: asOf,
             windowDays: dueSoonWindowDays,
+            limit: null,
           );
+          final List<AttentionItem> attention =
+              allAttention.take(5).toList(growable: false);
+          final ({int overdueMinor, int dueSoonMinor}) attentionTotals =
+              AttentionList.totalsFor(allAttention, currency);
           final Set<String> attentionObligations = <String>{
             for (final AttentionItem item in attention)
               if (item.obligationId != null) item.obligationId!,
@@ -131,7 +139,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 SliverToBoxAdapter(
                   child: _NeedsAttention(
                     items: attention,
-                    totals: totals,
+                    overdue: Money(attentionTotals.overdueMinor, currency),
+                    dueSoon: Money(attentionTotals.dueSoonMinor, currency),
                     onViewAll: () =>
                         context.push('${AppRoutes.records}?filter=active'),
                   ),
@@ -289,12 +298,17 @@ class _RecentActivity extends StatelessWidget {
 class _NeedsAttention extends StatelessWidget {
   const _NeedsAttention({
     required this.items,
-    required this.totals,
+    required this.overdue,
+    required this.dueSoon,
     required this.onViewAll,
   });
 
   final List<AttentionItem> items;
-  final CurrencyTotals totals;
+
+  /// Summed from [items] themselves — debts and obligations alike — so the
+  /// figures always equal what the list below them shows.
+  final Money overdue;
+  final Money dueSoon;
   final VoidCallback onViewAll;
 
   @override
@@ -321,10 +335,10 @@ class _NeedsAttention extends StatelessWidget {
             action: items.isEmpty ? null : onViewAll,
             actionLabel: items.isEmpty ? null : localizations.dashboardViewAll,
           ),
-          if (items.isNotEmpty && !totals.isEmpty)
+          if (items.isNotEmpty && !(overdue.isZero && dueSoon.isZero))
             Padding(
               padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: _AttentionAmounts(totals: totals),
+              child: _AttentionAmounts(overdue: overdue, dueSoon: dueSoon),
             ),
           if (items.isEmpty)
             AppCard(
@@ -381,9 +395,10 @@ class _NeedsAttention extends StatelessWidget {
 /// This is what the old pair of dashboard tiles said, said once, next to the
 /// list of the records that make it up.
 class _AttentionAmounts extends StatelessWidget {
-  const _AttentionAmounts({required this.totals});
+  const _AttentionAmounts({required this.overdue, required this.dueSoon});
 
-  final CurrencyTotals totals;
+  final Money overdue;
+  final Money dueSoon;
 
   @override
   Widget build(BuildContext context) {
@@ -408,14 +423,10 @@ class _AttentionAmounts extends StatelessWidget {
       spacing: AppSpacing.lg,
       runSpacing: AppSpacing.xs,
       children: <Widget>[
-        if (totals.overdueMinor > 0)
-          figure(localizations.dashboardOverdue, totals.overdue, palette.overdue),
-        if (totals.dueSoonMinor > 0)
-          figure(
-            localizations.dashboardDueSoon,
-            totals.dueSoon,
-            palette.dueSoon,
-          ),
+        if (!overdue.isZero)
+          figure(localizations.dashboardOverdue, overdue, palette.overdue),
+        if (!dueSoon.isZero)
+          figure(localizations.dashboardDueSoon, dueSoon, palette.dueSoon),
       ],
     );
   }

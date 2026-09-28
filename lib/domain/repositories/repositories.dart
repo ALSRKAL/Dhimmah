@@ -50,6 +50,9 @@ abstract interface class DebtRepository {
 
   Future<void> save(Debt debt);
 
+  /// Replaces who a record is with, leaving every other field alone.
+  Future<void> setParticipants(String debtId, List<String> personIds);
+
   Future<void> setArchived(String id, {required bool archived});
 
   /// Stamps or clears the moment the balance reached zero.
@@ -137,8 +140,6 @@ abstract interface class ReminderRepository {
     ReminderStatus status, {
     DateTime? completedAt,
   });
-
-  Future<void> setNotificationId(String id, int? notificationId);
 
   Future<void> delete(String id);
 }

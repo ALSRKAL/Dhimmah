@@ -48,7 +48,17 @@ class AppSheet extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final EdgeInsets viewInsets = MediaQuery.viewInsetsOf(context);
 
-    return Padding(
+    // The sheet has to *fit*: a tall body (the restore preview with its modes
+    // and notes) used to push the primary button below the screen, where it
+    // could not be reached at all — the restore could be read but not
+    // confirmed. Constraining the column makes the body scroll inside the space
+    // that the header and the primary action leave, on every screen.
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height -
+            MediaQuery.paddingOf(context).vertical,
+      ),
+      child: Padding(
       padding: EdgeInsets.only(bottom: viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -155,6 +165,7 @@ class AppSheet extends StatelessWidget {
               ),
             ),
         ],
+      ),
       ),
     );
   }

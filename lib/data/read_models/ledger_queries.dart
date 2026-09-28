@@ -55,6 +55,7 @@ class LedgerQueries {
       <TableInfo<Table, dynamic>>[
         _db.people,
         _db.debts,
+        _db.debtPeople,
         _db.payments,
         _db.obligations,
         _db.obligationOccurrences,
@@ -122,7 +123,7 @@ class LedgerQueries {
         DebtCalculator.buildViewFromTotals(
           debt: debt,
           totals: data.totalsByDebt[debt.id] ?? const PaymentTotals.none(),
-          person: debt.personId == null ? null : data.people[debt.personId],
+          participants: _participantsOf(data, debt),
           asOf: asOf,
           dueSoonWindowDays: dueSoonWindowDays,
         ),
@@ -130,6 +131,12 @@ class LedgerQueries {
     }
     return views;
   }
+
+  /// Resolves the people a record is with, in the order the user chose them.
+  static List<Person> _participantsOf(_LedgerData data, Debt debt) => <Person>[
+        for (final String id in debt.personIds)
+          if (data.people[id] != null) data.people[id]!,
+      ];
 
   /// The whole dashboard in one snapshot.
   Stream<DashboardSnapshot> watchDashboard({
@@ -247,11 +254,16 @@ class LedgerQueries {
     return _watch(() async {
       final _LedgerData data = await _readLedger();
       final List<DebtView> views = _viewsOf(data, dueSoonWindowDays, asOf);
+      // Keyed by every participant, not by one person per record: a record with
+      // several people belongs on each of their pages, where it reads as one of
+      // their own debts. It is still one record — the ledger, the dashboard and
+      // the report count it once, because they walk the records and not the
+      // pages.
       final Map<String, List<DebtView>> byPerson = <String, List<DebtView>>{};
       for (final DebtView view in views) {
-        final String? personId = view.debt.personId;
-        if (personId == null) continue;
-        byPerson.putIfAbsent(personId, () => <DebtView>[]).add(view);
+        for (final Person person in view.participants) {
+          byPerson.putIfAbsent(person.id, () => <DebtView>[]).add(view);
+        }
       }
 
       final List<PersonDirectoryEntry> entries = <PersonDirectoryEntry>[];
@@ -285,7 +297,7 @@ class LedgerQueries {
     });
   }
 
-  /// One person's full ledger, including the debts recorded without them.
+  /// One person's page: every record linked to them, resolved in one pass.
   Stream<PersonLedger?> watchPersonLedger(
     String personId, {
     required int dueSoonWindowDays,
@@ -295,13 +307,25 @@ class LedgerQueries {
       final Person? person = await people.getById(personId);
       if (person == null) return null;
       final List<Debt> personDebts = await debts.forPerson(personId);
+      // Only the people actually on this page, each read once: a person's page
+      // is a handful of records, and scanning the whole directory to name two
+      // participants would be a read that grows with the ledger rather than
+      // with the screen.
+      final Map<String, Person> peopleById = await _resolvePeople(
+        <String>{
+          for (final Debt debt in personDebts) ...debt.personIds,
+        },
+      );
       final List<DebtView> views = <DebtView>[];
       for (final Debt debt in personDebts) {
         views.add(
           DebtCalculator.buildView(
             debt: debt,
             payments: await payments.forDebt(debt.id),
-            person: person,
+            participants: <Person>[
+              for (final String id in debt.personIds)
+                if (peopleById[id] != null) peopleById[id]!,
+            ],
             asOf: asOf,
             dueSoonWindowDays: dueSoonWindowDays,
           ),
@@ -330,12 +354,15 @@ class LedgerQueries {
       final Debt? debt = await debts.getById(debtId);
       if (debt == null) return null;
       final List<Payment> debtPayments = await payments.forDebt(debtId);
-      final Person? person =
-          debt.personId == null ? null : await people.getById(debt.personId!);
+      final Map<String, Person> peopleById =
+          await _resolvePeople(debt.personIds.toSet());
       final DebtView view = DebtCalculator.buildView(
         debt: debt,
         payments: debtPayments,
-        person: person,
+        participants: <Person>[
+          for (final String id in debt.personIds)
+            if (peopleById[id] != null) peopleById[id]!,
+        ],
         asOf: asOf,
         dueSoonWindowDays: dueSoonWindowDays,
       );
@@ -348,6 +375,16 @@ class LedgerQueries {
         activity: entries,
       );
     });
+  }
+
+  /// Reads a set of people by id, one query each.
+  Future<Map<String, Person>> _resolvePeople(Set<String> ids) async {
+    final Map<String, Person> out = <String, Person>{};
+    for (final String id in ids) {
+      final Person? person = await people.getById(id);
+      if (person != null) out[id] = person;
+    }
+    return out;
   }
 
   /// Reminders with their status resolved against today.

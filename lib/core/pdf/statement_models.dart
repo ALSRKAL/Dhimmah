@@ -164,7 +164,10 @@ class StatementData {
   /// The earliest due date still outstanding, when there is one.
   final DateTime? dueAt;
 
+  /// Every record this statement covers, one line each, and what the totals are
+  /// the sum of.
   final List<StatementDebtLine> debts;
+
   final List<StatementEntry> entries;
   final StatementOptions options;
   final String? notes;

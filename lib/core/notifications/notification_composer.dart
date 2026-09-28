@@ -1,5 +1,3 @@
-import 'package:meta/meta.dart';
-
 import '../../domain/services/notification_planner.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../formatting/app_formatting.dart';
@@ -19,6 +17,10 @@ enum NotificationPriority {
 
   /// A summary; nothing to do.
   digest,
+
+  /// The app itself needs the user: a backup that cannot be written, or a
+  /// folder it can no longer reach.
+  alert,
 }
 
 /// A notification ready to hand to the operating system.
@@ -77,10 +79,24 @@ class NotificationComposer {
   }
 
   /// Composes a whole batch, identifying each notification by what it is about.
+  ///
+  /// Two records can, in principle, hash to the same 31-bit id, and Android
+  /// answers a repeated id by *replacing* — so a collision would silently drop
+  /// one reminder. The ids are therefore made distinct here, deterministically:
+  /// a clashing notification is re-hashed from its identity with a counter
+  /// appended, so the same ledger always produces the same ids and two records
+  /// can never share one.
   List<ComposedNotification> composeAll(List<NotificationIntent> intents) {
     final List<ComposedNotification> out = <ComposedNotification>[];
+    final Set<int> taken = <int>{};
     for (final NotificationIntent intent in intents) {
-      out.add(compose(intent, idFor(intent)));
+      int id = idFor(intent);
+      int attempt = 0;
+      while (!taken.add(id)) {
+        attempt++;
+        id = _hash('${_identity(intent)}#$attempt');
+      }
+      out.add(compose(intent, id));
     }
     return out;
   }
@@ -90,10 +106,12 @@ class NotificationComposer {
   /// The identity is the record, the kind of reminder and the moment it is for:
   /// exactly the three things that make two notifications the same notification.
   /// A 31-bit FNV-1a hash of that string, which is what Android's id needs to be.
-  @visibleForTesting
-  static int idFor(NotificationIntent intent) {
-    final String identity =
-        '${intent.payload}|${intent.kind.name}|${intent.when.toIso8601String()}';
+  static int idFor(NotificationIntent intent) => _hash(_identity(intent));
+
+  static String _identity(NotificationIntent intent) =>
+      '${intent.payload}|${intent.kind.name}|${intent.when.toIso8601String()}';
+
+  static int _hash(String identity) {
     int hash = 0x811c9dc5;
     for (final int unit in identity.codeUnits) {
       hash = (hash ^ unit) & 0xFFFFFFFF;
@@ -120,6 +138,7 @@ class NotificationComposer {
             ? NotificationPriority.now
             : NotificationPriority.soon,
       NotificationKind.monthEndSummary => NotificationPriority.digest,
+      NotificationKind.backupProblem => NotificationPriority.alert,
     };
   }
 
@@ -131,11 +150,16 @@ class NotificationComposer {
         NotificationKind.obligationOverdue => localizations.notifOverdueTitle,
         NotificationKind.reminderDue => localizations.notifReminderTitle,
         NotificationKind.monthEndSummary => localizations.notifMonthEndTitle,
+        NotificationKind.backupProblem => localizations.backupAlertTitle,
       };
 
   String _body(NotificationIntent intent) {
     if (intent.kind == NotificationKind.monthEndSummary) {
       return _summaryBody(intent);
+    }
+
+    if (intent.kind == NotificationKind.backupProblem) {
+      return localizations.backupAlertBody;
     }
 
     if (intent.kind == NotificationKind.reminderDue) {

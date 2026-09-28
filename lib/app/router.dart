@@ -18,6 +18,7 @@ import '../features/reminders/reminders_screen.dart';
 import '../features/reports/reports_screen.dart';
 import '../features/search/search_screen.dart';
 import '../features/settings/about_screen.dart';
+import '../features/settings/backup_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/shell/more_screen.dart';
@@ -39,6 +40,7 @@ abstract final class AppRoutes {
   static const String obligations = '/obligations';
   static const String more = '/more';
 
+  static const String backup = '/backup';
   static const String personNew = '/people/new';
   static const String personDetail = '/people/:id';
   static const String personEdit = '/people/:id/edit';
@@ -169,6 +171,11 @@ GoRouter buildRouter({
         ],
       ),
       GoRoute(
+        path: AppRoutes.backup,
+        builder: (BuildContext context, GoRouterState state) =>
+            const BackupScreen(),
+      ),
+      GoRoute(
         path: AppRoutes.personNew,
         builder: (BuildContext context, GoRouterState state) =>
             const PersonFormScreen(),
@@ -186,13 +193,12 @@ GoRouter buildRouter({
       GoRoute(
         path: AppRoutes.debtNew,
         builder: (BuildContext context, GoRouterState state) {
-          final String? direction = state.uri.queryParameters['direction'];
+          // Only what the route actually said: no side is a question for the
+          // form to ask, not a default for it to assume.
           return DebtFormScreen(
-            direction: direction == null
-                ? DebtDirection.iOwe
-                : (direction == DebtDirection.owedToMe.name
-                    ? DebtDirection.owedToMe
-                    : DebtDirection.iOwe),
+            direction: DebtDirection.fromName(
+              state.uri.queryParameters['direction'],
+            ),
             personId: state.uri.queryParameters['person'],
           );
         },

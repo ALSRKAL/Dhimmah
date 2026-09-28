@@ -269,63 +269,71 @@ class _Keypad extends StatelessWidget {
       );
     }
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        for (final List<String> row in <List<String>>[
-          <String>['1', '2', '3'],
-          <String>['4', '5', '6'],
-          <String>['7', '8', '9'],
-        ])
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                for (final String digit in row)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.xs,
-                    ),
-                    child: key(
-                      digit,
-                      onTap: onDigit == null
-                          ? null
-                          : () => onDigit!(int.parse(digit)),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
+    // A dialer is not mirrored: 1 sits at the top left in every language —
+    // the same convention PinKeypad fixes at its own call site. Left to the
+    // ambient RTL direction this grid printed 3 2 1 across the top row
+    // (measured on the device), which is what a person sees while they are
+    // trying to set a code on their own ledger.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          for (final List<String> row in <List<String>>[
+            <String>['1', '2', '3'],
+            <String>['4', '5', '6'],
+            <String>['7', '8', '9'],
+          ])
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              child: SizedBox(width: 72, height: 60),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              child: key(
-                '0',
-                onTap: onDigit == null ? null : () => onDigit!(0),
+              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  for (final String digit in row)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.xs,
+                      ),
+                      child: key(
+                        digit,
+                        onTap: onDigit == null
+                            ? null
+                            : () => onDigit!(int.parse(digit)),
+                      ),
+                    ),
+                ],
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              child: key(
-                '',
-                onTap: onBackspace,
-                child: Icon(
-                  Icons.backspace_outlined,
-                  size: 20,
-                  color: palette.textSecondary,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                child: SizedBox(width: 72, height: 60),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                child: key(
+                  '0',
+                  onTap: onDigit == null ? null : () => onDigit!(0),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+                child: key(
+                  '',
+                  onTap: onBackspace,
+                  child: Icon(
+                    Icons.backspace_outlined,
+                    size: 20,
+                    color: palette.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

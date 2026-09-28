@@ -412,6 +412,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get deleteConfirmBody => 'This cannot be undone.';
 
   @override
+  String get deleteUndoableBody =>
+      'The debt will be deleted. You can undo this for a few seconds.';
+
+  @override
+  String get recordGone => 'This record no longer exists.';
+
+  @override
   String get deleteConfirmTitle => 'Delete this record?';
 
   @override
@@ -798,11 +805,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get notifChannelDueName => 'Due now';
 
   @override
-  String get notifChannelRemindersBody =>
-      'Alerts before a debt or obligation falls due';
+  String get notifChannelBackupName => 'Backup problem';
 
   @override
-  String get notifChannelRemindersName => 'Due date reminders';
+  String get notifChannelBackupBody =>
+      'An alert when Dhimmah cannot save a copy of your data';
+
+  @override
+  String get backupAlertTitle => 'Backups need your attention';
+
+  @override
+  String get backupAlertBody =>
+      'Dhimmah could not save a copy of your changes. Your data is saved inside the app, and it will try again on its own.';
 
   @override
   String get notifChannelSummaryBody =>
@@ -1770,7 +1784,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unitYear => 'year';
 
   @override
-  String get unknownPerson => 'Unnamed';
+  String get unknownPerson => 'Untitled';
 
   @override
   String get updateAvailableBody =>
@@ -1852,4 +1866,636 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get validationTitleTooLong => 'That description is too long.';
+
+  @override
+  String debtFormWithPerson(String name) {
+    return 'Debt with $name';
+  }
+
+  @override
+  String debtSavedMoved(String side) {
+    return 'Saved. The debt moved to “$side”.';
+  }
+
+  @override
+  String debtSavedParticipantRemoved(String name) {
+    return 'Saved. No longer linked to $name.';
+  }
+
+  @override
+  String get fieldPeople => 'People';
+
+  @override
+  String get fieldPersonPlaceholder => 'Choose one or more people';
+
+  @override
+  String get participantsAdd => 'Add a person';
+
+  @override
+  String get participantsAddMore => 'Add more people';
+
+  @override
+  String get participantsSearchHint => 'Search for a person';
+
+  @override
+  String get participantsSelected => 'Selected';
+
+  @override
+  String requiredFieldsMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count required fields are still missing.',
+      one: 'One required field is still missing.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get unsavedChangesBody => 'Your changes are not saved. Leave anyway?';
+
+  @override
+  String get unsavedChangesLeave => 'Leave without saving';
+
+  @override
+  String get unsavedChangesStay => 'Keep editing';
+
+  @override
+  String get unsavedChangesTitle => 'Unsaved changes';
+
+  @override
+  String get validationSelectDirection =>
+      'Choose the debt type: I owe, or owed to me.';
+
+  @override
+  String get validationSelectParticipant => 'Choose at least one person.';
+
+  @override
+  String get reminderNotArmedOff =>
+      'Reminders are switched off in Settings, so this record will not notify you.';
+
+  @override
+  String get reminderNotArmedDenied =>
+      'Notifications are blocked by the system, so this record will not notify you.';
+
+  @override
+  String get settingsBackup => 'Backup and restore';
+
+  @override
+  String get backupSectionHint =>
+      'A copy of everything, in one file you can keep.';
+
+  @override
+  String get backupAutoTitle => 'Automatic backup';
+
+  @override
+  String get backupAutoStateOn => 'On';
+
+  @override
+  String get backupAutoStateOff => 'Off';
+
+  @override
+  String get backupAutoOnBody =>
+      'Dhimmah saves your changes on its own after every important change, and when you leave the app.';
+
+  @override
+  String get backupAutoOffBody =>
+      'Your current data is saved inside the app. No new copies will be made on their own until you turn it back on.';
+
+  @override
+  String get backupDetailAutomatic => 'Automatic saving';
+
+  @override
+  String get backupDetailLastCopy => 'Last copy';
+
+  @override
+  String get backupDetailRestorable => 'Copies to restore';
+
+  @override
+  String get backupDetailPending => 'Unsaved changes';
+
+  @override
+  String get backupDetailFolder => 'Backup folder';
+
+  @override
+  String get backupDetailAttempts => 'Failed attempts';
+
+  @override
+  String get backupHistoryLatest => 'Latest copy';
+
+  @override
+  String get backupHistoryVerified => 'Verified';
+
+  @override
+  String get backupFolderTitle => 'Backup folder';
+
+  @override
+  String get backupFolderSetupTitle => 'Set up a place for your backups';
+
+  @override
+  String get backupFolderSetupBody =>
+      'Dhimmah will use this folder to save backups, and to open them directly when restoring.';
+
+  @override
+  String get backupFolderChoose => 'Choose the backup folder';
+
+  @override
+  String get backupFolderChange => 'Change folder';
+
+  @override
+  String get backupFolderCheck => 'Check now';
+
+  @override
+  String get backupFolderLater => 'Later';
+
+  @override
+  String get backupFolderAvailable => 'Available';
+
+  @override
+  String get backupFolderMissing => 'The backup folder is not available';
+
+  @override
+  String get backupFolderLostAccess =>
+      'The app can no longer reach this folder: access was removed, or the folder was moved or deleted.';
+
+  @override
+  String get backupFolderReauthorize => 'Allow access again';
+
+  @override
+  String backupFolderBackupsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count valid backups',
+      one: 'One valid backup',
+      zero: 'No valid backups',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupFolderEmpty => 'No backups in this folder';
+
+  @override
+  String get backupFolderConfirmTitle => 'Use this folder?';
+
+  @override
+  String get backupFolderConfirmBody =>
+      'A “Dhimmah Backups” folder cannot be created here. Save the backups in the folder you picked?';
+
+  @override
+  String get backupFolderUseIt => 'Use this folder';
+
+  @override
+  String get backupFolderDecline => 'Choose another folder';
+
+  @override
+  String backupFolderInvalidNote(int count) {
+    return 'Files that look like backups but are not valid: $count';
+  }
+
+  @override
+  String get backupFolderNotWritable => 'The folder is read-only';
+
+  @override
+  String get backupFolderError => 'The folder could not be reached';
+
+  @override
+  String get backupFolderVerifying => 'Checking the folder';
+
+  @override
+  String get backupHistoryInternal => 'Inside the app';
+
+  @override
+  String get backupHistoryFolder => 'In the backup folder';
+
+  @override
+  String get backupExternalDeleted => 'Deleted from the folder';
+
+  @override
+  String get backupExternalDeleteFailed =>
+      'Could not delete it from the folder';
+
+  @override
+  String get backupNowAction => 'Save an external copy';
+
+  @override
+  String get backupSaveExternalBody =>
+      'A file you keep, in a place you choose.';
+
+  @override
+  String get backupShareTile => 'Share the copy';
+
+  @override
+  String get backupShareTileBody => 'Send a copy to another app.';
+
+  @override
+  String get backupExternalSaved => 'The copy was saved and verified';
+
+  @override
+  String backupExternalSavedBody(String name, String size) {
+    return 'File: $name · $size';
+  }
+
+  @override
+  String get backupExternalFailedWrite =>
+      'The file could not be written to the place you chose';
+
+  @override
+  String get backupExternalFailedReadBack =>
+      'The file was written but could not be verified afterwards';
+
+  @override
+  String get backupExternalFailedIncomplete =>
+      'The saved file is empty or incomplete';
+
+  @override
+  String get backupExternalFailedInvalid =>
+      'The saved file did not pass the content check';
+
+  @override
+  String get backupExternalFailedUnavailable =>
+      'This device offers no way to choose where to save';
+
+  @override
+  String get backupRestoreAction => 'Restore from a file';
+
+  @override
+  String get backupPreviousAction => 'Previous backups';
+
+  @override
+  String backupCopiesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count copies',
+      one: 'One copy',
+      zero: 'No copies',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupPreviousTitle => 'Previous backups';
+
+  @override
+  String get backupPreviousEmpty => 'No backups are stored on this device.';
+
+  @override
+  String get backupProtectionProtected => 'Your data is protected';
+
+  @override
+  String get backupProtectionPending => 'Some changes are waiting to be saved';
+
+  @override
+  String get backupProtectionBackingUp => 'Saving your changes';
+
+  @override
+  String get backupProtectionNever => 'Your data is not protected yet';
+
+  @override
+  String get backupProtectionRecoverable => 'A copy can be restored';
+
+  @override
+  String get backupProtectionAttention => 'Backups need your attention';
+
+  @override
+  String get backupProtectionStorage =>
+      'Could not write to the backup location';
+
+  @override
+  String get backupProtectionNoLocation => 'No permanent backup location yet';
+
+  @override
+  String backupProtectionLastSuccess(String when) {
+    return 'Last successful copy · $when';
+  }
+
+  @override
+  String get backupProtectionNeverWorked => 'No copy has been saved yet';
+
+  @override
+  String get backupProtectionDetails => 'Protection details';
+
+  @override
+  String get backupProtectionHideDetails => 'Hide details';
+
+  @override
+  String backupProtectionCopiesInside(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count copies inside the app',
+      one: 'One copy inside the app',
+      zero: 'Nothing inside the app',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupProtectionCopiesOutside(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count in your folder',
+      one: 'one in your folder',
+      zero: 'none in your folder',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupProtectionWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count records',
+      one: 'One record',
+      zero: 'No records',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupProtectionFolderNone => 'Not chosen yet';
+
+  @override
+  String get backupProtectionAutoOff => 'Automatic saving is off';
+
+  @override
+  String backupProtectionFailedTimes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count times',
+      one: 'once',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupProtectionDataSafe =>
+      'Your current data is saved inside the app and is unaffected.';
+
+  @override
+  String get backupProtectionHowTitle => 'How Dhimmah protects your data';
+
+  @override
+  String get backupProtectionHowBody =>
+      'Dhimmah saves a copy of your changes on its own, and verifies every copy by reading it back after it is written. It keeps enough recovery points to step back, and never deletes a copy you made by hand. A restore never starts without your confirmation, and a safety copy of your current data is taken first. If saving fails, the data inside the app is left exactly as it is.';
+
+  @override
+  String get backupEntryAuto => 'Automatic';
+
+  @override
+  String get backupEntryManual => 'Manual';
+
+  @override
+  String get backupEntrySafety => 'Taken before a restore';
+
+  @override
+  String get backupShareAction => 'Share';
+
+  @override
+  String get backupDeleteAction => 'Delete';
+
+  @override
+  String get backupDeleted => 'Backup deleted';
+
+  @override
+  String get backupDeleteFailed =>
+      'The backup could not be deleted, and is still listed';
+
+  @override
+  String get backupCreated => 'Backup created';
+
+  @override
+  String get backupStepReading => 'Reading the records';
+
+  @override
+  String get backupStepBuilding => 'Preparing the copy';
+
+  @override
+  String get backupStepHashing => 'Computing its fingerprint';
+
+  @override
+  String get backupStepWriting => 'Writing the file';
+
+  @override
+  String get backupStepVerifying => 'Reading it back to verify it';
+
+  @override
+  String get backupStepRetaining => 'Tidying older copies';
+
+  @override
+  String get restoreStepReading => 'Reading the file';
+
+  @override
+  String get restoreStepDecoding => 'Decoding the file';
+
+  @override
+  String get restoreStepChecking => 'Checking the file’s integrity';
+
+  @override
+  String get restoreStepValidating => 'Checking the data';
+
+  @override
+  String get restoreStepPlanning => 'Working out what will be written';
+
+  @override
+  String get restoreStepSnapshot => 'Taking a safety copy of your current data';
+
+  @override
+  String get restoreStepWriting => 'Writing the data';
+
+  @override
+  String get restoreStepVerifying => 'Verifying the result';
+
+  @override
+  String get restoreStepRebuilding => 'Rebuilding the schedule and reminders';
+
+  @override
+  String get backupCreateFailed => 'The backup could not be created';
+
+  @override
+  String get backupRestoreTitle => 'Restore a backup';
+
+  @override
+  String get backupRestoreQuestion => 'Restore this data?';
+
+  @override
+  String get backupRestoreFrom => 'A backup from';
+
+  @override
+  String backupRestoreCounts(int people, int debts, int payments) {
+    String _temp0 = intl.Intl.pluralLogic(
+      people,
+      locale: localeName,
+      other: '$people people',
+      one: 'One person',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      debts,
+      locale: localeName,
+      other: '$debts debts',
+      one: 'One debt',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      payments,
+      locale: localeName,
+      other: '$payments payments',
+      one: 'One payment',
+    );
+    return '$_temp0 · $_temp1 · $_temp2';
+  }
+
+  @override
+  String backupRestoreMore(int obligations, int reminders, int links) {
+    String _temp0 = intl.Intl.pluralLogic(
+      obligations,
+      locale: localeName,
+      other: '$obligations obligations',
+      one: 'One obligation',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      reminders,
+      locale: localeName,
+      other: '$reminders reminders',
+      one: 'One reminder',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      links,
+      locale: localeName,
+      other: '$links links',
+      one: 'One link',
+    );
+    return '$_temp0 · $_temp1 · $_temp2';
+  }
+
+  @override
+  String backupRestoreLastChange(String when) {
+    return 'Last change in the file: $when';
+  }
+
+  @override
+  String backupRestoreCurrencies(String codes, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Currencies: $codes',
+      one: 'Currency: $codes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupRestoreUnencrypted =>
+      'This file is not encrypted: anyone who opens it can read your data.';
+
+  @override
+  String get backupRestoreSafetyNote =>
+      'Dhimmah will back up your current data before restoring, so you can go back.';
+
+  @override
+  String get backupRestoreMode => 'How to restore';
+
+  @override
+  String get backupModeReplace => 'Replace';
+
+  @override
+  String get backupModeReplaceBody =>
+      'The file becomes your data; what is on this device is replaced.';
+
+  @override
+  String get backupModeMerge => 'Merge';
+
+  @override
+  String get backupModeMergeBody =>
+      'New records are added, newer ones update, and anything ambiguous is reported instead of guessed.';
+
+  @override
+  String get backupRestoreConfirm => 'Restore';
+
+  @override
+  String get backupRestoreDone => 'Restored successfully';
+
+  @override
+  String backupRestoreSummary(int people, int debts, int payments) {
+    String _temp0 = intl.Intl.pluralLogic(
+      people,
+      locale: localeName,
+      other: '$people people',
+      one: 'One person',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      debts,
+      locale: localeName,
+      other: '$debts debts',
+      one: 'One debt',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      payments,
+      locale: localeName,
+      other: '$payments payments',
+      one: 'One payment',
+    );
+    return '$_temp0 · $_temp1 · $_temp2';
+  }
+
+  @override
+  String backupRestoreSkipped(int count) {
+    return 'Already present: $count';
+  }
+
+  @override
+  String get backupRestoreConflictsTitle => 'Records that need a look';
+
+  @override
+  String backupRestoreConflictsBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other:
+          '$count records differ in the backup and were not newer; the ones you have were kept.',
+      one:
+          'One record differs in the backup and was not newer; the one you have was kept.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupRestoreFailed =>
+      'The restore failed, and your data is unchanged.';
+
+  @override
+  String get backupRestoreInvalid =>
+      'This backup could not be restored because the file is invalid or damaged.';
+
+  @override
+  String get backupRestoreNotOurs => 'This file is not a valid Dhimmah backup.';
+
+  @override
+  String get backupRestoreTooNew =>
+      'This backup comes from a newer version of the app. Update Dhimmah and try again.';
+
+  @override
+  String get backupRestoreContinue => 'Continue to Dhimmah';
+
+  @override
+  String get backupFoundTitle => 'We found a backup';
+
+  @override
+  String get backupFoundBody =>
+      'There is no data on this device, and a saved copy can be restored.';
+
+  @override
+  String get backupPrivacyTitle => 'Where are backups kept?';
+
+  @override
+  String get backupPrivacyBody =>
+      'Automatic copies live inside the app and nothing else can read them. When you share one, you choose the place — Files, Drive or another — and the file is not encrypted. Deleting the app deletes the copies inside it, so keep a copy off the device if the data matters.';
+
+  @override
+  String get backupSeparateFromExport =>
+      'Export (CSV and JSON) is for reading and analysis, and is not used for restoring. The backup is what comes back.';
 }

@@ -25,6 +25,7 @@ class AppSettings {
     required this.lockEnabled,
     required this.biometricEnabled,
     required this.onboardingCompleted,
+    this.backupAutoEnabled = true,
     this.lastExportedAt,
     this.lastSummarySentOn,
   });
@@ -91,6 +92,9 @@ class AppSettings {
 
   // --- Lifecycle -----------------------------------------------------------
   final bool onboardingCompleted;
+
+  /// Whether the app takes its own snapshots as the ledger changes.
+  final bool backupAutoEnabled;
   final DateTime? lastExportedAt;
 
   bool get hasPasscodeConfigured => lockEnabled;
@@ -115,6 +119,7 @@ class AppSettings {
     bool? lockEnabled,
     bool? biometricEnabled,
     bool? onboardingCompleted,
+    bool? backupAutoEnabled,
     Object? lastSummarySentOn = _unset,
     Object? lastExportedAt = _unset,
   }) {
@@ -136,6 +141,7 @@ class AppSettings {
       lockEnabled: lockEnabled ?? this.lockEnabled,
       biometricEnabled: biometricEnabled ?? this.biometricEnabled,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      backupAutoEnabled: backupAutoEnabled ?? this.backupAutoEnabled,
       lastSummarySentOn: identical(lastSummarySentOn, _unset)
           ? this.lastSummarySentOn
           : lastSummarySentOn as DateTime?,
@@ -145,6 +151,19 @@ class AppSettings {
     );
   }
 
+  /// Every field, and that is not a formality.
+  ///
+  /// This used to leave out `backupAutoEnabled` and `defaultReminderLeads`, and
+  /// the omission was not a cosmetic one: a value object that says two different
+  /// settings are equal makes every consumer that compares with `==` skip its
+  /// work. Turning automatic saving off wrote the database, the row streamed
+  /// back, and the screen kept showing "on" — because the new settings compared
+  /// equal to the old ones and nothing downstream was told anything had changed.
+  /// A restart was the only way to see the truth.
+  ///
+  /// The rule this now follows: a field that is not in `==` is a field the app
+  /// cannot react to. `test/domain/app_settings_equality_test.dart` walks every
+  /// field so the next one added cannot be forgotten.
   @override
   bool operator ==(Object other) =>
       other is AppSettings &&
@@ -155,6 +174,7 @@ class AppSettings {
       other.notificationsEnabled == notificationsEnabled &&
       other.notificationHour == notificationHour &&
       other.notificationMinute == notificationMinute &&
+      _sameLeads(other.defaultReminderLeads, defaultReminderLeads) &&
       other.monthEndSummaryEnabled == monthEndSummaryEnabled &&
       other.monthEndDay == monthEndDay &&
       other.monthEndHour == monthEndHour &&
@@ -163,6 +183,7 @@ class AppSettings {
       other.lockEnabled == lockEnabled &&
       other.biometricEnabled == biometricEnabled &&
       other.onboardingCompleted == onboardingCompleted &&
+      other.backupAutoEnabled == backupAutoEnabled &&
       other.lastSummarySentOn == lastSummarySentOn &&
       other.lastExportedAt == lastExportedAt;
 
@@ -175,6 +196,7 @@ class AppSettings {
         notificationsEnabled,
         notificationHour,
         notificationMinute,
+        Object.hashAll(defaultReminderLeads),
         monthEndSummaryEnabled,
         monthEndDay,
         monthEndHour,
@@ -183,9 +205,23 @@ class AppSettings {
         lockEnabled,
         biometricEnabled,
         onboardingCompleted,
+        backupAutoEnabled,
         lastSummarySentOn,
         lastExportedAt,
       );
+
+  /// Element-wise, because the list is read back from the database each time and
+  /// two reads are never the same object. Comparing identity would make every
+  /// emission look like a change; comparing nothing at all — which is what the
+  /// old `==` effectively did — makes a real change invisible.
+  static bool _sameLeads(List<ReminderLead> a, List<ReminderLead> b) {
+    if (identical(a, b)) return true;
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
 }
 
 const Object _unset = Object();

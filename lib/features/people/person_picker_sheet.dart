@@ -13,32 +13,38 @@ import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/person.dart';
 import '../../l10n/generated/app_localizations.dart';
 
-/// Picks the person a record belongs to, and can create one on the spot.
+/// Chooses the people a record is with.
 ///
-/// Creating the person inline matters: the moment a user is recording a debt is
-/// exactly when they know who it is for, and sending them to another screen would
-/// break the flow the spec asks for.
-Future<Person?> showPersonPicker(
+/// Multi-select, because one record can be shared: a dinner bill, a group gift,
+/// a car bought between friends. The sheet answers the four things that asks for
+/// — search, a visible selection, a way to drop someone, and a way to add a
+/// person who is not in the list yet — and returns the whole selection at once.
+///
+/// Returns null when the sheet was dismissed, so a caller can tell "nothing
+/// chosen" from "chose nothing".
+Future<List<Person>?> showPeoplePicker(
   BuildContext context, {
-  String? selectedId,
+  required List<Person> selected,
 }) {
-  return showAppSheet<Person>(
+  return showAppSheet<List<Person>>(
     context,
-    child: PersonPickerSheet(selectedId: selectedId),
+    child: PeoplePickerSheet(selected: selected),
   );
 }
 
-class PersonPickerSheet extends ConsumerStatefulWidget {
-  const PersonPickerSheet({this.selectedId, super.key});
+class PeoplePickerSheet extends ConsumerStatefulWidget {
+  const PeoplePickerSheet({required this.selected, super.key});
 
-  final String? selectedId;
+  /// Who is already on the record, in the user's order.
+  final List<Person> selected;
 
   @override
-  ConsumerState<PersonPickerSheet> createState() => _PersonPickerSheetState();
+  ConsumerState<PeoplePickerSheet> createState() => _PeoplePickerSheetState();
 }
 
-class _PersonPickerSheetState extends ConsumerState<PersonPickerSheet> {
+class _PeoplePickerSheetState extends ConsumerState<PeoplePickerSheet> {
   final TextEditingController _search = TextEditingController();
+  late final List<Person> _selected = List<Person>.of(widget.selected);
   bool _creating = false;
 
   @override
@@ -47,9 +53,30 @@ class _PersonPickerSheetState extends ConsumerState<PersonPickerSheet> {
     super.dispose();
   }
 
+  /// Adds a person once, keeping the order they were picked in.
+  void _toggle(Person person) {
+    setState(() {
+      final int index = _selected.indexWhere((Person p) => p.id == person.id);
+      if (index >= 0) {
+        _selected.removeAt(index);
+      } else {
+        _selected.add(person);
+      }
+    });
+  }
+
+  void _add(Person person) {
+    setState(() {
+      if (_selected.every((Person p) => p.id != person.id)) {
+        _selected.add(person);
+      }
+      _creating = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_creating) return _NewPersonForm(onCreated: _returnPerson);
+    if (_creating) return _NewPersonForm(onCreated: _add);
 
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AsyncValue<List<PersonDirectoryEntry>> directory =
@@ -60,26 +87,48 @@ class _PersonPickerSheetState extends ConsumerState<PersonPickerSheet> {
       for (final PersonDirectoryEntry entry
           in directory.value ?? const <PersonDirectoryEntry>[])
         if (!entry.person.isArchived)
-          if (query.isEmpty || entry.person.name.toLowerCase().contains(query))
+          if (query.isEmpty ||
+              entry.person.name.toLowerCase().contains(query) ||
+              (entry.person.phone ?? '').contains(query))
             entry,
     ];
 
     return AppSheet(
-      title: localizations.fieldPerson,
-      subtitle: localizations.fieldPersonHint,
-      primaryLabel: localizations.addPersonAction,
-      onPrimary: () => setState(() => _creating = true),
-      secondaryLabel: localizations.fieldPersonNone,
-      onSecondary: () => Navigator.of(context).pop(),
+      title: localizations.fieldPeople,
+      subtitle: localizations.fieldPersonPlaceholder,
+      primaryLabel: localizations.actionDone,
+      onPrimary: () => Navigator.of(context).pop(_selected),
+      secondaryLabel: localizations.addPersonAction,
+      onSecondary: () => setState(() => _creating = true),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          // The selection is stated above the list, not left to the ticks down
+          // it: a user who has scrolled to find a fourth name can still see who
+          // the first three were.
+          if (_selected.isNotEmpty) ...<Widget>[
+            FieldLabel(localizations.participantsSelected),
+            Wrap(
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
+              children: <Widget>[
+                for (final Person person in _selected)
+                  InputChip(
+                    avatar: PersonAvatar.of(person, size: 24),
+                    label: Text(person.name),
+                    onDeleted: () => _toggle(person),
+                    deleteButtonTooltipMessage: localizations.actionClear,
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+          ],
           TextField(
             controller: _search,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              hintText: localizations.searchHint,
+              hintText: localizations.participantsSearchHint,
               prefixIcon: const Icon(Icons.search, size: 20),
               suffixIcon: _search.text.isEmpty
                   ? null
@@ -118,18 +167,14 @@ class _PersonPickerSheetState extends ConsumerState<PersonPickerSheet> {
             for (final PersonDirectoryEntry entry in entries)
               _PersonOption(
                 person: entry.person,
-                selected: entry.person.id == widget.selectedId,
-                balances: entry.totals,
-                onTap: () => _returnPerson(entry.person),
+                selected: _selected.any(
+                  (Person person) => person.id == entry.person.id,
+                ),
+                onTap: () => _toggle(entry.person),
               ),
         ],
       ),
     );
-  }
-
-  void _returnPerson(Person person) {
-    if (!mounted) return;
-    Navigator.of(context).pop(person);
   }
 }
 
@@ -137,13 +182,11 @@ class _PersonOption extends StatelessWidget {
   const _PersonOption({
     required this.person,
     required this.selected,
-    required this.balances,
     required this.onTap,
   });
 
   final Person person;
   final bool selected;
-  final List<CurrencyTotals> balances;
   final VoidCallback onTap;
 
   @override
@@ -154,26 +197,36 @@ class _PersonOption extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       borderRadius: AppRadius.rMd,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        child: Row(
-          children: <Widget>[
-            PersonAvatar.of(person, size: 40),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                person.name,
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: selected ? palette.brand : palette.textPrimary,
-                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+      child: Semantics(
+        selected: selected,
+        button: true,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          child: Row(
+            children: <Widget>[
+              PersonAvatar.of(person, size: 40),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Text(
+                  person.name,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: selected ? palette.brand : palette.textPrimary,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-            if (selected)
-              Icon(Icons.check, size: 20, color: palette.brand),
-          ],
+              // A tick, not a tint: the state has to survive a greyscale screen.
+              Icon(
+                selected
+                    ? Icons.check_circle
+                    : Icons.radio_button_unchecked,
+                size: 20,
+                color: selected ? palette.brand : palette.borderStrong,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -238,7 +291,9 @@ class _NewPersonFormState extends ConsumerState<_NewPersonForm> {
               label:
                   '${localizations.personPhoneLabel} · ${localizations.fieldOptional}',
               controller: _phone,
-              hint: '+967 7XX XXX XXX',
+              // LTR isolate: the bare hint rendered group-reversed in the
+              // RTL field (see person_form_screen for the device evidence).
+              hint: '\u2066+967 7XX XXX XXX\u2069',
               prefixIcon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
               maxLength: 32,

@@ -38,15 +38,59 @@ abstract final class AppFeedback {
     required VoidCallback onUndo,
     String? undoLabel,
   }) {
-    final AppPalette palette = context.palette;
     _show(
       context,
       message: message,
       icon: Icons.delete_outline,
-      iconColor: palette.textSecondary,
+      iconColor: context.palette.textSecondary,
       actionLabel: undoLabel ?? AppLocalizations.of(context).actionUndo,
       onAction: onUndo,
       duration: const Duration(seconds: 6),
+    );
+  }
+
+  /// A detached confirmation, for a write whose screen unmounted while it ran.
+  ///
+  /// The same shape as [info], for the records that have no undo: obligation
+  /// and person deletion is final, so there is deliberately no action here.
+  static void infoDetached({
+    required ScaffoldMessengerState messenger,
+    required String message,
+    required Color iconColor,
+  }) {
+    _show(
+      null,
+      message: message,
+      icon: Icons.check_circle_outline,
+      iconColor: iconColor,
+      messenger: messenger,
+    );
+  }
+
+  /// The undo offer for a delete whose screen unmounted while the write ran.
+  ///
+  /// Deleting a record rebuilds the screen that listed it without the menu the
+  /// delete started from, so by the time the write returns there is no live
+  /// context to ask for a messenger — on the device that meant the delete
+  /// completed with no pop and no offer. This constructor takes the messenger
+  /// and the two colours, captured before the write, and asks nothing of the
+  /// tree.
+  static void undoableDetached({
+    required ScaffoldMessengerState messenger,
+    required String message,
+    required String undoLabel,
+    required Color iconColor,
+    required VoidCallback onUndo,
+  }) {
+    _show(
+      null,
+      message: message,
+      icon: Icons.delete_outline,
+      iconColor: iconColor,
+      actionLabel: undoLabel,
+      onAction: onUndo,
+      duration: const Duration(seconds: 6),
+      messenger: messenger,
     );
   }
 
@@ -63,16 +107,18 @@ abstract final class AppFeedback {
   }
 
   static void _show(
-    BuildContext context, {
+    BuildContext? context, {
     required String message,
     required IconData icon,
     required Color iconColor,
     String? actionLabel,
     VoidCallback? onAction,
     Duration duration = const Duration(seconds: 3),
+    ScaffoldMessengerState? messenger,
   }) {
-    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
-    messenger
+    final ScaffoldMessengerState target =
+        messenger ?? ScaffoldMessenger.of(context!);
+    target
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(

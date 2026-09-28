@@ -138,6 +138,7 @@ class AmountField extends StatefulWidget {
     this.autofocus = false,
     this.errorText,
     this.enabled = true,
+    this.focusNode,
     super.key,
   });
 
@@ -149,6 +150,9 @@ class AmountField extends StatefulWidget {
   final bool autofocus;
   final String? errorText;
   final bool enabled;
+
+  /// Taken when a save has to send the caret to this field.
+  final FocusNode? focusNode;
 
   @override
   State<AmountField> createState() => _AmountFieldState();
@@ -198,6 +202,7 @@ class _AmountFieldState extends State<AmountField> {
         FieldLabel(widget.label),
         TextFormField(
           controller: _controller,
+          focusNode: widget.focusNode,
           enabled: widget.enabled,
           autofocus: widget.autofocus,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -536,12 +541,20 @@ class ReminderLeadsField extends StatelessWidget {
     required this.label,
     required this.selected,
     required this.onChanged,
+    this.unavailableReason,
     super.key,
   });
 
   final String label;
   final List<ReminderLead> selected;
   final ValueChanged<List<ReminderLead>> onChanged;
+
+  /// Why a chosen reminder will not reach the phone, when that is the case.
+  ///
+  /// "A reminder is set" and "a reminder will arrive" are different statements,
+  /// and a form that offers the first while the second is impossible misleads by
+  /// omission. The reason is stated here, where the choice is made.
+  final String? unavailableReason;
 
   static const List<ReminderLead> _choices = <ReminderLead>[
     ReminderLead.onDueDate,
@@ -555,6 +568,8 @@ class ReminderLeadsField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AppLocalizations localizations = AppLocalizations.of(context);
+    final AppPalette palette = context.palette;
+    final ThemeData theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
@@ -580,6 +595,29 @@ class ReminderLeadsField extends StatelessWidget {
               ),
           ],
         ),
+        if (unavailableReason != null && selected.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Icon(
+                  Icons.notifications_off_outlined,
+                  size: 16,
+                  color: palette.dueSoon,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    unavailableReason!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: palette.dueSoon,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

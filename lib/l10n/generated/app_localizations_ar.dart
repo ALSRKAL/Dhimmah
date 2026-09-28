@@ -279,7 +279,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get dashboardIOweHint => 'إجمالي ما يجب عليّ دفعه';
 
   @override
-  String get dashboardInYourFavour => 'لك';
+  String get dashboardInYourFavour => 'لمصلحتك';
 
   @override
   String get dashboardNetPosition => 'الصافي';
@@ -415,6 +415,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteConfirmBody => 'لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get deleteUndoableBody => 'سيُحذف الدين، ويمكنك التراجع خلال ثوانٍ.';
+
+  @override
+  String get recordGone => 'هذا السجل لم يعد موجودًا.';
 
   @override
   String get deleteConfirmTitle => 'تأكيد الحذف';
@@ -804,11 +810,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get notifChannelDueName => 'مستحق الآن';
 
   @override
-  String get notifChannelRemindersBody =>
-      'تنبيهات الديون والالتزامات قبل موعدها';
+  String get notifChannelBackupName => 'مشكلة في النسخ الاحتياطي';
 
   @override
-  String get notifChannelRemindersName => 'تذكيرات الاستحقاق';
+  String get notifChannelBackupBody =>
+      'تنبيه عندما يتعذّر على ذِمّة حفظ نسخة من بياناتك';
+
+  @override
+  String get backupAlertTitle => 'النسخ الاحتياطية تحتاج انتباهك';
+
+  @override
+  String get backupAlertBody =>
+      'لم يتمكن ذِمّة من حفظ نسخة من تغييراتك. بياناتك محفوظة داخل التطبيق، وسيُعيد المحاولة تلقائيًا.';
 
   @override
   String get notifChannelSummaryBody => 'ملخص ذمتك في نهاية كل شهر';
@@ -1775,7 +1788,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unitYear => 'سنة';
 
   @override
-  String get unknownPerson => 'بدون اسم';
+  String get unknownPerson => 'بدون عنوان';
 
   @override
   String get updateAvailableBody =>
@@ -1855,4 +1868,686 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get validationTitleTooLong => 'الوصف طويل جدًا.';
+
+  @override
+  String debtFormWithPerson(String name) {
+    return 'الدين مع $name';
+  }
+
+  @override
+  String debtSavedMoved(String side) {
+    return 'تم الحفظ، وانتقل الدين إلى «$side».';
+  }
+
+  @override
+  String debtSavedParticipantRemoved(String name) {
+    return 'تم الحفظ، ولم يعد الدين مرتبطًا بـ $name.';
+  }
+
+  @override
+  String get fieldPeople => 'الأشخاص';
+
+  @override
+  String get fieldPersonPlaceholder => 'اختر شخصًا أو أكثر';
+
+  @override
+  String get participantsAdd => 'إضافة شخص';
+
+  @override
+  String get participantsAddMore => 'إضافة أشخاص آخرين';
+
+  @override
+  String get participantsSearchHint => 'ابحث عن شخص';
+
+  @override
+  String get participantsSelected => 'المحددون';
+
+  @override
+  String requiredFieldsMissing(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count حقل مطلوب لم يكتمل.',
+      many: '$count حقلًا مطلوبًا لم يكتمل.',
+      few: '$count حقول مطلوبة لم تكتمل.',
+      two: 'حقلان مطلوبان لم يكتملا.',
+      one: 'حقل مطلوب واحد لم يكتمل.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get unsavedChangesBody =>
+      'لم تُحفظ التغييرات التي أدخلتها. هل تريد الخروج؟';
+
+  @override
+  String get unsavedChangesLeave => 'خروج بدون حفظ';
+
+  @override
+  String get unsavedChangesStay => 'متابعة التعديل';
+
+  @override
+  String get unsavedChangesTitle => 'تغييرات غير محفوظة';
+
+  @override
+  String get validationSelectDirection => 'اختر نوع الدين: عليّ أو لي.';
+
+  @override
+  String get validationSelectParticipant => 'اختر شخصًا واحدًا على الأقل.';
+
+  @override
+  String get reminderNotArmedOff =>
+      'التذكيرات متوقفة في الإعدادات، فلن يصلك إشعار عن هذا الدين.';
+
+  @override
+  String get reminderNotArmedDenied =>
+      'الإشعارات غير مسموح بها من النظام، فلن يصلك إشعار عن هذا الدين.';
+
+  @override
+  String get settingsBackup => 'النسخ الاحتياطي والاستعادة';
+
+  @override
+  String get backupSectionHint =>
+      'نسخة من كل بياناتك في ملف واحد يمكنك الاحتفاظ به.';
+
+  @override
+  String get backupAutoTitle => 'النسخ التلقائي';
+
+  @override
+  String get backupAutoStateOn => 'مفعّل';
+
+  @override
+  String get backupAutoStateOff => 'متوقف';
+
+  @override
+  String get backupAutoOnBody =>
+      'يحفظ ذِمّة تغييراتك تلقائيًا بعد كل تغيير مهم، وعند مغادرة التطبيق.';
+
+  @override
+  String get backupAutoOffBody =>
+      'بياناتك الحالية محفوظة داخل التطبيق. لن تُنشأ نسخ جديدة تلقائيًا حتى تُشغّل «الحفظ التلقائي» مرة أخرى.';
+
+  @override
+  String get backupDetailAutomatic => 'الحفظ التلقائي';
+
+  @override
+  String get backupDetailLastCopy => 'آخر نسخة';
+
+  @override
+  String get backupDetailRestorable => 'نسخ للاستعادة';
+
+  @override
+  String get backupDetailPending => 'تغييرات غير محفوظة';
+
+  @override
+  String get backupDetailFolder => 'مجلد النسخ';
+
+  @override
+  String get backupDetailAttempts => 'محاولات فاشلة';
+
+  @override
+  String get backupHistoryLatest => 'أحدث نسخة';
+
+  @override
+  String get backupHistoryVerified => 'متحقق منها';
+
+  @override
+  String get backupFolderTitle => 'مجلد النسخ الاحتياطية';
+
+  @override
+  String get backupFolderSetupTitle => 'أنشئ مكانًا لنسخك الاحتياطية';
+
+  @override
+  String get backupFolderSetupBody =>
+      'سيستخدم ذِمّة هذا المجلد لحفظ النسخ الاحتياطية وفتحها مباشرة عند الاستعادة.';
+
+  @override
+  String get backupFolderChoose => 'اختيار مجلد النسخ الاحتياطية';
+
+  @override
+  String get backupFolderChange => 'تغيير المجلد';
+
+  @override
+  String get backupFolderCheck => 'فحص الآن';
+
+  @override
+  String get backupFolderLater => 'لاحقًا';
+
+  @override
+  String get backupFolderAvailable => 'متاح';
+
+  @override
+  String get backupFolderMissing => 'مجلد النسخ الاحتياطية غير متاح';
+
+  @override
+  String get backupFolderLostAccess =>
+      'لم يعد للتطبيق وصول إلى هذا المجلد: إمّا أن الإذن أُلغي، أو أن المجلد نُقل أو حُذف.';
+
+  @override
+  String get backupFolderReauthorize => 'إعادة السماح';
+
+  @override
+  String backupFolderBackupsCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count نسخة صالحة',
+      many: '$count نسخة صالحة',
+      few: '$count نسخ صالحة',
+      two: 'نسختان صالحتان',
+      one: 'نسخة واحدة صالحة',
+      zero: 'لا نسخ صالحة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupFolderEmpty => 'لا توجد نسخ احتياطية في هذا المجلد';
+
+  @override
+  String get backupFolderConfirmTitle => 'استخدام هذا المجلد؟';
+
+  @override
+  String get backupFolderConfirmBody =>
+      'لا يمكن إنشاء مجلد «Dhimmah Backups» هنا. هل تريد حفظ النسخ في المجلد الذي اخترته؟';
+
+  @override
+  String get backupFolderUseIt => 'استخدم هذا المجلد';
+
+  @override
+  String get backupFolderDecline => 'اختيار مجلد آخر';
+
+  @override
+  String backupFolderInvalidNote(int count) {
+    return 'ملفات تشبه النسخ لكنها غير صالحة: $count';
+  }
+
+  @override
+  String get backupFolderNotWritable => 'المجلد لا يقبل الكتابة';
+
+  @override
+  String get backupFolderError => 'تعذّر الوصول إلى المجلد';
+
+  @override
+  String get backupFolderVerifying => 'جارٍ فحص المجلد';
+
+  @override
+  String get backupHistoryInternal => 'داخل التطبيق';
+
+  @override
+  String get backupHistoryFolder => 'في مجلد النسخ';
+
+  @override
+  String get backupExternalDeleted => 'حُذفت النسخة من المجلد';
+
+  @override
+  String get backupExternalDeleteFailed => 'تعذّر حذف النسخة من المجلد';
+
+  @override
+  String get backupNowAction => 'حفظ نسخة خارجية';
+
+  @override
+  String get backupSaveExternalBody => 'ملف تحفظه أنت في المكان الذي تختاره.';
+
+  @override
+  String get backupShareTile => 'مشاركة النسخة';
+
+  @override
+  String get backupShareTileBody => 'أرسل نسخة إلى تطبيق آخر.';
+
+  @override
+  String get backupExternalSaved => 'حُفظت النسخة خارجيًا وتحقّقنا منها';
+
+  @override
+  String backupExternalSavedBody(String name, String size) {
+    return 'الملف: $name · $size';
+  }
+
+  @override
+  String get backupExternalFailedWrite =>
+      'تعذّر كتابة الملف في المكان الذي اخترته';
+
+  @override
+  String get backupExternalFailedReadBack =>
+      'كُتب الملف لكن تعذّر التحقق منه بعد الحفظ';
+
+  @override
+  String get backupExternalFailedIncomplete => 'الملف المحفوظ فارغ أو ناقص';
+
+  @override
+  String get backupExternalFailedInvalid =>
+      'الملف المحفوظ لم يجتز التحقق من المحتوى';
+
+  @override
+  String get backupExternalFailedUnavailable =>
+      'هذا الجهاز لا يوفّر اختيار مكان للحفظ';
+
+  @override
+  String get backupRestoreAction => 'استعد من ملف';
+
+  @override
+  String get backupPreviousAction => 'النسخ السابقة';
+
+  @override
+  String backupCopiesCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count نسخة',
+      many: '$count نسخة',
+      few: '$count نسخ',
+      two: 'نسختان',
+      one: 'نسخة واحدة',
+      zero: 'لا توجد نسخ',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupPreviousTitle => 'النسخ السابقة';
+
+  @override
+  String get backupPreviousEmpty => 'لا توجد نسخ محفوظة على هذا الجهاز.';
+
+  @override
+  String get backupProtectionProtected => 'بياناتك محمية';
+
+  @override
+  String get backupProtectionPending => 'هناك تغييرات بانتظار الحفظ';
+
+  @override
+  String get backupProtectionBackingUp => 'جارٍ حفظ التغييرات';
+
+  @override
+  String get backupProtectionNever => 'بياناتك غير محمية بعد';
+
+  @override
+  String get backupProtectionRecoverable => 'توجد نسخة يمكن استعادتها';
+
+  @override
+  String get backupProtectionAttention => 'النسخ الاحتياطية تحتاج انتباهك';
+
+  @override
+  String get backupProtectionStorage => 'تعذّر الحفظ في مكان النسخ';
+
+  @override
+  String get backupProtectionNoLocation => 'لم يُحدَّد مكان دائم للنسخ';
+
+  @override
+  String backupProtectionLastSuccess(String when) {
+    return 'آخر نسخة ناجحة · $when';
+  }
+
+  @override
+  String get backupProtectionNeverWorked => 'لم تُحفظ نسخة بعد';
+
+  @override
+  String get backupProtectionDetails => 'تفاصيل الحماية';
+
+  @override
+  String get backupProtectionHideDetails => 'إخفاء التفاصيل';
+
+  @override
+  String backupProtectionCopiesInside(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count نسخة داخل التطبيق',
+      many: '$count نسخة داخل التطبيق',
+      few: '$count نسخ داخل التطبيق',
+      two: 'نسختان داخل التطبيق',
+      one: 'نسخة واحدة داخل التطبيق',
+      zero: 'لا شيء داخل التطبيق',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupProtectionCopiesOutside(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count نسخة في مجلدك',
+      many: '$count نسخة في مجلدك',
+      few: '$count نسخ في مجلدك',
+      two: 'نسختان في مجلدك',
+      one: 'نسخة واحدة في مجلدك',
+      zero: 'لا شيء في مجلدك',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String backupProtectionWaiting(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count سجل',
+      many: '$count سجلًا',
+      few: '$count سجلات',
+      two: 'سجلان',
+      one: 'سجل واحد',
+      zero: 'لا سجلات',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupProtectionFolderNone => 'لم يُختر بعد';
+
+  @override
+  String get backupProtectionAutoOff => 'الحفظ التلقائي متوقف';
+
+  @override
+  String backupProtectionFailedTimes(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مرة',
+      many: '$count مرة',
+      few: '$count مرات',
+      two: 'مرتان',
+      one: 'مرة واحدة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupProtectionDataSafe =>
+      'بياناتك الحالية محفوظة داخل التطبيق ولم تتأثر.';
+
+  @override
+  String get backupProtectionHowTitle => 'كيف يحمي ذِمّة بياناتك؟';
+
+  @override
+  String get backupProtectionHowBody =>
+      'يحفظ ذِمّة نسخة من تغييراتك من تلقاء نفسه، ويتحقق من كل نسخة بعد كتابتها بقراءتها مرة أخرى. تُحفظ نقاط استعادة تكفي للرجوع خطوة إلى الوراء، ولا تُحذف النسخة اليدوية أبدًا. الاستعادة لا تبدأ إلا بتأكيد منك، وقبلها تُؤخذ نسخة أمان من بياناتك الحالية. وإذا تعذّر الحفظ، فبياناتك في التطبيق تبقى كما هي.';
+
+  @override
+  String get backupEntryAuto => 'نسخة تلقائية';
+
+  @override
+  String get backupEntryManual => 'نسخة يدوية';
+
+  @override
+  String get backupEntrySafety => 'نسخة قبل استعادة';
+
+  @override
+  String get backupShareAction => 'مشاركة';
+
+  @override
+  String get backupDeleteAction => 'حذف';
+
+  @override
+  String get backupDeleted => 'حُذفت النسخة';
+
+  @override
+  String get backupDeleteFailed => 'تعذّر حذف النسخة، وما زالت في القائمة';
+
+  @override
+  String get backupCreated => 'تم إنشاء النسخة الاحتياطية';
+
+  @override
+  String get backupStepReading => 'قراءة السجلات';
+
+  @override
+  String get backupStepBuilding => 'تجهيز بيانات النسخة';
+
+  @override
+  String get backupStepHashing => 'حساب بصمة التحقق';
+
+  @override
+  String get backupStepWriting => 'كتابة الملف';
+
+  @override
+  String get backupStepVerifying => 'التحقق من الملف بعد كتابته';
+
+  @override
+  String get backupStepRetaining => 'ترتيب النسخ السابقة';
+
+  @override
+  String get restoreStepReading => 'قراءة الملف';
+
+  @override
+  String get restoreStepDecoding => 'فك محتوى الملف';
+
+  @override
+  String get restoreStepChecking => 'التحقق من سلامة الملف';
+
+  @override
+  String get restoreStepValidating => 'تدقيق البيانات';
+
+  @override
+  String get restoreStepPlanning => 'تحديد ما سيُكتب';
+
+  @override
+  String get restoreStepSnapshot => 'أخذ نسخة أمان من بياناتك الحالية';
+
+  @override
+  String get restoreStepWriting => 'كتابة البيانات';
+
+  @override
+  String get restoreStepVerifying => 'التحقق من النتيجة';
+
+  @override
+  String get restoreStepRebuilding => 'إعادة بناء الجداول والتذكيرات';
+
+  @override
+  String get backupCreateFailed => 'تعذّر إنشاء النسخة الاحتياطية';
+
+  @override
+  String get backupRestoreTitle => 'استعادة نسخة احتياطية';
+
+  @override
+  String get backupRestoreQuestion => 'هل تريد استعادة هذه البيانات؟';
+
+  @override
+  String get backupRestoreFrom => 'نسخة احتياطية من';
+
+  @override
+  String backupRestoreCounts(int people, int debts, int payments) {
+    String _temp0 = intl.Intl.pluralLogic(
+      people,
+      locale: localeName,
+      other: '$people شخص',
+      many: '$people شخصًا',
+      few: '$people أشخاص',
+      two: 'شخصان',
+      one: 'شخص واحد',
+      zero: '$people أشخاص',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      debts,
+      locale: localeName,
+      other: '$debts دين',
+      many: '$debts دينًا',
+      few: '$debts ديون',
+      two: 'دينان',
+      one: 'دين واحد',
+      zero: '$debts ديون',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      payments,
+      locale: localeName,
+      other: '$payments دفعة',
+      many: '$payments دفعة',
+      few: '$payments دفعات',
+      two: 'دفعتان',
+      one: 'دفعة واحدة',
+      zero: '$payments دفعات',
+    );
+    return '$_temp0 · $_temp1 · $_temp2';
+  }
+
+  @override
+  String backupRestoreMore(int obligations, int reminders, int links) {
+    String _temp0 = intl.Intl.pluralLogic(
+      obligations,
+      locale: localeName,
+      other: '$obligations التزام',
+      many: '$obligations التزامًا',
+      few: '$obligations التزامات',
+      two: 'التزامان',
+      one: 'التزام واحد',
+      zero: '$obligations التزامات',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      reminders,
+      locale: localeName,
+      other: '$reminders تذكير',
+      many: '$reminders تذكيرًا',
+      few: '$reminders تذكيرات',
+      two: 'تذكيران',
+      one: 'تذكير واحد',
+      zero: '$reminders تذكيرات',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      links,
+      locale: localeName,
+      other: '$links ارتباط',
+      many: '$links ارتباطًا',
+      few: '$links ارتباطات',
+      two: 'ارتباطان',
+      one: 'ارتباط واحد',
+      zero: '$links ارتباطات',
+    );
+    return '$_temp0 · $_temp1 · $_temp2';
+  }
+
+  @override
+  String backupRestoreLastChange(String when) {
+    return 'آخر تغيير في النسخة: $when';
+  }
+
+  @override
+  String backupRestoreCurrencies(String codes, int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'العملات: $codes',
+      one: 'العملة: $codes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupRestoreUnencrypted =>
+      'الملف غير مشفّر: من يفتحه يقرأ بياناتك.';
+
+  @override
+  String get backupRestoreSafetyNote =>
+      'سيأخذ Dhimmah نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.';
+
+  @override
+  String get backupRestoreMode => 'طريقة الاستعادة';
+
+  @override
+  String get backupModeReplace => 'استبدال';
+
+  @override
+  String get backupModeReplaceBody =>
+      'تصبح النسخة هي بياناتك، وتُستبدل بيانات الجهاز الحالية.';
+
+  @override
+  String get backupModeMerge => 'دمج';
+
+  @override
+  String get backupModeMergeBody =>
+      'تُضاف السجلات الجديدة، وتُحدَّث الأحدث، ويُبلَّغ عن أي تعارض بدل تخمينه.';
+
+  @override
+  String get backupRestoreConfirm => 'استعادة';
+
+  @override
+  String get backupRestoreDone => 'تمت الاستعادة بنجاح';
+
+  @override
+  String backupRestoreSummary(int people, int debts, int payments) {
+    String _temp0 = intl.Intl.pluralLogic(
+      people,
+      locale: localeName,
+      other: '$people شخص',
+      many: '$people شخصًا',
+      few: '$people أشخاص',
+      two: 'شخصان',
+      one: 'شخص واحد',
+      zero: '$people أشخاص',
+    );
+    String _temp1 = intl.Intl.pluralLogic(
+      debts,
+      locale: localeName,
+      other: '$debts دين',
+      many: '$debts دينًا',
+      few: '$debts ديون',
+      two: 'دينان',
+      one: 'دين واحد',
+      zero: '$debts ديون',
+    );
+    String _temp2 = intl.Intl.pluralLogic(
+      payments,
+      locale: localeName,
+      other: '$payments دفعة',
+      many: '$payments دفعة',
+      few: '$payments دفعات',
+      two: 'دفعتان',
+      one: 'دفعة واحدة',
+      zero: '$payments دفعات',
+    );
+    return '$_temp0 · $_temp1 · $_temp2';
+  }
+
+  @override
+  String backupRestoreSkipped(int count) {
+    return 'سجلات موجودة أصلًا: $count';
+  }
+
+  @override
+  String get backupRestoreConflictsTitle => 'سجلات تحتاج مراجعة';
+
+  @override
+  String backupRestoreConflictsBody(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count سجلًا مختلفة في النسخة ولم تكن أحدث؛ أُبقي الموجود عندك.',
+      one: 'سجل واحد مختلف في النسخة ولم يكن أحدث؛ أُبقي الموجود عندك.',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get backupRestoreFailed => 'تعذّرت الاستعادة، ولم تتغيّر بياناتك.';
+
+  @override
+  String get backupRestoreInvalid =>
+      'تعذّر استعادة النسخة لأن الملف غير صالح أو تالف.';
+
+  @override
+  String get backupRestoreNotOurs =>
+      'هذا الملف ليس نسخة احتياطية صالحة لـDhimmah.';
+
+  @override
+  String get backupRestoreTooNew =>
+      'هذه النسخة من إصدار أحدث من التطبيق. حدّث Dhimmah ثم حاول مرة أخرى.';
+
+  @override
+  String get backupRestoreContinue => 'متابعة إلى Dhimmah';
+
+  @override
+  String get backupFoundTitle => 'وجدنا نسخة احتياطية';
+
+  @override
+  String get backupFoundBody =>
+      'لا توجد بيانات على هذا الجهاز، وهناك نسخة محفوظة يمكن استعادتها.';
+
+  @override
+  String get backupPrivacyTitle => 'أين تُحفظ النسخ؟';
+
+  @override
+  String get backupPrivacyBody =>
+      'النسخ التلقائية داخل التطبيق ولا يقرؤها غيره. وعند المشاركة تختار أنت المكان — الملفات أو Drive أو غيره — والملف غير مشفّر. حذف التطبيق يحذف النسخ التي داخله، فاحتفظ بنسخة خارج الجهاز إن كانت بياناتك تهمّك.';
+
+  @override
+  String get backupSeparateFromExport =>
+      'التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد.';
 }

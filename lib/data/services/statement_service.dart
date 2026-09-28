@@ -58,6 +58,11 @@ class StatementService {
     required DateTime now,
     StatementOptions options = const StatementOptions(),
   }) {
+    // Every record this person is on, in the currency being stated — one line
+    // each, counted once. A record they share with other people is still a
+    // record between the two of them as far as this statement is concerned, so
+    // it is printed and totalled like any other; the other people on it are not
+    // this statement's business and are not named.
     final List<DebtView> inCurrency = <DebtView>[
       for (final DebtView view in ledger.debts)
         if (view.currency == currency) view,

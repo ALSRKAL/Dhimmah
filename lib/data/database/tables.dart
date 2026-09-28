@@ -39,6 +39,16 @@ class People extends Table {
 @TableIndex(name: 'idx_debts_archived', columns: <Symbol>{#archivedAt})
 class Debts extends Table {
   TextColumn get id => text()();
+
+  /// The person the user named first, kept as one value.
+  ///
+  /// [DebtPeople] is the authority on who a debt is with, and this column is a
+  /// projection of it: the participant at position 0, or NULL for a record that
+  /// names nobody. It survives because it is what payments, notifications, the
+  /// statement and the activity feed have always read, and because its foreign
+  /// key is what unlinks a debt when the person behind it is deleted. It is
+  /// written in exactly one place — the same write that stores the links — and
+  /// `debts_dao` refuses to let the two disagree.
   TextColumn get personId => text().nullable().references(People, #id, onDelete: KeyAction.setNull)();
   TextColumn get direction => textEnum<DebtDirection>()();
   TextColumn get title => text().withDefault(const Constant(''))();
@@ -66,6 +76,33 @@ class Debts extends Table {
 
   @override
   Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
+/// Who a debt is with.
+///
+/// One record can be shared by several people — a dinner bill, a group
+/// purchase — and the link is a table rather than a column of ids or of JSON
+/// for the reasons a relation always wins: the database enforces uniqueness, a
+/// person's page is an indexed lookup instead of a scan over encoded text, and
+/// deleting a person removes exactly their links through the foreign key.
+///
+/// [position] keeps the user's own order (the order they picked the people in),
+/// which is what makes "the first participant" a stable, meaningful value: it is
+/// the one mirrored into `debts.person_id` for the single-participant case.
+@DataClassName('DebtPersonRow')
+@TableIndex(name: 'idx_debt_people_person', columns: <Symbol>{#personId})
+class DebtPeople extends Table {
+  TextColumn get debtId =>
+      text().references(Debts, #id, onDelete: KeyAction.cascade)();
+  TextColumn get personId =>
+      text().references(People, #id, onDelete: KeyAction.cascade)();
+  IntColumn get position => integer().withDefault(const Constant(0))();
+  IntColumn get createdAt => integer().map(const TimestampConverter())();
+
+  /// The pair is the key, so the same person cannot be linked twice — the rule
+  /// is enforced by the database and not only by the screen that collects it.
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{debtId, personId};
 }
 
 @DataClassName('PaymentRow')
@@ -165,6 +202,10 @@ class Reminders extends Table {
   TextColumn get relatedType => textEnum<RelatedEntityType>()();
   TextColumn get relatedId => text().nullable()();
   TextColumn get status => textEnum<ReminderStatus>()();
+  /// Vestigial. The app does not store the platform's notification id: the
+  /// records are the source of truth and the pending set is the platform's own
+  /// record of what it is holding, compared on every reconciliation. The column
+  /// is never written, and dropping it would cost a migration for nothing.
   IntColumn get notificationId => integer().nullable()();
   IntColumn get completedAt =>
       integer().nullable().map(const NullableTimestampConverter())();
@@ -246,6 +287,13 @@ class Settings extends Table {
   BoolColumn get biometricEnabled => boolean().withDefault(const Constant(false))();
   BoolColumn get onboardingCompleted =>
       boolean().withDefault(const Constant(false))();
+
+  /// Whether the app keeps its own snapshots up to date.
+  ///
+  /// On by default: the point of a safety net is that it is already there the
+  /// first time it is needed. Turning it off leaves the manual buttons working.
+  BoolColumn get backupAutoEnabled =>
+      boolean().withDefault(const Constant(true))();
   TextColumn get lastSummarySentOn =>
       text().nullable().map(const NullableDateOnlyConverter())();
   IntColumn get lastExportedAt =>

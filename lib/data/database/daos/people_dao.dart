@@ -30,6 +30,13 @@ class PeopleDao extends DatabaseAccessor<AppDatabase> with _$PeopleDaoMixin {
   Future<PersonRow?> getById(String id) =>
       (select(people)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  /// Several people at once, for a screen or a plan that needs a page of names.
+  Future<List<PersonRow>> getByIds(Iterable<String> ids) {
+    final List<String> wanted = ids.toSet().toList(growable: false);
+    if (wanted.isEmpty) return Future<List<PersonRow>>.value(const <PersonRow>[]);
+    return (select(people)..where((t) => t.id.isIn(wanted))).get();
+  }
+
   /// Case-insensitive duplicate check used by the form validator.
   Future<PersonRow?> findByName(String name) {
     return (select(people)

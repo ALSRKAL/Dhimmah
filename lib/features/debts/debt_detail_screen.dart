@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/money.dart';
+import '../../core/notifications/notification_service.dart';
 import '../../core/share/share_service.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
@@ -21,6 +22,7 @@ import '../../core/widgets/status_chip.dart';
 import '../../data/read_models/ledger_queries.dart';
 import '../../data/services/ledger_service.dart';
 import '../../domain/entities/ledger_views.dart';
+import '../../domain/entities/person.dart';
 import '../../l10n/enum_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
 import 'payment_sheet.dart';
@@ -44,7 +46,7 @@ class DebtDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          detail.value?.view.displayName ?? localizations.detailTotal,
+          detail.value?.view.displayName ?? localizations.recordDeleted,
         ),
         actions: <Widget>[
           if (detail.value != null) ...<Widget>[
@@ -67,7 +69,24 @@ class DebtDetailScreen extends ConsumerWidget {
         onRetry: () => ref.invalidate(debtDetailProvider(debtId)),
         loading: const ListSkeleton(rows: 4),
         isEmpty: (DebtDetail? value) => value == null,
-        empty: Center(child: Text(localizations.recordDeleted)),
+        // The record is gone while this screen was open — deleted from here,
+        // from another copy of this screen, or through the ledger. The screen
+        // says so and removes itself instead of sitting over nothing: on the
+        // device a stale second copy of this route once read "Total" — the
+        // balance card's own label — as its title, with no way to know what
+        // had happened.
+        empty: Builder(
+          builder: (BuildContext context) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted && Navigator.of(context).canPop()) {
+                // Through go_router, so its page list stays matched to the
+                // Navigator's.
+                GoRouter.of(context).pop();
+              }
+            });
+            return Center(child: Text(localizations.recordGone));
+          },
+        ),
         builder: (BuildContext context, DebtDetail? data) {
           if (data == null) return const SizedBox.shrink();
           return _DetailBody(detail: data);
@@ -119,19 +138,33 @@ class _OverflowMenu extends ConsumerWidget {
             final bool confirmed = await AppFeedback.confirmDestructive(
               context,
               title: localizations.deleteConfirmTitle,
-              body: localizations.deleteConfirmBody,
+              // Unlike the other records, a deleted debt can be undone for a
+              // few seconds — the dialog must not claim otherwise.
+              body: localizations.deleteUndoableBody,
               confirmLabel: localizations.actionDelete,
             );
             if (!confirmed || !context.mounted) return;
+            // Captured before the write, because the write unmounts this menu:
+            // the record vanishing rebuilds the screen without it, and the
+            // continuation would then find `context.mounted` false — on the
+            // device the delete went through with no pop and no undo offer.
+            final ScaffoldMessengerState messenger =
+                ScaffoldMessenger.of(context);
+            final Color undoIcon = context.palette.textSecondary;
+            // The router object itself, not its Navigator: go_router keeps its
+            // own page list, and a raw Navigator pop leaves the two disagreeing
+            // — the device showed a blank screen after exactly that.
+            final GoRouter router = GoRouter.of(context);
             final LedgerServiceSnapshot snapshot =
                 await service.deleteDebtWithSnapshot(debtId);
-            if (!context.mounted) return;
-            context.pop();
-            AppFeedback.undoable(
-              context,
+            AppFeedback.undoableDetached(
+              messenger: messenger,
               message: localizations.recordDeleted,
+              undoLabel: localizations.actionUndo,
+              iconColor: undoIcon,
               onUndo: () => service.restoreDeleted(snapshot),
             );
+            router.pop();
         }
       },
       itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -358,15 +391,24 @@ class _AmountLine extends StatelessWidget {
   }
 }
 
-class _FactsCard extends StatelessWidget {
+class _FactsCard extends ConsumerWidget {
   const _FactsCard({required this.view});
 
   final DebtView view;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppFormatting formatting = context.formatting;
+    final String? reminderUnavailableReason = !ref
+            .watch(effectiveSettingsProvider)
+            .notificationsEnabled
+        ? localizations.reminderNotArmedOff
+        : (ref.watch(notificationPermissionProvider).value ??
+                    ref.read(notificationServiceProvider).permission) ==
+                NotificationPermission.denied
+            ? localizations.reminderNotArmedDenied
+            : null;
     final DateTime? due = view.debt.dueAt;
     final List<String> leads = view.debt.reminderLeads
         .map((lead) => lead.label(localizations))
@@ -391,7 +433,22 @@ class _FactsCard extends StatelessWidget {
             DetailRow(
               icon: Icons.notifications_none,
               label: localizations.fieldReminder,
-              value: leads.join(' · '),
+              // A reminder that cannot arrive is stated as such here too: the
+              // record must not promise a notification the phone will not show.
+              value: reminderUnavailableReason == null
+                  ? leads.join(' · ')
+                  : '${leads.join(' · ')} — $reminderUnavailableReason',
+              valueColor: reminderUnavailableReason == null
+                  ? null
+                  : context.palette.dueSoon,
+            ),
+          if (view.participants.isNotEmpty)
+            DetailRow(
+              icon: Icons.group_outlined,
+              label: localizations.fieldPeople,
+              value: view.participants
+                  .map((Person person) => person.name)
+                  .join('، '),
             ),
           if (view.debt.isRecurring)
             DetailRow(

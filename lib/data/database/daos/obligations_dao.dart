@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import '../../../core/utils/dates.dart';
+import '../../../domain/enums/obligation_enums.dart';
 import '../app_database.dart';
 
 part 'obligations_dao.g.dart';
@@ -72,6 +74,45 @@ class ObligationsDao extends DatabaseAccessor<AppDatabase>
 
   Future<List<ObligationOccurrenceRow>> getOccurrences() =>
       select(obligationOccurrences).get();
+
+  /// The unpaid periods that fall inside a window, with the commitments they
+  /// belong to.
+  ///
+  /// What a reminder plan needs, and no more: a period that is already paid, or
+  /// that falls outside the window, cannot produce a notification. Index-backed
+  /// by `idx_occurrences_due`, where reading every period of every commitment
+  /// costs a full scan on each save.
+  Future<List<ObligationOccurrenceRow>> occurrencesBetween({
+    required DateTime from,
+    required DateTime to,
+  }) {
+    return (select(obligationOccurrences)
+          ..where(
+            (ObligationOccurrences t) =>
+                t.dueAt.isBetweenValues(toIsoDate(from), toIsoDate(to)) &
+                // "Open" is the domain's own rule, so a status added later
+                // cannot quietly fall out of the reminder plan.
+                t.status.isIn(
+                  ObligationStatus.values
+                      .where((ObligationStatus s) => s.isOpen)
+                      .map((ObligationStatus s) => s.name)
+                      .toList(),
+                ),
+          )
+          ..orderBy(<OrderingTerm Function($ObligationOccurrencesTable)>[
+            (t) => OrderingTerm.asc(t.dueAt),
+          ]))
+        .get();
+  }
+
+  /// The commitments behind a set of periods.
+  Future<List<ObligationRow>> getByIds(Iterable<String> ids) {
+    final List<String> wanted = ids.toSet().toList(growable: false);
+    if (wanted.isEmpty) {
+      return Future<List<ObligationRow>>.value(const <ObligationRow>[]);
+    }
+    return (select(obligations)..where((t) => t.id.isIn(wanted))).get();
+  }
 
   Stream<List<ObligationOccurrenceRow>> watchOccurrencesFor(String obligationId) {
     return (select(obligationOccurrences)

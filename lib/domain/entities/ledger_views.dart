@@ -22,12 +22,49 @@ class DebtView {
     required this.remainingMinor,
     required this.status,
     required this.paymentCount,
-    this.person,
+    this.participants = const <Person>[],
     this.lastPaymentAt,
   });
 
   final Debt debt;
-  final Person? person;
+
+  /// Everyone the record is with, resolved and in the user's order.
+  ///
+  /// A list rather than one person because one record can be shared. Empty means
+  /// the record names nobody — the shape debts recorded before people were
+  /// required still have.
+  final List<Person> participants;
+
+  /// The person a single-participant record is with; null for a shared one.
+  ///
+  /// Callers that need "the person" — an avatar, a notification heading — mean
+  /// this. Anything that answers *who is this record with* must read
+  /// [participants], or a shared record would be shown as one person's.
+  Person? get person => participants.isEmpty ? null : participants.first;
+
+  /// `أحمد + علي + محمد`, for the surfaces that name everyone in one line.
+  String get participantNames =>
+      participants.map((Person p) => p.name).join(' + ');
+
+  /// Whether this record is with more than one person.
+  ///
+  /// A fact about the record, not a label: nothing in the interface says a
+  /// record is "shared". Each person it is with reads it as one of their own.
+  bool get isShared => participants.length > 1;
+
+  /// What to call this record while reading it in [personId]'s context.
+  ///
+  /// A person's page is about that person, so a record there is named either by
+  /// its own title or by the person whose page it is on — never by the other
+  /// people it happens to be linked to, who are not part of this page's story.
+  String displayNameFor(String personId) {
+    final String title = debt.title.trim();
+    if (title.isNotEmpty) return title;
+    for (final Person person in participants) {
+      if (person.id == personId) return person.name;
+    }
+    return displayName;
+  }
 
   /// Sum of all payments applied to this debt.
   final int paidMinor;
@@ -60,18 +97,26 @@ class DebtView {
     return (paidMinor / debt.principalMinor).clamp(0.0, 1.0);
   }
 
-  /// What to call this record in a list: the person's name, or the free-text
-  /// title when there is no person.
+  /// What to call this record in a list.
+  ///
+  /// The people it is with, or — when it names nobody — the free-text title. A
+  /// record with several people names all of them, separated by a plus: on a
+  /// mixed list, showing only the first would read as a debt with one person and
+  /// hide the rest of the group. Inside one person's page use
+  /// [displayNameFor] instead.
   String get displayName {
-    final Person? p = person;
-    if (p != null && p.name.trim().isNotEmpty) return p.name;
-    if (debt.title.trim().isNotEmpty) return debt.title;
-    return '';
+    if (participants.isNotEmpty) {
+      final String names = participantNames;
+      if (names.trim().isNotEmpty) return names;
+    }
+    return debt.title.trim();
   }
 
   /// A secondary line for the list row.
   String? get subtitle {
-    if (person != null && debt.title.trim().isNotEmpty) return debt.title;
+    if (participants.isNotEmpty && debt.title.trim().isNotEmpty) {
+      return debt.title;
+    }
     return null;
   }
 
@@ -164,9 +209,22 @@ class PersonLedger {
   });
 
   final Person person;
+
+  /// Every record this person is part of, each one once.
   final List<DebtView> debts;
 
-  /// One entry per currency this person is involved in.
+  /// One entry per currency, over every record on this page.
+  ///
+  /// A record with several people is counted here in full, and counted once:
+  /// this page is the answer to "what is between me and this person", and the
+  /// record is one of the things between them. It is never multiplied by the
+  /// number of people on it, and it is never divided between them either — the
+  /// app has no per-person share to divide by, so it states the amount it knows
+  /// and attributes nothing it does not.
+  ///
+  /// The dashboard and the ledger are the aggregate views, and they count each
+  /// record once across the whole ledger. Two people's pages can therefore each
+  /// show the same record, which is why pages are never added together.
   final List<CurrencyTotals> totals;
 
   int get openDebtCount => debts.where((DebtView d) => d.isOpen).length;
@@ -190,8 +248,14 @@ class PersonDirectoryEntry {
   });
 
   final Person person;
+
+  /// Every record this person is part of, each one once.
   final List<DebtView> debts;
+
+  /// Balances over every record this person is part of, for the same reason as
+  /// [PersonLedger.totals].
   final List<CurrencyTotals> totals;
+
   final DateTime lastActivityAt;
 
   int get openDebtCount => debts.where((DebtView d) => d.isOpen).length;

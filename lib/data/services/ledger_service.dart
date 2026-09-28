@@ -23,8 +23,20 @@ import '../../domain/services/amount_rules.dart';
 import '../../domain/services/debt_calculator.dart';
 import '../../domain/services/notification_planner.dart';
 import '../../domain/services/obligation_schedule.dart';
+import '../../domain/services/participant_rules.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../database/app_database.dart';
+import '../database/daos/debts_dao.dart';
+import '../mappers/db_mappers.dart';
+
+/// The debt reminders one plan produced, and the read it took.
+@immutable
+class _DebtPlan {
+  const _DebtPlan({required this.intents, required this.recordsRead});
+
+  final List<NotificationIntent> intents;
+  final int recordsRead;
+}
 
 /// Every write Dhimmah can perform.
 ///
@@ -134,11 +146,28 @@ class LedgerService {
     );
   }
 
-  /// Removes a person. Their debts survive without a link, because deleting a
+  /// Removes a person. Their debts survive without them, because deleting a
   /// person must never quietly delete money the user is still owed.
+  ///
+  /// A shared debt loses exactly this participant and keeps the others; a debt
+  /// this person was the only one on keeps its amount and its history and is left
+  /// naming nobody. Both happen inside the transaction that removes the person,
+  /// so no debt is ever briefly pointing at somebody who is gone.
   Future<void> deletePerson(String id) async {
     final Person? existing = await people.getById(id);
-    await people.delete(id);
+    final List<Debt> affected = await debts.forPerson(id);
+    await _db.transaction(() async {
+      await people.delete(id);
+      for (final Debt debt in affected) {
+        await debts.setParticipants(
+          debt.id,
+          <String>[
+            for (final String personId in debt.personIds)
+              if (personId != id) personId,
+          ],
+        );
+      }
+    });
     await _log(
       type: ActivityType.personDeleted,
       entityType: RelatedEntityType.person,
@@ -162,12 +191,25 @@ class LedgerService {
     }
   }
 
+  /// Refuses a record that names nobody, and drops blanks and repeats.
+  ///
+  /// Both screens and callers pass through here, so "who is this with" is a rule
+  /// of the ledger rather than a rule of one form.
+  static List<String> _requireParticipants(List<String> personIds) {
+    final List<String> normalised = ParticipantRules.normalise(personIds);
+    if (!ParticipantRules.isValid(normalised)) {
+      throw const MissingParticipantsException();
+    }
+    return normalised;
+  }
+
   Future<Debt> createDebt(DebtDraft draft) async {
     _requireValidAmount(draft.principalMinor, 'debt principal');
+    final List<String> personIds = _requireParticipants(draft.personIds);
     final DateTime now = clock();
     final Debt debt = Debt(
       id: newId(),
-      personId: draft.personId,
+      personIds: personIds,
       direction: draft.direction,
       title: draft.title.trim(),
       principalMinor: draft.principalMinor,
@@ -198,11 +240,14 @@ class LedgerService {
 
   Future<void> updateDebt(String id, DebtDraft draft) async {
     _requireValidAmount(draft.principalMinor, 'debt principal');
+    final List<String> personIds = _requireParticipants(draft.personIds);
     final Debt? existing = await debts.getById(id);
     if (existing == null) return;
 
+    // The record is edited, never replaced: the same id, the same created-at and
+    // the same payment history. Only the fields the form owns are written.
     final Debt updated = existing.copyWith(
-      personId: draft.personId,
+      personIds: personIds,
       direction: draft.direction,
       title: draft.title.trim(),
       principalMinor: draft.principalMinor,
@@ -455,20 +500,26 @@ class LedgerService {
 
     // Do not build a second open record for a period that is already recorded —
     // for example when the user reopens and re-settles the same debt.
-    final List<Debt> siblings = await debts.forPerson(settled.personId ?? '');
-    for (final Debt sibling in siblings) {
-      if (sibling.id != settled.id &&
-          sibling.recurrence == settled.recurrence &&
-          sibling.title == settled.title &&
-          sibling.dueAt == nextDue) {
-        return;
+    //
+    // Every participant's records are searched, not just the first one's: a
+    // shared record's follow-up is on all of their pages, and looking at one
+    // person's list is how the same period gets recorded twice.
+    final Set<String> checked = <String>{settled.id};
+    for (final String personId in settled.personIds) {
+      for (final Debt sibling in await debts.forPerson(personId)) {
+        if (!checked.add(sibling.id)) continue;
+        if (sibling.recurrence == settled.recurrence &&
+            sibling.title == settled.title &&
+            sibling.dueAt == nextDue) {
+          return;
+        }
       }
     }
 
     final DateTime now = clock();
     final Debt followUp = Debt(
       id: newId(),
-      personId: settled.personId,
+      personIds: settled.personIds,
       direction: settled.direction,
       title: settled.title,
       principalMinor: settled.principalMinor,
@@ -867,64 +918,245 @@ class LedgerService {
 
   // --- Notifications -------------------------------------------------------
 
+  /// How many records a reminder plan reads, soonest due first.
+  ///
+  /// The armed set is the soonest notifications, and this is the read that
+  /// produces it: the records that fall due soonest, in order, until either the
+  /// plan has everything the nearest notifications need or this many rows have
+  /// been read. It bounds the work of a save, and it is far above the number of
+  /// records that can contribute to the nearest [NotificationService.maxScheduled]
+  /// notifications in any ledger a person keeps.
+  static const int reminderReadLimit = 1600;
+
+  /// Records read per query while walking that window.
+  static const int reminderReadChunk = 250;
+
   /// Rebuilds the complete pending-notification set from current records.
   ///
-  /// Called after every write and on every launch. Rebroadcasting the whole set
-  /// rather than patching individual notifications is what guarantees a settled
-  /// debt can never leave a reminder behind.
-  Future<void> refreshNotifications() async {
+  /// Called after every write and on every launch. The set is rebuilt whole
+  /// rather than patched — that is what guarantees a settled debt can never
+  /// leave a reminder behind — and the service then makes the platform agree
+  /// with it, so nothing is duplicated and nothing stale survives.
+  Future<NotificationSyncResult> refreshNotifications() async {
     final AppSettings current = await settings.get();
     if (!current.notificationsEnabled) {
+      // Nothing may fire, and nothing should be held: an armed set the user has
+      // switched off would only mislead the reminder field.
       await notifications.cancelAll();
-      return;
+      return const NotificationSyncResult.blocked();
     }
 
     final DateTime now = clock();
     final DateTime asOf = dateOnly(now);
 
-    final List<DebtView> debtViews = await _buildDebtViews(current, asOf);
-    final List<ObligationInstance> obligationInstances =
-        await _buildObligationInstances(asOf);
-    final List<Reminder> reminderList = await reminders.getAll();
-
-    final List<NotificationIntent> intents = NotificationPlanner.plan(
-      debts: debtViews,
-      obligations: obligationInstances,
-      reminders: reminderList,
-      settings: current,
-      now: now,
-    );
+    final _DebtPlan plan = await _planDebtReminders(current, now, asOf);
+    final List<NotificationIntent> intents = <NotificationIntent>[
+      ...plan.intents,
+      ...NotificationPlanner.planObligations(
+        obligations: await _obligationInstancesInWindow(asOf),
+        settings: current,
+        now: now,
+      ),
+      ...NotificationPlanner.planReminders(
+        reminders: await reminders.getAll(),
+        settings: current,
+        now: now,
+      ),
+    ];
 
     final NotificationComposer activeComposer = composer();
-    await notifications.sync(activeComposer.composeAll(intents));
+    final NotificationSyncResult result = await notifications.sync(
+      activeComposer.composeAll(intents),
+      recordsRead: plan.recordsRead,
+    );
 
     await _deliverPendingSummary(current, now, asOf, activeComposer);
+    return result;
+  }
+
+  /// The debt reminders the nearest notifications are made of.
+  ///
+  /// Walks the records that carry a reminder from the soonest due date outwards,
+  /// in pages, and stops as soon as no record further out could deliver earlier
+  /// than the ones already planned — which is what keeps a save on a large
+  /// ledger from reading the whole ledger to build a few hundred notifications.
+  Future<_DebtPlan> _planDebtReminders(
+    AppSettings current,
+    DateTime now,
+    DateTime asOf,
+  ) async {
+    final DateTime to = addDays(asOf, NotificationPlanner.horizon.inDays);
+    // The window starts a little in the past, not today: a record that fell due
+    // two days ago still has its nudge ahead of it, and reading from today
+    // onwards silently dropped exactly those.
+    final DateTime from =
+        addDays(asOf, -NotificationPlanner.overdueNudgeAfterDays);
+    final List<NotificationIntent> intents = <NotificationIntent>[];
+    int offset = 0;
+
+    while (offset < reminderReadLimit) {
+      final List<DebtRow> rows = await _db.debtsDao.reminderCandidates(
+        from: from,
+        to: to,
+        limit: reminderReadChunk,
+        offset: offset,
+      );
+      if (rows.isEmpty) break;
+      offset += rows.length;
+
+      intents.addAll(
+        NotificationPlanner.planDebts(
+          debts: await _viewsOfRows(rows, current, asOf),
+          settings: current,
+          now: now,
+        ),
+      );
+
+      // Stop once the records already read cover the nearest notifications:
+      // a record further out cannot deliver before `due - the longest lead`,
+      // so once that is later than the last notification that would be armed,
+      // nothing beyond this page can change the answer.
+      intents.sort(
+        (NotificationIntent a, NotificationIntent b) => a.when.compareTo(b.when),
+      );
+      final DateTime? cutoff = intents.length > NotificationService.maxScheduled
+          ? intents[NotificationService.maxScheduled - 1].when
+          : null;
+      final DateTime lastDue = rows.last.dueAt!;
+      final DateTime earliestFromLaterRows =
+          addDays(lastDue, -NotificationPlanner.maxLeadDays);
+      if (cutoff != null && earliestFromLaterRows.isAfter(cutoff)) break;
+      if (rows.length < reminderReadChunk) break;
+    }
+
+    return _DebtPlan(intents: intents, recordsRead: offset);
+  }
+
+  /// What the debt half of a plan cost: the notifications, and how many records
+  /// had to be read to produce them.
+  ///
+  /// The count is reported rather than inferred because it is the guarantee: a
+  /// save costs what the records asking for a reminder cost, not what the ledger
+  /// costs. `test/data/reminder_plan_test.dart` holds it to that.
+  /// Builds the views a reminder plan needs, for one page of rows.
+  ///
+  /// Only what a notification reads: the record, what is still owed, and the
+  /// name it leads with. Payments are summed for the page rather than for the
+  /// ledger, and the person comes from the row's own projection column — a
+  /// notification names one person, and it is the one the record leads with.
+  Future<List<DebtView>> _viewsOfRows(
+    List<DebtRow> rows,
+    AppSettings current,
+    DateTime asOf,
+  ) async {
+    final List<DebtPaymentTotals> totals = await _db.debtsDao.paymentTotalsFor(
+      rows.map((DebtRow row) => row.id),
+    );
+    final Map<String, PaymentTotals> byDebt = <String, PaymentTotals>{
+      for (final DebtPaymentTotals t in totals)
+        t.debtId: PaymentTotals(
+          paidMinor: t.paidMinor,
+          count: t.count,
+          lastPaidAt: t.lastPaidAt,
+        ),
+    };
+    final List<PersonRow> people = await _db.peopleDao.getByIds(
+      <String>[
+        for (final DebtRow row in rows)
+          if (row.personId != null) row.personId!,
+      ],
+    );
+    final Map<String, Person> byId = <String, Person>{
+      for (final PersonRow person in people) person.id: person.toEntity(),
+    };
+
+    return <DebtView>[
+      for (final DebtRow row in rows)
+        DebtCalculator.buildViewFromTotals(
+          debt: row.toEntity(
+            personIds: row.personId == null
+                ? const <String>[]
+                : <String>[row.personId!],
+          ),
+          totals: byDebt[row.id] ?? const PaymentTotals.none(),
+          participants: <Person>[
+            if (row.personId != null && byId[row.personId] != null)
+              byId[row.personId]!,
+          ],
+          asOf: asOf,
+          dueSoonWindowDays: current.dueSoonWindowDays,
+        ),
+    ];
+  }
+
+  /// The commitment periods a reminder can still be planned from.
+  Future<List<ObligationInstance>> _obligationInstancesInWindow(
+    DateTime asOf,
+  ) async {
+    final List<ObligationOccurrenceRow> occurrences =
+        await _db.obligationsDao.occurrencesBetween(
+      from: asOf,
+      to: addDays(asOf, NotificationPlanner.horizon.inDays),
+    );
+    if (occurrences.isEmpty) return const <ObligationInstance>[];
+    final List<ObligationRow> rows = await _db.obligationsDao.getByIds(
+      occurrences.map((ObligationOccurrenceRow row) => row.obligationId),
+    );
+    final Map<String, Obligation> byId = <String, Obligation>{
+      for (final ObligationRow row in rows)
+        if (row.archivedAt == null) row.id: row.toEntity(),
+    };
+
+    return <ObligationInstance>[
+      for (final ObligationOccurrenceRow row in occurrences)
+        if (byId[row.obligationId] != null)
+          ObligationInstance(
+            obligation: byId[row.obligationId]!,
+            occurrence: row.toEntity().copyWith(
+              status: ObligationSchedule.resolveStatus(
+                stored: row.toEntity().status,
+                dueAt: row.toEntity().dueAt,
+                asOf: asOf,
+              ),
+            ),
+          ),
+    ];
   }
 
   /// Delivers a month-end summary that was missed while the app was closed.
+  ///
+  /// The figures need the whole ledger, so they are computed only once the cheap
+  /// test says a summary is actually owed — otherwise every save in the app
+  /// would read every record to work out that nothing was due.
   Future<void> _deliverPendingSummary(
     AppSettings current,
     DateTime now,
     DateTime asOf,
     NotificationComposer composer,
   ) async {
-    final List<DebtView> views = await _buildDebtViews(current, asOf);
-    final totals = views.isEmpty
-        ? null
-        : _primaryTotals(views, current, asOf);
+    if (!NotificationPlanner.isCatchUpSummaryDue(settings: current, now: now)) {
+      return;
+    }
+    final List<DebtView> views = await _summaryViews(current, asOf);
+    // A ledger with nothing in it owes nobody a summary: an install that has not
+    // recorded anything yet used to be greeted with a month-end notification
+    // reporting three zeroes.
+    if (views.isEmpty) return;
+    final totals = _primaryTotals(views, current, asOf);
 
     final NotificationIntent? catchUp = NotificationPlanner.pendingCatchUpSummary(
       settings: current,
       now: now,
-      iOweMinor: totals?.$1 ?? 0,
-      owedToMeMinor: totals?.$2 ?? 0,
-      paidMinor: totals?.$3 ?? 0,
-      overdueMinor: totals?.$4 ?? 0,
+      iOweMinor: totals.$1,
+      owedToMeMinor: totals.$2,
+      paidMinor: totals.$3,
+      overdueMinor: totals.$4,
     );
     if (catchUp == null) return;
 
-    final ComposedNotification notification = composer.compose(catchUp, 900001);
-    await notifications.showNow(notification);
+    // The id comes from the same identity rule as every other notification: a
+    // summary that is delivered twice replaces itself instead of stacking up.
+    await notifications.showNow(composer.compose(catchUp, _summaryId(catchUp)));
     await settings.update((AppSettings s) => s.copyWith(lastSummarySentOn: asOf));
     await _log(
       type: ActivityType.monthSummaryGenerated,
@@ -932,6 +1164,9 @@ class LedgerService {
       title: '',
     );
   }
+
+  static int _summaryId(NotificationIntent intent) =>
+      NotificationComposer.idFor(intent);
 
   /// iOwe, owedToMe, paid-this-month and overdue for the user's main currency.
   (int, int, int, int) _primaryTotals(
@@ -966,60 +1201,44 @@ class LedgerService {
     );
   }
 
-  Future<List<DebtView>> _buildDebtViews(AppSettings current, DateTime asOf) async {
-    final List<Debt> all = await debts.getAll();
-    final List<Payment> allPayments = await payments.getAll();
-    final Map<String, List<Payment>> byDebt = <String, List<Payment>>{};
-    for (final Payment payment in allPayments) {
-      final String? debtId = payment.debtId;
-      if (debtId == null) continue;
-      byDebt.putIfAbsent(debtId, () => <Payment>[]).add(payment);
-    }
-    final List<Person> peopleList = await people.getAll();
-    final Map<String, Person> peopleById = <String, Person>{
-      for (final Person person in peopleList) person.id: person,
+  /// The whole ledger, as cheaply as the month-end summary can be told it.
+  ///
+  /// The summary needs the figures and nothing else: no names, no links, and no
+  /// individual payments. Reading rows and one aggregate over the payments table
+  /// keeps `DebtCalculator` as the only arithmetic while costing a fraction of
+  /// building every record's full view — which is what made the first save after
+  /// a month end slow on a large ledger.
+  Future<List<DebtView>> _summaryViews(
+    AppSettings current,
+    DateTime asOf,
+  ) async {
+    final List<DebtRow> rows = await _db.debtsDao.getAll();
+    final List<DebtPaymentTotals> totals =
+        await _db.debtsDao.paymentTotalsByDebt();
+    final Map<String, PaymentTotals> byDebt = <String, PaymentTotals>{
+      for (final DebtPaymentTotals t in totals)
+        t.debtId: PaymentTotals(
+          paidMinor: t.paidMinor,
+          count: t.count,
+          lastPaidAt: t.lastPaidAt,
+        ),
     };
 
-    // The catch-up summary needs the overdue count for the whole month, so it
-    // uses a wider window than the dashboard tiles.
-    final int window = current.dueSoonWindowDays;
     return <DebtView>[
-      for (final Debt debt in all)
-        DebtCalculator.buildView(
-          debt: debt,
-          payments: byDebt[debt.id] ?? const <Payment>[],
-          person: debt.personId == null ? null : peopleById[debt.personId],
+      for (final DebtRow row in rows)
+        DebtCalculator.buildViewFromTotals(
+          debt: row.toEntity(
+            personIds: row.personId == null
+                ? const <String>[]
+                : <String>[row.personId!],
+          ),
+          totals: byDebt[row.id] ?? const PaymentTotals.none(),
           asOf: asOf,
-          dueSoonWindowDays: window,
+          dueSoonWindowDays: current.dueSoonWindowDays,
         ),
     ];
   }
 
-  Future<List<ObligationInstance>> _buildObligationInstances(DateTime asOf) async {
-    final List<Obligation> list = await obligations.getAll();
-    final List<ObligationOccurrence> all = await obligations.allOccurrences();
-    final Map<String, Obligation> byId = <String, Obligation>{
-      for (final Obligation obligation in list) obligation.id: obligation,
-    };
-    final List<ObligationInstance> out = <ObligationInstance>[];
-    for (final ObligationOccurrence occurrence in all) {
-      final Obligation? obligation = byId[occurrence.obligationId];
-      if (obligation == null || obligation.isArchived) continue;
-      final ObligationStatus status = ObligationSchedule.resolveStatus(
-        stored: occurrence.status,
-        dueAt: occurrence.dueAt,
-        asOf: asOf,
-      );
-      if (!status.isOpen) continue;
-      out.add(
-        ObligationInstance(
-          obligation: obligation,
-          occurrence: occurrence.copyWith(status: status),
-        ),
-      );
-    }
-    return out;
-  }
 
   // --- Housekeeping --------------------------------------------------------
 
@@ -1072,13 +1291,19 @@ class LedgerService {
     );
   }
 
-  /// The name shown in the feed: the person if there is one, otherwise the title.
+  /// The name shown in the feed: everyone the record is with, or its title.
+  ///
+  /// A shared record names the whole group, because "أحمد" alone would read as a
+  /// debt with one person and hide the two others it is also with.
   Future<String> _displayNameFor(Debt debt) async {
-    final String? personId = debt.personId;
-    if (personId != null) {
+    final List<String> names = <String>[];
+    for (final String personId in debt.personIds) {
       final Person? person = await people.getById(personId);
-      if (person != null && person.name.trim().isNotEmpty) return person.name;
+      if (person != null && person.name.trim().isNotEmpty) {
+        names.add(person.name.trim());
+      }
     }
+    if (names.isNotEmpty) return names.join(' + ');
     return debt.title.trim();
   }
 

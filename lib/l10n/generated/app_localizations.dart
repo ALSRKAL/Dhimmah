@@ -623,7 +623,7 @@ abstract class AppLocalizations {
   /// No description provided for @dashboardInYourFavour.
   ///
   /// In ar, this message translates to:
-  /// **'لك'**
+  /// **'لمصلحتك'**
   String get dashboardInYourFavour;
 
   /// No description provided for @dashboardNetPosition.
@@ -811,6 +811,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'لا يمكن التراجع عن هذا الإجراء.'**
   String get deleteConfirmBody;
+
+  /// No description provided for @deleteUndoableBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيُحذف الدين، ويمكنك التراجع خلال ثوانٍ.'**
+  String get deleteUndoableBody;
+
+  /// No description provided for @recordGone.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا السجل لم يعد موجودًا.'**
+  String get recordGone;
 
   /// No description provided for @deleteConfirmTitle.
   ///
@@ -1514,17 +1526,29 @@ abstract class AppLocalizations {
   /// **'مستحق الآن'**
   String get notifChannelDueName;
 
-  /// No description provided for @notifChannelRemindersBody.
+  /// No description provided for @notifChannelBackupName.
   ///
   /// In ar, this message translates to:
-  /// **'تنبيهات الديون والالتزامات قبل موعدها'**
-  String get notifChannelRemindersBody;
+  /// **'مشكلة في النسخ الاحتياطي'**
+  String get notifChannelBackupName;
 
-  /// No description provided for @notifChannelRemindersName.
+  /// No description provided for @notifChannelBackupBody.
   ///
   /// In ar, this message translates to:
-  /// **'تذكيرات الاستحقاق'**
-  String get notifChannelRemindersName;
+  /// **'تنبيه عندما يتعذّر على ذِمّة حفظ نسخة من بياناتك'**
+  String get notifChannelBackupBody;
+
+  /// No description provided for @backupAlertTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'النسخ الاحتياطية تحتاج انتباهك'**
+  String get backupAlertTitle;
+
+  /// No description provided for @backupAlertBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يتمكن ذِمّة من حفظ نسخة من تغييراتك. بياناتك محفوظة داخل التطبيق، وسيُعيد المحاولة تلقائيًا.'**
+  String get backupAlertBody;
 
   /// No description provided for @notifChannelSummaryBody.
   ///
@@ -3232,7 +3256,7 @@ abstract class AppLocalizations {
   /// No description provided for @unknownPerson.
   ///
   /// In ar, this message translates to:
-  /// **'بدون اسم'**
+  /// **'بدون عنوان'**
   String get unknownPerson;
 
   /// No description provided for @updateAvailableBody.
@@ -3378,6 +3402,900 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الوصف طويل جدًا.'**
   String get validationTitleTooLong;
+
+  /// No description provided for @debtFormWithPerson.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدين مع {name}'**
+  String debtFormWithPerson(String name);
+
+  /// No description provided for @debtSavedMoved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم الحفظ، وانتقل الدين إلى «{side}».'**
+  String debtSavedMoved(String side);
+
+  /// No description provided for @debtSavedParticipantRemoved.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم الحفظ، ولم يعد الدين مرتبطًا بـ {name}.'**
+  String debtSavedParticipantRemoved(String name);
+
+  /// No description provided for @fieldPeople.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأشخاص'**
+  String get fieldPeople;
+
+  /// No description provided for @fieldPersonPlaceholder.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر شخصًا أو أكثر'**
+  String get fieldPersonPlaceholder;
+
+  /// No description provided for @participantsAdd.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة شخص'**
+  String get participantsAdd;
+
+  /// No description provided for @participantsAddMore.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة أشخاص آخرين'**
+  String get participantsAddMore;
+
+  /// No description provided for @participantsSearchHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث عن شخص'**
+  String get participantsSearchHint;
+
+  /// No description provided for @participantsSelected.
+  ///
+  /// In ar, this message translates to:
+  /// **'المحددون'**
+  String get participantsSelected;
+
+  /// No description provided for @requiredFieldsMissing.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{حقل مطلوب واحد لم يكتمل.} =2{حقلان مطلوبان لم يكتملا.} few{{count} حقول مطلوبة لم تكتمل.} many{{count} حقلًا مطلوبًا لم يكتمل.} other{{count} حقل مطلوب لم يكتمل.}}'**
+  String requiredFieldsMissing(int count);
+
+  /// No description provided for @unsavedChangesBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تُحفظ التغييرات التي أدخلتها. هل تريد الخروج؟'**
+  String get unsavedChangesBody;
+
+  /// No description provided for @unsavedChangesLeave.
+  ///
+  /// In ar, this message translates to:
+  /// **'خروج بدون حفظ'**
+  String get unsavedChangesLeave;
+
+  /// No description provided for @unsavedChangesStay.
+  ///
+  /// In ar, this message translates to:
+  /// **'متابعة التعديل'**
+  String get unsavedChangesStay;
+
+  /// No description provided for @unsavedChangesTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغييرات غير محفوظة'**
+  String get unsavedChangesTitle;
+
+  /// No description provided for @validationSelectDirection.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر نوع الدين: عليّ أو لي.'**
+  String get validationSelectDirection;
+
+  /// No description provided for @validationSelectParticipant.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر شخصًا واحدًا على الأقل.'**
+  String get validationSelectParticipant;
+
+  /// No description provided for @reminderNotArmedOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'التذكيرات متوقفة في الإعدادات، فلن يصلك إشعار عن هذا الدين.'**
+  String get reminderNotArmedOff;
+
+  /// No description provided for @reminderNotArmedDenied.
+  ///
+  /// In ar, this message translates to:
+  /// **'الإشعارات غير مسموح بها من النظام، فلن يصلك إشعار عن هذا الدين.'**
+  String get reminderNotArmedDenied;
+
+  /// No description provided for @settingsBackup.
+  ///
+  /// In ar, this message translates to:
+  /// **'النسخ الاحتياطي والاستعادة'**
+  String get settingsBackup;
+
+  /// No description provided for @backupSectionHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخة من كل بياناتك في ملف واحد يمكنك الاحتفاظ به.'**
+  String get backupSectionHint;
+
+  /// No description provided for @backupAutoTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'النسخ التلقائي'**
+  String get backupAutoTitle;
+
+  /// No description provided for @backupAutoStateOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'مفعّل'**
+  String get backupAutoStateOn;
+
+  /// No description provided for @backupAutoStateOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'متوقف'**
+  String get backupAutoStateOff;
+
+  /// No description provided for @backupAutoOnBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'يحفظ ذِمّة تغييراتك تلقائيًا بعد كل تغيير مهم، وعند مغادرة التطبيق.'**
+  String get backupAutoOnBody;
+
+  /// No description provided for @backupAutoOffBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'بياناتك الحالية محفوظة داخل التطبيق. لن تُنشأ نسخ جديدة تلقائيًا حتى تُشغّل «الحفظ التلقائي» مرة أخرى.'**
+  String get backupAutoOffBody;
+
+  /// No description provided for @backupDetailAutomatic.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحفظ التلقائي'**
+  String get backupDetailAutomatic;
+
+  /// No description provided for @backupDetailLastCopy.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر نسخة'**
+  String get backupDetailLastCopy;
+
+  /// No description provided for @backupDetailRestorable.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخ للاستعادة'**
+  String get backupDetailRestorable;
+
+  /// No description provided for @backupDetailPending.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغييرات غير محفوظة'**
+  String get backupDetailPending;
+
+  /// No description provided for @backupDetailFolder.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجلد النسخ'**
+  String get backupDetailFolder;
+
+  /// No description provided for @backupDetailAttempts.
+  ///
+  /// In ar, this message translates to:
+  /// **'محاولات فاشلة'**
+  String get backupDetailAttempts;
+
+  /// No description provided for @backupHistoryLatest.
+  ///
+  /// In ar, this message translates to:
+  /// **'أحدث نسخة'**
+  String get backupHistoryLatest;
+
+  /// No description provided for @backupHistoryVerified.
+  ///
+  /// In ar, this message translates to:
+  /// **'متحقق منها'**
+  String get backupHistoryVerified;
+
+  /// No description provided for @backupFolderTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجلد النسخ الاحتياطية'**
+  String get backupFolderTitle;
+
+  /// No description provided for @backupFolderSetupTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'أنشئ مكانًا لنسخك الاحتياطية'**
+  String get backupFolderSetupTitle;
+
+  /// No description provided for @backupFolderSetupBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيستخدم ذِمّة هذا المجلد لحفظ النسخ الاحتياطية وفتحها مباشرة عند الاستعادة.'**
+  String get backupFolderSetupBody;
+
+  /// No description provided for @backupFolderChoose.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختيار مجلد النسخ الاحتياطية'**
+  String get backupFolderChoose;
+
+  /// No description provided for @backupFolderChange.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير المجلد'**
+  String get backupFolderChange;
+
+  /// No description provided for @backupFolderCheck.
+  ///
+  /// In ar, this message translates to:
+  /// **'فحص الآن'**
+  String get backupFolderCheck;
+
+  /// No description provided for @backupFolderLater.
+  ///
+  /// In ar, this message translates to:
+  /// **'لاحقًا'**
+  String get backupFolderLater;
+
+  /// No description provided for @backupFolderAvailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'متاح'**
+  String get backupFolderAvailable;
+
+  /// No description provided for @backupFolderMissing.
+  ///
+  /// In ar, this message translates to:
+  /// **'مجلد النسخ الاحتياطية غير متاح'**
+  String get backupFolderMissing;
+
+  /// No description provided for @backupFolderLostAccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يعد للتطبيق وصول إلى هذا المجلد: إمّا أن الإذن أُلغي، أو أن المجلد نُقل أو حُذف.'**
+  String get backupFolderLostAccess;
+
+  /// No description provided for @backupFolderReauthorize.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة السماح'**
+  String get backupFolderReauthorize;
+
+  /// No description provided for @backupFolderBackupsCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لا نسخ صالحة} =1{نسخة واحدة صالحة} =2{نسختان صالحتان} few{{count} نسخ صالحة} many{{count} نسخة صالحة} other{{count} نسخة صالحة}}'**
+  String backupFolderBackupsCount(int count);
+
+  /// No description provided for @backupFolderEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد نسخ احتياطية في هذا المجلد'**
+  String get backupFolderEmpty;
+
+  /// No description provided for @backupFolderConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'استخدام هذا المجلد؟'**
+  String get backupFolderConfirmTitle;
+
+  /// No description provided for @backupFolderConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يمكن إنشاء مجلد «Dhimmah Backups» هنا. هل تريد حفظ النسخ في المجلد الذي اخترته؟'**
+  String get backupFolderConfirmBody;
+
+  /// No description provided for @backupFolderUseIt.
+  ///
+  /// In ar, this message translates to:
+  /// **'استخدم هذا المجلد'**
+  String get backupFolderUseIt;
+
+  /// No description provided for @backupFolderDecline.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختيار مجلد آخر'**
+  String get backupFolderDecline;
+
+  /// No description provided for @backupFolderInvalidNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملفات تشبه النسخ لكنها غير صالحة: {count}'**
+  String backupFolderInvalidNote(int count);
+
+  /// No description provided for @backupFolderNotWritable.
+  ///
+  /// In ar, this message translates to:
+  /// **'المجلد لا يقبل الكتابة'**
+  String get backupFolderNotWritable;
+
+  /// No description provided for @backupFolderError.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر الوصول إلى المجلد'**
+  String get backupFolderError;
+
+  /// No description provided for @backupFolderVerifying.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ فحص المجلد'**
+  String get backupFolderVerifying;
+
+  /// No description provided for @backupHistoryInternal.
+  ///
+  /// In ar, this message translates to:
+  /// **'داخل التطبيق'**
+  String get backupHistoryInternal;
+
+  /// No description provided for @backupHistoryFolder.
+  ///
+  /// In ar, this message translates to:
+  /// **'في مجلد النسخ'**
+  String get backupHistoryFolder;
+
+  /// No description provided for @backupExternalDeleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'حُذفت النسخة من المجلد'**
+  String get backupExternalDeleted;
+
+  /// No description provided for @backupExternalDeleteFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر حذف النسخة من المجلد'**
+  String get backupExternalDeleteFailed;
+
+  /// No description provided for @backupNowAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ نسخة خارجية'**
+  String get backupNowAction;
+
+  /// No description provided for @backupSaveExternalBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'ملف تحفظه أنت في المكان الذي تختاره.'**
+  String get backupSaveExternalBody;
+
+  /// No description provided for @backupShareTile.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركة النسخة'**
+  String get backupShareTile;
+
+  /// No description provided for @backupShareTileBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'أرسل نسخة إلى تطبيق آخر.'**
+  String get backupShareTileBody;
+
+  /// No description provided for @backupExternalSaved.
+  ///
+  /// In ar, this message translates to:
+  /// **'حُفظت النسخة خارجيًا وتحقّقنا منها'**
+  String get backupExternalSaved;
+
+  /// No description provided for @backupExternalSavedBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملف: {name} · {size}'**
+  String backupExternalSavedBody(String name, String size);
+
+  /// No description provided for @backupExternalFailedWrite.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر كتابة الملف في المكان الذي اخترته'**
+  String get backupExternalFailedWrite;
+
+  /// No description provided for @backupExternalFailedReadBack.
+  ///
+  /// In ar, this message translates to:
+  /// **'كُتب الملف لكن تعذّر التحقق منه بعد الحفظ'**
+  String get backupExternalFailedReadBack;
+
+  /// No description provided for @backupExternalFailedIncomplete.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملف المحفوظ فارغ أو ناقص'**
+  String get backupExternalFailedIncomplete;
+
+  /// No description provided for @backupExternalFailedInvalid.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملف المحفوظ لم يجتز التحقق من المحتوى'**
+  String get backupExternalFailedInvalid;
+
+  /// No description provided for @backupExternalFailedUnavailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الجهاز لا يوفّر اختيار مكان للحفظ'**
+  String get backupExternalFailedUnavailable;
+
+  /// No description provided for @backupRestoreAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'استعد من ملف'**
+  String get backupRestoreAction;
+
+  /// No description provided for @backupPreviousAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'النسخ السابقة'**
+  String get backupPreviousAction;
+
+  /// No description provided for @backupCopiesCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لا توجد نسخ} =1{نسخة واحدة} =2{نسختان} few{{count} نسخ} many{{count} نسخة} other{{count} نسخة}}'**
+  String backupCopiesCount(int count);
+
+  /// No description provided for @backupPreviousTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'النسخ السابقة'**
+  String get backupPreviousTitle;
+
+  /// No description provided for @backupPreviousEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد نسخ محفوظة على هذا الجهاز.'**
+  String get backupPreviousEmpty;
+
+  /// No description provided for @backupProtectionProtected.
+  ///
+  /// In ar, this message translates to:
+  /// **'بياناتك محمية'**
+  String get backupProtectionProtected;
+
+  /// No description provided for @backupProtectionPending.
+  ///
+  /// In ar, this message translates to:
+  /// **'هناك تغييرات بانتظار الحفظ'**
+  String get backupProtectionPending;
+
+  /// No description provided for @backupProtectionBackingUp.
+  ///
+  /// In ar, this message translates to:
+  /// **'جارٍ حفظ التغييرات'**
+  String get backupProtectionBackingUp;
+
+  /// No description provided for @backupProtectionNever.
+  ///
+  /// In ar, this message translates to:
+  /// **'بياناتك غير محمية بعد'**
+  String get backupProtectionNever;
+
+  /// No description provided for @backupProtectionRecoverable.
+  ///
+  /// In ar, this message translates to:
+  /// **'توجد نسخة يمكن استعادتها'**
+  String get backupProtectionRecoverable;
+
+  /// No description provided for @backupProtectionAttention.
+  ///
+  /// In ar, this message translates to:
+  /// **'النسخ الاحتياطية تحتاج انتباهك'**
+  String get backupProtectionAttention;
+
+  /// No description provided for @backupProtectionStorage.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر الحفظ في مكان النسخ'**
+  String get backupProtectionStorage;
+
+  /// No description provided for @backupProtectionNoLocation.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُحدَّد مكان دائم للنسخ'**
+  String get backupProtectionNoLocation;
+
+  /// No description provided for @backupProtectionLastSuccess.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر نسخة ناجحة · {when}'**
+  String backupProtectionLastSuccess(String when);
+
+  /// No description provided for @backupProtectionNeverWorked.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تُحفظ نسخة بعد'**
+  String get backupProtectionNeverWorked;
+
+  /// No description provided for @backupProtectionDetails.
+  ///
+  /// In ar, this message translates to:
+  /// **'تفاصيل الحماية'**
+  String get backupProtectionDetails;
+
+  /// No description provided for @backupProtectionHideDetails.
+  ///
+  /// In ar, this message translates to:
+  /// **'إخفاء التفاصيل'**
+  String get backupProtectionHideDetails;
+
+  /// No description provided for @backupProtectionCopiesInside.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لا شيء داخل التطبيق} =1{نسخة واحدة داخل التطبيق} =2{نسختان داخل التطبيق} few{{count} نسخ داخل التطبيق} many{{count} نسخة داخل التطبيق} other{{count} نسخة داخل التطبيق}}'**
+  String backupProtectionCopiesInside(int count);
+
+  /// No description provided for @backupProtectionCopiesOutside.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لا شيء في مجلدك} =1{نسخة واحدة في مجلدك} =2{نسختان في مجلدك} few{{count} نسخ في مجلدك} many{{count} نسخة في مجلدك} other{{count} نسخة في مجلدك}}'**
+  String backupProtectionCopiesOutside(int count);
+
+  /// No description provided for @backupProtectionWaiting.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لا سجلات} =1{سجل واحد} =2{سجلان} few{{count} سجلات} many{{count} سجلًا} other{{count} سجل}}'**
+  String backupProtectionWaiting(int count);
+
+  /// No description provided for @backupProtectionFolderNone.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم يُختر بعد'**
+  String get backupProtectionFolderNone;
+
+  /// No description provided for @backupProtectionAutoOff.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحفظ التلقائي متوقف'**
+  String get backupProtectionAutoOff;
+
+  /// No description provided for @backupProtectionFailedTimes.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{مرة واحدة} =2{مرتان} few{{count} مرات} many{{count} مرة} other{{count} مرة}}'**
+  String backupProtectionFailedTimes(int count);
+
+  /// No description provided for @backupProtectionDataSafe.
+  ///
+  /// In ar, this message translates to:
+  /// **'بياناتك الحالية محفوظة داخل التطبيق ولم تتأثر.'**
+  String get backupProtectionDataSafe;
+
+  /// No description provided for @backupProtectionHowTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'كيف يحمي ذِمّة بياناتك؟'**
+  String get backupProtectionHowTitle;
+
+  /// No description provided for @backupProtectionHowBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'يحفظ ذِمّة نسخة من تغييراتك من تلقاء نفسه، ويتحقق من كل نسخة بعد كتابتها بقراءتها مرة أخرى. تُحفظ نقاط استعادة تكفي للرجوع خطوة إلى الوراء، ولا تُحذف النسخة اليدوية أبدًا. الاستعادة لا تبدأ إلا بتأكيد منك، وقبلها تُؤخذ نسخة أمان من بياناتك الحالية. وإذا تعذّر الحفظ، فبياناتك في التطبيق تبقى كما هي.'**
+  String get backupProtectionHowBody;
+
+  /// No description provided for @backupEntryAuto.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخة تلقائية'**
+  String get backupEntryAuto;
+
+  /// No description provided for @backupEntryManual.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخة يدوية'**
+  String get backupEntryManual;
+
+  /// No description provided for @backupEntrySafety.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخة قبل استعادة'**
+  String get backupEntrySafety;
+
+  /// No description provided for @backupShareAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركة'**
+  String get backupShareAction;
+
+  /// No description provided for @backupDeleteAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف'**
+  String get backupDeleteAction;
+
+  /// No description provided for @backupDeleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'حُذفت النسخة'**
+  String get backupDeleted;
+
+  /// No description provided for @backupDeleteFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر حذف النسخة، وما زالت في القائمة'**
+  String get backupDeleteFailed;
+
+  /// No description provided for @backupCreated.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إنشاء النسخة الاحتياطية'**
+  String get backupCreated;
+
+  /// No description provided for @backupStepReading.
+  ///
+  /// In ar, this message translates to:
+  /// **'قراءة السجلات'**
+  String get backupStepReading;
+
+  /// No description provided for @backupStepBuilding.
+  ///
+  /// In ar, this message translates to:
+  /// **'تجهيز بيانات النسخة'**
+  String get backupStepBuilding;
+
+  /// No description provided for @backupStepHashing.
+  ///
+  /// In ar, this message translates to:
+  /// **'حساب بصمة التحقق'**
+  String get backupStepHashing;
+
+  /// No description provided for @backupStepWriting.
+  ///
+  /// In ar, this message translates to:
+  /// **'كتابة الملف'**
+  String get backupStepWriting;
+
+  /// No description provided for @backupStepVerifying.
+  ///
+  /// In ar, this message translates to:
+  /// **'التحقق من الملف بعد كتابته'**
+  String get backupStepVerifying;
+
+  /// No description provided for @backupStepRetaining.
+  ///
+  /// In ar, this message translates to:
+  /// **'ترتيب النسخ السابقة'**
+  String get backupStepRetaining;
+
+  /// No description provided for @restoreStepReading.
+  ///
+  /// In ar, this message translates to:
+  /// **'قراءة الملف'**
+  String get restoreStepReading;
+
+  /// No description provided for @restoreStepDecoding.
+  ///
+  /// In ar, this message translates to:
+  /// **'فك محتوى الملف'**
+  String get restoreStepDecoding;
+
+  /// No description provided for @restoreStepChecking.
+  ///
+  /// In ar, this message translates to:
+  /// **'التحقق من سلامة الملف'**
+  String get restoreStepChecking;
+
+  /// No description provided for @restoreStepValidating.
+  ///
+  /// In ar, this message translates to:
+  /// **'تدقيق البيانات'**
+  String get restoreStepValidating;
+
+  /// No description provided for @restoreStepPlanning.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحديد ما سيُكتب'**
+  String get restoreStepPlanning;
+
+  /// No description provided for @restoreStepSnapshot.
+  ///
+  /// In ar, this message translates to:
+  /// **'أخذ نسخة أمان من بياناتك الحالية'**
+  String get restoreStepSnapshot;
+
+  /// No description provided for @restoreStepWriting.
+  ///
+  /// In ar, this message translates to:
+  /// **'كتابة البيانات'**
+  String get restoreStepWriting;
+
+  /// No description provided for @restoreStepVerifying.
+  ///
+  /// In ar, this message translates to:
+  /// **'التحقق من النتيجة'**
+  String get restoreStepVerifying;
+
+  /// No description provided for @restoreStepRebuilding.
+  ///
+  /// In ar, this message translates to:
+  /// **'إعادة بناء الجداول والتذكيرات'**
+  String get restoreStepRebuilding;
+
+  /// No description provided for @backupCreateFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر إنشاء النسخة الاحتياطية'**
+  String get backupCreateFailed;
+
+  /// No description provided for @backupRestoreTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'استعادة نسخة احتياطية'**
+  String get backupRestoreTitle;
+
+  /// No description provided for @backupRestoreQuestion.
+  ///
+  /// In ar, this message translates to:
+  /// **'هل تريد استعادة هذه البيانات؟'**
+  String get backupRestoreQuestion;
+
+  /// No description provided for @backupRestoreFrom.
+  ///
+  /// In ar, this message translates to:
+  /// **'نسخة احتياطية من'**
+  String get backupRestoreFrom;
+
+  /// No description provided for @backupRestoreCounts.
+  ///
+  /// In ar, this message translates to:
+  /// **'{people, plural, zero{{people} أشخاص} one{شخص واحد} two{شخصان} few{{people} أشخاص} many{{people} شخصًا} other{{people} شخص}} · {debts, plural, zero{{debts} ديون} one{دين واحد} two{دينان} few{{debts} ديون} many{{debts} دينًا} other{{debts} دين}} · {payments, plural, zero{{payments} دفعات} one{دفعة واحدة} two{دفعتان} few{{payments} دفعات} many{{payments} دفعة} other{{payments} دفعة}}'**
+  String backupRestoreCounts(int people, int debts, int payments);
+
+  /// No description provided for @backupRestoreMore.
+  ///
+  /// In ar, this message translates to:
+  /// **'{obligations, plural, zero{{obligations} التزامات} one{التزام واحد} two{التزامان} few{{obligations} التزامات} many{{obligations} التزامًا} other{{obligations} التزام}} · {reminders, plural, zero{{reminders} تذكيرات} one{تذكير واحد} two{تذكيران} few{{reminders} تذكيرات} many{{reminders} تذكيرًا} other{{reminders} تذكير}} · {links, plural, zero{{links} ارتباطات} one{ارتباط واحد} two{ارتباطان} few{{links} ارتباطات} many{{links} ارتباطًا} other{{links} ارتباط}}'**
+  String backupRestoreMore(int obligations, int reminders, int links);
+
+  /// No description provided for @backupRestoreLastChange.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر تغيير في النسخة: {when}'**
+  String backupRestoreLastChange(String when);
+
+  /// No description provided for @backupRestoreCurrencies.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{العملة: {codes}} other{العملات: {codes}}}'**
+  String backupRestoreCurrencies(String codes, int count);
+
+  /// No description provided for @backupRestoreUnencrypted.
+  ///
+  /// In ar, this message translates to:
+  /// **'الملف غير مشفّر: من يفتحه يقرأ بياناتك.'**
+  String get backupRestoreUnencrypted;
+
+  /// No description provided for @backupRestoreSafetyNote.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيأخذ Dhimmah نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.'**
+  String get backupRestoreSafetyNote;
+
+  /// No description provided for @backupRestoreMode.
+  ///
+  /// In ar, this message translates to:
+  /// **'طريقة الاستعادة'**
+  String get backupRestoreMode;
+
+  /// No description provided for @backupModeReplace.
+  ///
+  /// In ar, this message translates to:
+  /// **'استبدال'**
+  String get backupModeReplace;
+
+  /// No description provided for @backupModeReplaceBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تصبح النسخة هي بياناتك، وتُستبدل بيانات الجهاز الحالية.'**
+  String get backupModeReplaceBody;
+
+  /// No description provided for @backupModeMerge.
+  ///
+  /// In ar, this message translates to:
+  /// **'دمج'**
+  String get backupModeMerge;
+
+  /// No description provided for @backupModeMergeBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تُضاف السجلات الجديدة، وتُحدَّث الأحدث، ويُبلَّغ عن أي تعارض بدل تخمينه.'**
+  String get backupModeMergeBody;
+
+  /// No description provided for @backupRestoreConfirm.
+  ///
+  /// In ar, this message translates to:
+  /// **'استعادة'**
+  String get backupRestoreConfirm;
+
+  /// No description provided for @backupRestoreDone.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت الاستعادة بنجاح'**
+  String get backupRestoreDone;
+
+  /// No description provided for @backupRestoreSummary.
+  ///
+  /// In ar, this message translates to:
+  /// **'{people, plural, zero{{people} أشخاص} one{شخص واحد} two{شخصان} few{{people} أشخاص} many{{people} شخصًا} other{{people} شخص}} · {debts, plural, zero{{debts} ديون} one{دين واحد} two{دينان} few{{debts} ديون} many{{debts} دينًا} other{{debts} دين}} · {payments, plural, zero{{payments} دفعات} one{دفعة واحدة} two{دفعتان} few{{payments} دفعات} many{{payments} دفعة} other{{payments} دفعة}}'**
+  String backupRestoreSummary(int people, int debts, int payments);
+
+  /// No description provided for @backupRestoreSkipped.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجلات موجودة أصلًا: {count}'**
+  String backupRestoreSkipped(int count);
+
+  /// No description provided for @backupRestoreConflictsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجلات تحتاج مراجعة'**
+  String get backupRestoreConflictsTitle;
+
+  /// No description provided for @backupRestoreConflictsBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{سجل واحد مختلف في النسخة ولم يكن أحدث؛ أُبقي الموجود عندك.} other{{count} سجلًا مختلفة في النسخة ولم تكن أحدث؛ أُبقي الموجود عندك.}}'**
+  String backupRestoreConflictsBody(int count);
+
+  /// No description provided for @backupRestoreFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّرت الاستعادة، ولم تتغيّر بياناتك.'**
+  String get backupRestoreFailed;
+
+  /// No description provided for @backupRestoreInvalid.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر استعادة النسخة لأن الملف غير صالح أو تالف.'**
+  String get backupRestoreInvalid;
+
+  /// No description provided for @backupRestoreNotOurs.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الملف ليس نسخة احتياطية صالحة لـDhimmah.'**
+  String get backupRestoreNotOurs;
+
+  /// No description provided for @backupRestoreTooNew.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذه النسخة من إصدار أحدث من التطبيق. حدّث Dhimmah ثم حاول مرة أخرى.'**
+  String get backupRestoreTooNew;
+
+  /// No description provided for @backupRestoreContinue.
+  ///
+  /// In ar, this message translates to:
+  /// **'متابعة إلى Dhimmah'**
+  String get backupRestoreContinue;
+
+  /// No description provided for @backupFoundTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'وجدنا نسخة احتياطية'**
+  String get backupFoundTitle;
+
+  /// No description provided for @backupFoundBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد بيانات على هذا الجهاز، وهناك نسخة محفوظة يمكن استعادتها.'**
+  String get backupFoundBody;
+
+  /// No description provided for @backupPrivacyTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'أين تُحفظ النسخ؟'**
+  String get backupPrivacyTitle;
+
+  /// No description provided for @backupPrivacyBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'النسخ التلقائية داخل التطبيق ولا يقرؤها غيره. وعند المشاركة تختار أنت المكان — الملفات أو Drive أو غيره — والملف غير مشفّر. حذف التطبيق يحذف النسخ التي داخله، فاحتفظ بنسخة خارج الجهاز إن كانت بياناتك تهمّك.'**
+  String get backupPrivacyBody;
+
+  /// No description provided for @backupSeparateFromExport.
+  ///
+  /// In ar, this message translates to:
+  /// **'التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد.'**
+  String get backupSeparateFromExport;
 }
 
 class _AppLocalizationsDelegate

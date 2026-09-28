@@ -36,6 +36,7 @@ part 'app_database.g.dart';
   tables: <Type>[
     People,
     Debts,
+    DebtPeople,
     Payments,
     Obligations,
     ObligationOccurrences,
@@ -67,8 +68,18 @@ class AppDatabase extends _$AppDatabase {
   /// Version 1 shipped with only primary-key autoindexes, so every foreign-key
   /// lookup scanned a whole table — reading one person's five debts cost 265 ms
   /// at 2,500 debts, and the person page ran that query once per debt.
+  ///
+  /// 3 added [DebtPeople], so one debt can belong to several people. Existing
+  /// single-person debts keep their person: the upgrade copies every non-null
+  /// `debts.person_id` into a link row, which is the only statement in the
+  /// whole migration that touches data at all.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => currentSchemaVersion;
+
+  /// The schema this build writes. Named as a constant so a test can assert
+  /// "a file from the future is refused" without repeating the number, and so a
+  /// later version has exactly one place to change.
+  static const int currentSchemaVersion = 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -87,13 +98,23 @@ class AppDatabase extends _$AppDatabase {
           if (from > to) {
             throw DatabaseTooNewException(from: from, supported: to);
           }
-          // `createAll` emits CREATE TABLE/INDEX IF NOT EXISTS, so on an existing
-          // database it adds exactly what is missing and touches no data. That
-          // matters: the alternative — recreating a table to change its shape —
-          // fails on any row that violates the new definition, and a ledger that
-          // refuses to open is worse than a slow one. Indexes are additive, so
-          // there is nothing to repair and nothing to lose.
-          if (from < 2) await m.createAll();
+          // Every step after version 1 is additive and idempotent, and is
+          // applied in one pass in the order it was introduced: the new table,
+          // then any index the file is missing, then the data that belongs in
+          // it. `createAll` is deliberately not used here — drift's CREATE
+          // INDEX is not conditional, so a file that already has the indexes
+          // fails on a second run, which is how an upgrade from version 1 used
+          // to end with "no such table" half way through.
+          if (from < 3) {
+            await m.createTable(debtPeople);
+            await _ensureIndexes();
+            await _backfillDebtPeople();
+          }
+          if (from < 4) {
+            // One column, with a default, so every existing row keeps working
+            // and the switch starts on — the state a new install gets.
+            await m.addColumn(settings, settings.backupAutoEnabled);
+          }
         },
         beforeOpen: (OpeningDetails details) async {
           // Required for the ON DELETE actions declared on the tables.
@@ -127,11 +148,43 @@ class AppDatabase extends _$AppDatabase {
     );
   }
 
+  /// Creates every index the schema declares, if the file does not have it.
+  ///
+  /// The statements come from the generated schema, with `IF NOT EXISTS` added:
+  /// drift emits a plain `CREATE INDEX`, which is the right thing for a fresh
+  /// file and the wrong thing for an upgrade that may already have one.
+  Future<void> _ensureIndexes() async {
+    for (final DatabaseSchemaEntity entity in allSchemaEntities) {
+      if (entity is! Index) continue;
+      final String? sql = entity.createStatementsByDialect[SqlDialect.sqlite];
+      if (sql == null) continue;
+      await customStatement(
+        sql.replaceFirst('CREATE INDEX ', 'CREATE INDEX IF NOT EXISTS '),
+      );
+    }
+  }
+
+  /// Gives every existing single-person debt its link row.
+  ///
+  /// Run inside the migration transaction, so a failure leaves the file exactly
+  /// as it was. `INSERT OR IGNORE` makes it safe to run against a database that
+  /// already has links — a half-applied upgrade, or a file written by a build
+  /// that got this far and stopped — because the pair is the primary key.
+  Future<void> _backfillDebtPeople() async {
+    await customStatement('''
+      INSERT OR IGNORE INTO debt_people (debt_id, person_id, position, created_at)
+      SELECT id, person_id, 0, CAST(strftime('%s', 'now') AS INTEGER) * 1000
+      FROM debts
+      WHERE person_id IS NOT NULL
+    ''');
+  }
+
   /// Wipes every user row. Used by "delete all data" in Settings.
   Future<void> clearAllData() {
     return transaction(() async {
       await delete(activityEntries).go();
       await delete(payments).go();
+      await delete(debtPeople).go();
       await delete(obligationOccurrences).go();
       await delete(obligations).go();
       await delete(debts).go();

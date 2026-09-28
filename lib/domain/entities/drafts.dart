@@ -18,7 +18,7 @@ class DebtDraft {
     required this.principalMinor,
     required this.currency,
     required this.issuedAt,
-    this.personId,
+    this.personIds = const <String>[],
     this.title = '',
     this.dueAt,
     this.note,
@@ -29,7 +29,10 @@ class DebtDraft {
   });
 
   final DebtDirection direction;
-  final String? personId;
+
+  /// Everyone the record is with, in the order the user chose them.
+  final List<String> personIds;
+
   final String title;
   final int principalMinor;
   final AppCurrency currency;

@@ -908,6 +908,16 @@ class $DebtsTable extends Debts with TableInfo<$DebtsTable, DebtRow> {
 
 class DebtRow extends DataClass implements Insertable<DebtRow> {
   final String id;
+
+  /// The person the user named first, kept as one value.
+  ///
+  /// [DebtPeople] is the authority on who a debt is with, and this column is a
+  /// projection of it: the participant at position 0, or NULL for a record that
+  /// names nobody. It survives because it is what payments, notifications, the
+  /// statement and the activity feed have always read, and because its foreign
+  /// key is what unlinks a debt when the person behind it is deleted. It is
+  /// written in exactly one place — the same write that stores the links — and
+  /// `debts_dao` refuses to let the two disagree.
   final String? personId;
   final DebtDirection direction;
   final String title;
@@ -1493,6 +1503,324 @@ class DebtsCompanion extends UpdateCompanion<DebtRow> {
           ..write('archivedAt: $archivedAt, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $DebtPeopleTable extends DebtPeople
+    with TableInfo<$DebtPeopleTable, DebtPersonRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $DebtPeopleTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _debtIdMeta = const VerificationMeta('debtId');
+  @override
+  late final GeneratedColumn<String> debtId = GeneratedColumn<String>(
+    'debt_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES debts (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _personIdMeta = const VerificationMeta(
+    'personId',
+  );
+  @override
+  late final GeneratedColumn<String> personId = GeneratedColumn<String>(
+    'person_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES people (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _positionMeta = const VerificationMeta(
+    'position',
+  );
+  @override
+  late final GeneratedColumn<int> position = GeneratedColumn<int>(
+    'position',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAt =
+      GeneratedColumn<int>(
+        'created_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($DebtPeopleTable.$convertercreatedAt);
+  @override
+  List<GeneratedColumn> get $columns => [debtId, personId, position, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'debt_people';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DebtPersonRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('debt_id')) {
+      context.handle(
+        _debtIdMeta,
+        debtId.isAcceptableOrUnknown(data['debt_id']!, _debtIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_debtIdMeta);
+    }
+    if (data.containsKey('person_id')) {
+      context.handle(
+        _personIdMeta,
+        personId.isAcceptableOrUnknown(data['person_id']!, _personIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_personIdMeta);
+    }
+    if (data.containsKey('position')) {
+      context.handle(
+        _positionMeta,
+        position.isAcceptableOrUnknown(data['position']!, _positionMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {debtId, personId};
+  @override
+  DebtPersonRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DebtPersonRow(
+      debtId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}debt_id'],
+      )!,
+      personId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}person_id'],
+      )!,
+      position: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}position'],
+      )!,
+      createdAt: $DebtPeopleTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}created_at'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $DebtPeopleTable createAlias(String alias) {
+    return $DebtPeopleTable(attachedDatabase, alias);
+  }
+
+  static TypeConverter<DateTime, int> $convertercreatedAt =
+      const TimestampConverter();
+}
+
+class DebtPersonRow extends DataClass implements Insertable<DebtPersonRow> {
+  final String debtId;
+  final String personId;
+  final int position;
+  final DateTime createdAt;
+  const DebtPersonRow({
+    required this.debtId,
+    required this.personId,
+    required this.position,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['debt_id'] = Variable<String>(debtId);
+    map['person_id'] = Variable<String>(personId);
+    map['position'] = Variable<int>(position);
+    {
+      map['created_at'] = Variable<int>(
+        $DebtPeopleTable.$convertercreatedAt.toSql(createdAt),
+      );
+    }
+    return map;
+  }
+
+  DebtPeopleCompanion toCompanion(bool nullToAbsent) {
+    return DebtPeopleCompanion(
+      debtId: Value(debtId),
+      personId: Value(personId),
+      position: Value(position),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory DebtPersonRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DebtPersonRow(
+      debtId: serializer.fromJson<String>(json['debtId']),
+      personId: serializer.fromJson<String>(json['personId']),
+      position: serializer.fromJson<int>(json['position']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'debtId': serializer.toJson<String>(debtId),
+      'personId': serializer.toJson<String>(personId),
+      'position': serializer.toJson<int>(position),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  DebtPersonRow copyWith({
+    String? debtId,
+    String? personId,
+    int? position,
+    DateTime? createdAt,
+  }) => DebtPersonRow(
+    debtId: debtId ?? this.debtId,
+    personId: personId ?? this.personId,
+    position: position ?? this.position,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  DebtPersonRow copyWithCompanion(DebtPeopleCompanion data) {
+    return DebtPersonRow(
+      debtId: data.debtId.present ? data.debtId.value : this.debtId,
+      personId: data.personId.present ? data.personId.value : this.personId,
+      position: data.position.present ? data.position.value : this.position,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DebtPersonRow(')
+          ..write('debtId: $debtId, ')
+          ..write('personId: $personId, ')
+          ..write('position: $position, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(debtId, personId, position, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DebtPersonRow &&
+          other.debtId == this.debtId &&
+          other.personId == this.personId &&
+          other.position == this.position &&
+          other.createdAt == this.createdAt);
+}
+
+class DebtPeopleCompanion extends UpdateCompanion<DebtPersonRow> {
+  final Value<String> debtId;
+  final Value<String> personId;
+  final Value<int> position;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const DebtPeopleCompanion({
+    this.debtId = const Value.absent(),
+    this.personId = const Value.absent(),
+    this.position = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  DebtPeopleCompanion.insert({
+    required String debtId,
+    required String personId,
+    this.position = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  }) : debtId = Value(debtId),
+       personId = Value(personId),
+       createdAt = Value(createdAt);
+  static Insertable<DebtPersonRow> custom({
+    Expression<String>? debtId,
+    Expression<String>? personId,
+    Expression<int>? position,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (debtId != null) 'debt_id': debtId,
+      if (personId != null) 'person_id': personId,
+      if (position != null) 'position': position,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  DebtPeopleCompanion copyWith({
+    Value<String>? debtId,
+    Value<String>? personId,
+    Value<int>? position,
+    Value<DateTime>? createdAt,
+    Value<int>? rowid,
+  }) {
+    return DebtPeopleCompanion(
+      debtId: debtId ?? this.debtId,
+      personId: personId ?? this.personId,
+      position: position ?? this.position,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (debtId.present) {
+      map['debt_id'] = Variable<String>(debtId.value);
+    }
+    if (personId.present) {
+      map['person_id'] = Variable<String>(personId.value);
+    }
+    if (position.present) {
+      map['position'] = Variable<int>(position.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $DebtPeopleTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DebtPeopleCompanion(')
+          ..write('debtId: $debtId, ')
+          ..write('personId: $personId, ')
+          ..write('position: $position, ')
+          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3990,6 +4318,11 @@ class ReminderRow extends DataClass implements Insertable<ReminderRow> {
   final RelatedEntityType relatedType;
   final String? relatedId;
   final ReminderStatus status;
+
+  /// Vestigial. The app does not store the platform's notification id: the
+  /// records are the source of truth and the pending set is the platform's own
+  /// record of what it is holding, compared on every reconciliation. The column
+  /// is never written, and dropping it would cost a migration for nothing.
   final int? notificationId;
   final DateTime? completedAt;
   final DateTime createdAt;
@@ -6033,6 +6366,21 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _backupAutoEnabledMeta = const VerificationMeta(
+    'backupAutoEnabled',
+  );
+  @override
+  late final GeneratedColumn<bool> backupAutoEnabled = GeneratedColumn<bool>(
+    'backup_auto_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("backup_auto_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   late final GeneratedColumnWithTypeConverter<DateTime?, String>
   lastSummarySentOn = GeneratedColumn<String>(
@@ -6070,6 +6418,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     lockEnabled,
     biometricEnabled,
     onboardingCompleted,
+    backupAutoEnabled,
     lastSummarySentOn,
     lastExportedAt,
   ];
@@ -6189,6 +6538,15 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         ),
       );
     }
+    if (data.containsKey('backup_auto_enabled')) {
+      context.handle(
+        _backupAutoEnabledMeta,
+        backupAutoEnabled.isAcceptableOrUnknown(
+          data['backup_auto_enabled']!,
+          _backupAutoEnabledMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -6277,6 +6635,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.bool,
         data['${effectivePrefix}onboarding_completed'],
       )!,
+      backupAutoEnabled: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}backup_auto_enabled'],
+      )!,
       lastSummarySentOn: $SettingsTable.$converterlastSummarySentOn.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
@@ -6331,6 +6693,12 @@ class Setting extends DataClass implements Insertable<Setting> {
   final bool lockEnabled;
   final bool biometricEnabled;
   final bool onboardingCompleted;
+
+  /// Whether the app keeps its own snapshots up to date.
+  ///
+  /// On by default: the point of a safety net is that it is already there the
+  /// first time it is needed. Turning it off leaves the manual buttons working.
+  final bool backupAutoEnabled;
   final DateTime? lastSummarySentOn;
   final DateTime? lastExportedAt;
   const Setting({
@@ -6351,6 +6719,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     required this.lockEnabled,
     required this.biometricEnabled,
     required this.onboardingCompleted,
+    required this.backupAutoEnabled,
     this.lastSummarySentOn,
     this.lastExportedAt,
   });
@@ -6396,6 +6765,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['lock_enabled'] = Variable<bool>(lockEnabled);
     map['biometric_enabled'] = Variable<bool>(biometricEnabled);
     map['onboarding_completed'] = Variable<bool>(onboardingCompleted);
+    map['backup_auto_enabled'] = Variable<bool>(backupAutoEnabled);
     if (!nullToAbsent || lastSummarySentOn != null) {
       map['last_summary_sent_on'] = Variable<String>(
         $SettingsTable.$converterlastSummarySentOn.toSql(lastSummarySentOn),
@@ -6428,6 +6798,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       lockEnabled: Value(lockEnabled),
       biometricEnabled: Value(biometricEnabled),
       onboardingCompleted: Value(onboardingCompleted),
+      backupAutoEnabled: Value(backupAutoEnabled),
       lastSummarySentOn: lastSummarySentOn == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSummarySentOn),
@@ -6478,6 +6849,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       onboardingCompleted: serializer.fromJson<bool>(
         json['onboardingCompleted'],
       ),
+      backupAutoEnabled: serializer.fromJson<bool>(json['backupAutoEnabled']),
       lastSummarySentOn: serializer.fromJson<DateTime?>(
         json['lastSummarySentOn'],
       ),
@@ -6515,6 +6887,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       'lockEnabled': serializer.toJson<bool>(lockEnabled),
       'biometricEnabled': serializer.toJson<bool>(biometricEnabled),
       'onboardingCompleted': serializer.toJson<bool>(onboardingCompleted),
+      'backupAutoEnabled': serializer.toJson<bool>(backupAutoEnabled),
       'lastSummarySentOn': serializer.toJson<DateTime?>(lastSummarySentOn),
       'lastExportedAt': serializer.toJson<DateTime?>(lastExportedAt),
     };
@@ -6538,6 +6911,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     bool? lockEnabled,
     bool? biometricEnabled,
     bool? onboardingCompleted,
+    bool? backupAutoEnabled,
     Value<DateTime?> lastSummarySentOn = const Value.absent(),
     Value<DateTime?> lastExportedAt = const Value.absent(),
   }) => Setting(
@@ -6559,6 +6933,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     lockEnabled: lockEnabled ?? this.lockEnabled,
     biometricEnabled: biometricEnabled ?? this.biometricEnabled,
     onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+    backupAutoEnabled: backupAutoEnabled ?? this.backupAutoEnabled,
     lastSummarySentOn: lastSummarySentOn.present
         ? lastSummarySentOn.value
         : this.lastSummarySentOn,
@@ -6611,6 +6986,9 @@ class Setting extends DataClass implements Insertable<Setting> {
       onboardingCompleted: data.onboardingCompleted.present
           ? data.onboardingCompleted.value
           : this.onboardingCompleted,
+      backupAutoEnabled: data.backupAutoEnabled.present
+          ? data.backupAutoEnabled.value
+          : this.backupAutoEnabled,
       lastSummarySentOn: data.lastSummarySentOn.present
           ? data.lastSummarySentOn.value
           : this.lastSummarySentOn,
@@ -6640,6 +7018,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('lockEnabled: $lockEnabled, ')
           ..write('biometricEnabled: $biometricEnabled, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
+          ..write('backupAutoEnabled: $backupAutoEnabled, ')
           ..write('lastSummarySentOn: $lastSummarySentOn, ')
           ..write('lastExportedAt: $lastExportedAt')
           ..write(')'))
@@ -6665,6 +7044,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     lockEnabled,
     biometricEnabled,
     onboardingCompleted,
+    backupAutoEnabled,
     lastSummarySentOn,
     lastExportedAt,
   );
@@ -6689,6 +7069,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.lockEnabled == this.lockEnabled &&
           other.biometricEnabled == this.biometricEnabled &&
           other.onboardingCompleted == this.onboardingCompleted &&
+          other.backupAutoEnabled == this.backupAutoEnabled &&
           other.lastSummarySentOn == this.lastSummarySentOn &&
           other.lastExportedAt == this.lastExportedAt);
 }
@@ -6711,6 +7092,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<bool> lockEnabled;
   final Value<bool> biometricEnabled;
   final Value<bool> onboardingCompleted;
+  final Value<bool> backupAutoEnabled;
   final Value<DateTime?> lastSummarySentOn;
   final Value<DateTime?> lastExportedAt;
   const SettingsCompanion({
@@ -6731,6 +7113,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.lockEnabled = const Value.absent(),
     this.biometricEnabled = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
+    this.backupAutoEnabled = const Value.absent(),
     this.lastSummarySentOn = const Value.absent(),
     this.lastExportedAt = const Value.absent(),
   });
@@ -6752,6 +7135,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.lockEnabled = const Value.absent(),
     this.biometricEnabled = const Value.absent(),
     this.onboardingCompleted = const Value.absent(),
+    this.backupAutoEnabled = const Value.absent(),
     this.lastSummarySentOn = const Value.absent(),
     this.lastExportedAt = const Value.absent(),
   }) : language = Value(language),
@@ -6777,6 +7161,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<bool>? lockEnabled,
     Expression<bool>? biometricEnabled,
     Expression<bool>? onboardingCompleted,
+    Expression<bool>? backupAutoEnabled,
     Expression<String>? lastSummarySentOn,
     Expression<int>? lastExportedAt,
   }) {
@@ -6803,6 +7188,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       if (biometricEnabled != null) 'biometric_enabled': biometricEnabled,
       if (onboardingCompleted != null)
         'onboarding_completed': onboardingCompleted,
+      if (backupAutoEnabled != null) 'backup_auto_enabled': backupAutoEnabled,
       if (lastSummarySentOn != null) 'last_summary_sent_on': lastSummarySentOn,
       if (lastExportedAt != null) 'last_exported_at': lastExportedAt,
     });
@@ -6826,6 +7212,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Value<bool>? lockEnabled,
     Value<bool>? biometricEnabled,
     Value<bool>? onboardingCompleted,
+    Value<bool>? backupAutoEnabled,
     Value<DateTime?>? lastSummarySentOn,
     Value<DateTime?>? lastExportedAt,
   }) {
@@ -6848,6 +7235,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       lockEnabled: lockEnabled ?? this.lockEnabled,
       biometricEnabled: biometricEnabled ?? this.biometricEnabled,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
+      backupAutoEnabled: backupAutoEnabled ?? this.backupAutoEnabled,
       lastSummarySentOn: lastSummarySentOn ?? this.lastSummarySentOn,
       lastExportedAt: lastExportedAt ?? this.lastExportedAt,
     );
@@ -6923,6 +7311,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (onboardingCompleted.present) {
       map['onboarding_completed'] = Variable<bool>(onboardingCompleted.value);
     }
+    if (backupAutoEnabled.present) {
+      map['backup_auto_enabled'] = Variable<bool>(backupAutoEnabled.value);
+    }
     if (lastSummarySentOn.present) {
       map['last_summary_sent_on'] = Variable<String>(
         $SettingsTable.$converterlastSummarySentOn.toSql(
@@ -6958,6 +7349,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('lockEnabled: $lockEnabled, ')
           ..write('biometricEnabled: $biometricEnabled, ')
           ..write('onboardingCompleted: $onboardingCompleted, ')
+          ..write('backupAutoEnabled: $backupAutoEnabled, ')
           ..write('lastSummarySentOn: $lastSummarySentOn, ')
           ..write('lastExportedAt: $lastExportedAt')
           ..write(')'))
@@ -6970,6 +7362,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $PeopleTable people = $PeopleTable(this);
   late final $DebtsTable debts = $DebtsTable(this);
+  late final $DebtPeopleTable debtPeople = $DebtPeopleTable(this);
   late final $PaymentsTable payments = $PaymentsTable(this);
   late final $ObligationsTable obligations = $ObligationsTable(this);
   late final $ObligationOccurrencesTable obligationOccurrences =
@@ -6993,6 +7386,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final Index idxDebtsArchived = Index(
     'idx_debts_archived',
     'CREATE INDEX idx_debts_archived ON debts (archived_at)',
+  );
+  late final Index idxDebtPeoplePerson = Index(
+    'idx_debt_people_person',
+    'CREATE INDEX idx_debt_people_person ON debt_people (person_id)',
   );
   late final Index idxPaymentsDebt = Index(
     'idx_payments_debt',
@@ -7061,6 +7458,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   List<DatabaseSchemaEntity> get allSchemaEntities => [
     people,
     debts,
+    debtPeople,
     payments,
     obligations,
     obligationOccurrences,
@@ -7071,6 +7469,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxDebtsPerson,
     idxDebtsDue,
     idxDebtsArchived,
+    idxDebtPeoplePerson,
     idxPaymentsDebt,
     idxPaymentsPerson,
     idxPaymentsPaidAt,
@@ -7093,6 +7492,20 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         limitUpdateKind: UpdateKind.delete,
       ),
       result: [TableUpdate('debts', kind: UpdateKind.update)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'debts',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('debt_people', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'people',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('debt_people', kind: UpdateKind.delete)],
     ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
@@ -7161,6 +7574,24 @@ final class $$PeopleTableReferences
     ).filter((f) => f.personId.id.sqlEquals($_itemColumn<String>('id')!));
 
     final cache = $_typedResult.readTableOrNull(_debtsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$DebtPeopleTable, List<DebtPersonRow>>
+  _debtPeopleRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.debtPeople,
+    aliasName: 'people__id__debt_people__person_id',
+  );
+
+  $$DebtPeopleTableProcessedTableManager get debtPeopleRefs {
+    final manager = $$DebtPeopleTableTableManager(
+      $_db,
+      $_db.debtPeople,
+    ).filter((f) => f.personId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_debtPeopleRefsTable($_db));
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: cache),
     );
@@ -7253,6 +7684,31 @@ class $$PeopleTableFilterComposer
           }) => $$DebtsTableFilterComposer(
             $db: $db,
             $table: $db.debts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> debtPeopleRefs(
+    Expression<bool> Function($$DebtPeopleTableFilterComposer f) f,
+  ) {
+    final $$DebtPeopleTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.debtPeople,
+      getReferencedColumn: (t) => t.personId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DebtPeopleTableFilterComposer(
+            $db: $db,
+            $table: $db.debtPeople,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer:
@@ -7401,6 +7857,31 @@ class $$PeopleTableAnnotationComposer
     return f(composer);
   }
 
+  Expression<T> debtPeopleRefs<T extends Object>(
+    Expression<T> Function($$DebtPeopleTableAnnotationComposer a) f,
+  ) {
+    final $$DebtPeopleTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.debtPeople,
+      getReferencedColumn: (t) => t.personId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DebtPeopleTableAnnotationComposer(
+            $db: $db,
+            $table: $db.debtPeople,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> paymentsRefs<T extends Object>(
     Expression<T> Function($$PaymentsTableAnnotationComposer a) f,
   ) {
@@ -7440,7 +7921,11 @@ class $$PeopleTableTableManager
           $$PeopleTableUpdateCompanionBuilder,
           (PersonRow, $$PeopleTableReferences),
           PersonRow,
-          PrefetchHooks Function({bool debtsRefs, bool paymentsRefs})
+          PrefetchHooks Function({
+            bool debtsRefs,
+            bool debtPeopleRefs,
+            bool paymentsRefs,
+          })
         > {
   $$PeopleTableTableManager(_$AppDatabase db, $PeopleTable table)
     : super(
@@ -7505,47 +7990,85 @@ class $$PeopleTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({debtsRefs = false, paymentsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [
-                if (debtsRefs) db.debts,
-                if (paymentsRefs) db.payments,
-              ],
-              addJoins: null,
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (debtsRefs)
-                    await $_getPrefetchedData<PersonRow, $PeopleTable, DebtRow>(
-                      currentTable: table,
-                      referencedTable: $$PeopleTableReferences._debtsRefsTable(
-                        db,
-                      ),
-                      managerFromTypedResult: (p0) =>
-                          $$PeopleTableReferences(db, table, p0).debtsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.personId == item.id),
-                      typedResults: items,
-                    ),
-                  if (paymentsRefs)
-                    await $_getPrefetchedData<
-                      PersonRow,
-                      $PeopleTable,
-                      PaymentRow
-                    >(
-                      currentTable: table,
-                      referencedTable: $$PeopleTableReferences
-                          ._paymentsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$PeopleTableReferences(db, table, p0).paymentsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.personId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+          prefetchHooksCallback:
+              ({
+                debtsRefs = false,
+                debtPeopleRefs = false,
+                paymentsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (debtsRefs) db.debts,
+                    if (debtPeopleRefs) db.debtPeople,
+                    if (paymentsRefs) db.payments,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (debtsRefs)
+                        await $_getPrefetchedData<
+                          PersonRow,
+                          $PeopleTable,
+                          DebtRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PeopleTableReferences
+                              ._debtsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PeopleTableReferences(db, table, p0).debtsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.personId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (debtPeopleRefs)
+                        await $_getPrefetchedData<
+                          PersonRow,
+                          $PeopleTable,
+                          DebtPersonRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PeopleTableReferences
+                              ._debtPeopleRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PeopleTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).debtPeopleRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.personId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (paymentsRefs)
+                        await $_getPrefetchedData<
+                          PersonRow,
+                          $PeopleTable,
+                          PaymentRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$PeopleTableReferences
+                              ._paymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$PeopleTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paymentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.personId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -7562,7 +8085,11 @@ typedef $$PeopleTableProcessedTableManager =
       $$PeopleTableUpdateCompanionBuilder,
       (PersonRow, $$PeopleTableReferences),
       PersonRow,
-      PrefetchHooks Function({bool debtsRefs, bool paymentsRefs})
+      PrefetchHooks Function({
+        bool debtsRefs,
+        bool debtPeopleRefs,
+        bool paymentsRefs,
+      })
     >;
 typedef $$DebtsTableCreateCompanionBuilder =
     DebtsCompanion Function({
@@ -7625,6 +8152,24 @@ final class $$DebtsTableReferences
     if (item == null) return manager;
     return ProcessedTableManager(
       manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$DebtPeopleTable, List<DebtPersonRow>>
+  _debtPeopleRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.debtPeople,
+    aliasName: 'debts__id__debt_people__debt_id',
+  );
+
+  $$DebtPeopleTableProcessedTableManager get debtPeopleRefs {
+    final manager = $$DebtPeopleTableTableManager(
+      $_db,
+      $_db.debtPeople,
+    ).filter((f) => f.debtId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_debtPeopleRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
     );
   }
 
@@ -7770,6 +8315,31 @@ class $$DebtsTableFilterComposer extends Composer<_$AppDatabase, $DebtsTable> {
           ),
     );
     return composer;
+  }
+
+  Expression<bool> debtPeopleRefs(
+    Expression<bool> Function($$DebtPeopleTableFilterComposer f) f,
+  ) {
+    final $$DebtPeopleTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.debtPeople,
+      getReferencedColumn: (t) => t.debtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DebtPeopleTableFilterComposer(
+            $db: $db,
+            $table: $db.debtPeople,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 
   Expression<bool> paymentsRefs(
@@ -8009,6 +8579,31 @@ class $$DebtsTableAnnotationComposer
     return composer;
   }
 
+  Expression<T> debtPeopleRefs<T extends Object>(
+    Expression<T> Function($$DebtPeopleTableAnnotationComposer a) f,
+  ) {
+    final $$DebtPeopleTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.debtPeople,
+      getReferencedColumn: (t) => t.debtId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DebtPeopleTableAnnotationComposer(
+            $db: $db,
+            $table: $db.debtPeople,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
   Expression<T> paymentsRefs<T extends Object>(
     Expression<T> Function($$PaymentsTableAnnotationComposer a) f,
   ) {
@@ -8048,7 +8643,11 @@ class $$DebtsTableTableManager
           $$DebtsTableUpdateCompanionBuilder,
           (DebtRow, $$DebtsTableReferences),
           DebtRow,
-          PrefetchHooks Function({bool personId, bool paymentsRefs})
+          PrefetchHooks Function({
+            bool personId,
+            bool debtPeopleRefs,
+            bool paymentsRefs,
+          })
         > {
   $$DebtsTableTableManager(_$AppDatabase db, $DebtsTable table)
     : super(
@@ -8149,59 +8748,98 @@ class $$DebtsTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({personId = false, paymentsRefs = false}) {
-            return PrefetchHooks(
-              db: db,
-              explicitlyWatchedTables: [if (paymentsRefs) db.payments],
-              addJoins:
-                  <
-                    T extends TableManagerState<
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic,
-                      dynamic
-                    >
-                  >(state) {
-                    if (personId) {
-                      state =
-                          state.withJoin(
-                                currentTable: table,
-                                currentColumn: table.personId,
-                                referencedTable: $$DebtsTableReferences
-                                    ._personIdTable(db),
-                                referencedColumn: $$DebtsTableReferences
-                                    ._personIdTable(db)
-                                    .id,
-                              )
-                              as T;
-                    }
+          prefetchHooksCallback:
+              ({
+                personId = false,
+                debtPeopleRefs = false,
+                paymentsRefs = false,
+              }) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (debtPeopleRefs) db.debtPeople,
+                    if (paymentsRefs) db.payments,
+                  ],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (personId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.personId,
+                                    referencedTable: $$DebtsTableReferences
+                                        ._personIdTable(db),
+                                    referencedColumn: $$DebtsTableReferences
+                                        ._personIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
 
-                    return state;
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (debtPeopleRefs)
+                        await $_getPrefetchedData<
+                          DebtRow,
+                          $DebtsTable,
+                          DebtPersonRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DebtsTableReferences
+                              ._debtPeopleRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DebtsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).debtPeopleRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.debtId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (paymentsRefs)
+                        await $_getPrefetchedData<
+                          DebtRow,
+                          $DebtsTable,
+                          PaymentRow
+                        >(
+                          currentTable: table,
+                          referencedTable: $$DebtsTableReferences
+                              ._paymentsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$DebtsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).paymentsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.debtId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
                   },
-              getPrefetchedDataCallback: (items) async {
-                return [
-                  if (paymentsRefs)
-                    await $_getPrefetchedData<DebtRow, $DebtsTable, PaymentRow>(
-                      currentTable: table,
-                      referencedTable: $$DebtsTableReferences
-                          ._paymentsRefsTable(db),
-                      managerFromTypedResult: (p0) =>
-                          $$DebtsTableReferences(db, table, p0).paymentsRefs,
-                      referencedItemsForCurrentItem: (item, referencedItems) =>
-                          referencedItems.where((e) => e.debtId == item.id),
-                      typedResults: items,
-                    ),
-                ];
+                );
               },
-            );
-          },
         ),
       );
 }
@@ -8218,7 +8856,396 @@ typedef $$DebtsTableProcessedTableManager =
       $$DebtsTableUpdateCompanionBuilder,
       (DebtRow, $$DebtsTableReferences),
       DebtRow,
-      PrefetchHooks Function({bool personId, bool paymentsRefs})
+      PrefetchHooks Function({
+        bool personId,
+        bool debtPeopleRefs,
+        bool paymentsRefs,
+      })
+    >;
+typedef $$DebtPeopleTableCreateCompanionBuilder =
+    DebtPeopleCompanion Function({
+      required String debtId,
+      required String personId,
+      Value<int> position,
+      required DateTime createdAt,
+      Value<int> rowid,
+    });
+typedef $$DebtPeopleTableUpdateCompanionBuilder =
+    DebtPeopleCompanion Function({
+      Value<String> debtId,
+      Value<String> personId,
+      Value<int> position,
+      Value<DateTime> createdAt,
+      Value<int> rowid,
+    });
+
+final class $$DebtPeopleTableReferences
+    extends BaseReferences<_$AppDatabase, $DebtPeopleTable, DebtPersonRow> {
+  $$DebtPeopleTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $DebtsTable _debtIdTable(_$AppDatabase db) =>
+      db.debts.createAlias('debt_people__debt_id__debts__id');
+
+  $$DebtsTableProcessedTableManager get debtId {
+    final $_column = $_itemColumn<String>('debt_id')!;
+
+    final manager = $$DebtsTableTableManager(
+      $_db,
+      $_db.debts,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_debtIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $PeopleTable _personIdTable(_$AppDatabase db) =>
+      db.people.createAlias('debt_people__person_id__people__id');
+
+  $$PeopleTableProcessedTableManager get personId {
+    final $_column = $_itemColumn<String>('person_id')!;
+
+    final manager = $$PeopleTableTableManager(
+      $_db,
+      $_db.people,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_personIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$DebtPeopleTableFilterComposer
+    extends Composer<_$AppDatabase, $DebtPeopleTable> {
+  $$DebtPeopleTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DateTime, DateTime, int> get createdAt =>
+      $composableBuilder(
+        column: $table.createdAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  $$DebtsTableFilterComposer get debtId {
+    final $$DebtsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.debtId,
+      referencedTable: $db.debts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DebtsTableFilterComposer(
+            $db: $db,
+            $table: $db.debts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PeopleTableFilterComposer get personId {
+    final $$PeopleTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.people,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PeopleTableFilterComposer(
+            $db: $db,
+            $table: $db.people,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DebtPeopleTableOrderingComposer
+    extends Composer<_$AppDatabase, $DebtPeopleTable> {
+  $$DebtPeopleTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get position => $composableBuilder(
+    column: $table.position,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$DebtsTableOrderingComposer get debtId {
+    final $$DebtsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.debtId,
+      referencedTable: $db.debts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DebtsTableOrderingComposer(
+            $db: $db,
+            $table: $db.debts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PeopleTableOrderingComposer get personId {
+    final $$PeopleTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.people,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PeopleTableOrderingComposer(
+            $db: $db,
+            $table: $db.people,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DebtPeopleTableAnnotationComposer
+    extends Composer<_$AppDatabase, $DebtPeopleTable> {
+  $$DebtPeopleTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get position =>
+      $composableBuilder(column: $table.position, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DateTime, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$DebtsTableAnnotationComposer get debtId {
+    final $$DebtsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.debtId,
+      referencedTable: $db.debts,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$DebtsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.debts,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$PeopleTableAnnotationComposer get personId {
+    final $$PeopleTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.personId,
+      referencedTable: $db.people,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PeopleTableAnnotationComposer(
+            $db: $db,
+            $table: $db.people,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$DebtPeopleTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $DebtPeopleTable,
+          DebtPersonRow,
+          $$DebtPeopleTableFilterComposer,
+          $$DebtPeopleTableOrderingComposer,
+          $$DebtPeopleTableAnnotationComposer,
+          $$DebtPeopleTableCreateCompanionBuilder,
+          $$DebtPeopleTableUpdateCompanionBuilder,
+          (DebtPersonRow, $$DebtPeopleTableReferences),
+          DebtPersonRow,
+          PrefetchHooks Function({bool debtId, bool personId})
+        > {
+  $$DebtPeopleTableTableManager(_$AppDatabase db, $DebtPeopleTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$DebtPeopleTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$DebtPeopleTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$DebtPeopleTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> debtId = const Value.absent(),
+                Value<String> personId = const Value.absent(),
+                Value<int> position = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => DebtPeopleCompanion(
+                debtId: debtId,
+                personId: personId,
+                position: position,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String debtId,
+                required String personId,
+                Value<int> position = const Value.absent(),
+                required DateTime createdAt,
+                Value<int> rowid = const Value.absent(),
+              }) => DebtPeopleCompanion.insert(
+                debtId: debtId,
+                personId: personId,
+                position: position,
+                createdAt: createdAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$DebtPeopleTable, DebtPersonRow>(table),
+                  $$DebtPeopleTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({debtId = false, personId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (debtId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.debtId,
+                                referencedTable: $$DebtPeopleTableReferences
+                                    ._debtIdTable(db),
+                                referencedColumn: $$DebtPeopleTableReferences
+                                    ._debtIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (personId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.personId,
+                                referencedTable: $$DebtPeopleTableReferences
+                                    ._personIdTable(db),
+                                referencedColumn: $$DebtPeopleTableReferences
+                                    ._personIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$DebtPeopleTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $DebtPeopleTable,
+      DebtPersonRow,
+      $$DebtPeopleTableFilterComposer,
+      $$DebtPeopleTableOrderingComposer,
+      $$DebtPeopleTableAnnotationComposer,
+      $$DebtPeopleTableCreateCompanionBuilder,
+      $$DebtPeopleTableUpdateCompanionBuilder,
+      (DebtPersonRow, $$DebtPeopleTableReferences),
+      DebtPersonRow,
+      PrefetchHooks Function({bool debtId, bool personId})
     >;
 typedef $$PaymentsTableCreateCompanionBuilder =
     PaymentsCompanion Function({
@@ -10797,6 +11824,7 @@ typedef $$SettingsTableCreateCompanionBuilder =
       Value<bool> lockEnabled,
       Value<bool> biometricEnabled,
       Value<bool> onboardingCompleted,
+      Value<bool> backupAutoEnabled,
       Value<DateTime?> lastSummarySentOn,
       Value<DateTime?> lastExportedAt,
     });
@@ -10819,6 +11847,7 @@ typedef $$SettingsTableUpdateCompanionBuilder =
       Value<bool> lockEnabled,
       Value<bool> biometricEnabled,
       Value<bool> onboardingCompleted,
+      Value<bool> backupAutoEnabled,
       Value<DateTime?> lastSummarySentOn,
       Value<DateTime?> lastExportedAt,
     });
@@ -10919,6 +11948,11 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<bool> get onboardingCompleted => $composableBuilder(
     column: $table.onboardingCompleted,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get backupAutoEnabled => $composableBuilder(
+    column: $table.backupAutoEnabled,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11029,6 +12063,11 @@ class $$SettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get backupAutoEnabled => $composableBuilder(
+    column: $table.backupAutoEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get lastSummarySentOn => $composableBuilder(
     column: $table.lastSummarySentOn,
     builder: (column) => ColumnOrderings(column),
@@ -11128,6 +12167,11 @@ class $$SettingsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get backupAutoEnabled => $composableBuilder(
+    column: $table.backupAutoEnabled,
+    builder: (column) => column,
+  );
+
   GeneratedColumnWithTypeConverter<DateTime?, String> get lastSummarySentOn =>
       $composableBuilder(
         column: $table.lastSummarySentOn,
@@ -11187,6 +12231,7 @@ class $$SettingsTableTableManager
                 Value<bool> lockEnabled = const Value.absent(),
                 Value<bool> biometricEnabled = const Value.absent(),
                 Value<bool> onboardingCompleted = const Value.absent(),
+                Value<bool> backupAutoEnabled = const Value.absent(),
                 Value<DateTime?> lastSummarySentOn = const Value.absent(),
                 Value<DateTime?> lastExportedAt = const Value.absent(),
               }) => SettingsCompanion(
@@ -11207,6 +12252,7 @@ class $$SettingsTableTableManager
                 lockEnabled: lockEnabled,
                 biometricEnabled: biometricEnabled,
                 onboardingCompleted: onboardingCompleted,
+                backupAutoEnabled: backupAutoEnabled,
                 lastSummarySentOn: lastSummarySentOn,
                 lastExportedAt: lastExportedAt,
               ),
@@ -11230,6 +12276,7 @@ class $$SettingsTableTableManager
                 Value<bool> lockEnabled = const Value.absent(),
                 Value<bool> biometricEnabled = const Value.absent(),
                 Value<bool> onboardingCompleted = const Value.absent(),
+                Value<bool> backupAutoEnabled = const Value.absent(),
                 Value<DateTime?> lastSummarySentOn = const Value.absent(),
                 Value<DateTime?> lastExportedAt = const Value.absent(),
               }) => SettingsCompanion.insert(
@@ -11250,6 +12297,7 @@ class $$SettingsTableTableManager
                 lockEnabled: lockEnabled,
                 biometricEnabled: biometricEnabled,
                 onboardingCompleted: onboardingCompleted,
+                backupAutoEnabled: backupAutoEnabled,
                 lastSummarySentOn: lastSummarySentOn,
                 lastExportedAt: lastExportedAt,
               ),
@@ -11292,6 +12340,8 @@ class $AppDatabaseManager {
       $$PeopleTableTableManager(_db, _db.people);
   $$DebtsTableTableManager get debts =>
       $$DebtsTableTableManager(_db, _db.debts);
+  $$DebtPeopleTableTableManager get debtPeople =>
+      $$DebtPeopleTableTableManager(_db, _db.debtPeople);
   $$PaymentsTableTableManager get payments =>
       $$PaymentsTableTableManager(_db, _db.payments);
   $$ObligationsTableTableManager get obligations =>

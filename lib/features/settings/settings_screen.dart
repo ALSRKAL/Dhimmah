@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../app/backup_providers.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
@@ -36,8 +37,12 @@ class SettingsScreen extends ConsumerWidget {
     final AppSettings settings = ref.watch(effectiveSettingsProvider);
     final SettingsController controller = ref.read(settingsControllerProvider);
     final AppPalette palette = context.palette;
+    // Watched, not read: the user can change this in the system settings while
+    // the app is in the background, and a footer that describes a stale phone is
+    // worse than no footer.
     final bool notificationsDenied =
-        ref.watch(notificationServiceProvider).permission ==
+        (ref.watch(notificationPermissionProvider).value ??
+                ref.watch(notificationServiceProvider).permission) ==
             NotificationPermission.denied;
     final AppVersion version =
         ref.watch(appVersionProvider).value ?? const AppVersion(name: '—', build: '—');
@@ -210,6 +215,17 @@ class SettingsScreen extends ConsumerWidget {
                   icon: Icons.password_outlined,
                   onTap: () => changePin(context, ref),
                 ),
+            ],
+          ),
+          SettingsSection(
+            title: localizations.settingsBackup,
+            children: <Widget>[
+              SettingsTile(
+                title: localizations.settingsBackup,
+                subtitle: localizations.backupSectionHint,
+                icon: Icons.cloud_off_outlined,
+                onTap: () => context.push(AppRoutes.backup),
+              ),
             ],
           ),
           SettingsSection(
@@ -484,6 +500,18 @@ class SettingsScreen extends ConsumerWidget {
       confirmLabel: localizations.actionDelete,
     );
     if (!confirmed || !context.mounted) return;
+    // A copy of what is about to be thrown away, made before it is thrown away.
+    // The guard is freshness-based, so an automatic snapshot taken minutes ago is
+    // enough and this costs nothing; when the newest copy is old, this is the one
+    // that makes the action recoverable.
+    try {
+      await ref.read(backupControllerProvider).safetyBeforeDestructive();
+    } on Object {
+      // A snapshot that could not be taken must not become a reason the user
+      // cannot clear their own data: the app would then be refusing an action
+      // over a failure of its own bookkeeping.
+    }
+    if (!context.mounted) return;
     await ref.read(ledgerServiceProvider).clearAllData();
     if (!context.mounted) return;
     AppFeedback.info(context, localizations.recordDeleted);

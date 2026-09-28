@@ -30,6 +30,9 @@ class ShareService {
           ? localizations.shareLineDirectionIOwe
           : localizations.shareLineDirectionOwedToMe,
     );
+    // A record linked to several people is not announced as such: the summary
+    // states what the record costs, and its own name line already carries who it
+    // is with. The amount is the record's, printed once.
     buffer.writeln();
     buffer.writeln(
       localizations.shareLineTotal(

@@ -1,3 +1,5 @@
+import 'package:drift/drift.dart';
+
 import '../../core/money/currency.dart';
 import '../../core/utils/dates.dart';
 import '../../core/utils/id_generator.dart';
@@ -10,39 +12,73 @@ import '../database/app_database.dart';
 import '../mappers/db_mappers.dart';
 
 /// SQLite-backed debt store.
+///
+/// Every read attaches the people the record is with, and every write stores them
+/// in the same transaction as the row. A debt is never readable without its
+/// participants: the ledger draws them, the person page filters on them, and a
+/// record that arrived without them would look like a debt that names nobody.
 class DebtRepositoryImpl implements DebtRepository {
   DebtRepositoryImpl(this._db);
 
   final AppDatabase _db;
 
   @override
-  Stream<List<Debt>> watchAll() => _db.debtsDao.watchAll().map(_toEntities);
+  Stream<List<Debt>> watchAll() => _watch(
+        () async {
+          final Map<String, List<String>> people =
+              await _db.debtsDao.allParticipants();
+          return _toEntities(await _db.debtsDao.getAll(), people);
+        },
+      );
 
   @override
-  Future<List<Debt>> getAll() async => _toEntities(await _db.debtsDao.getAll());
+  Future<List<Debt>> getAll() async {
+    final Map<String, List<String>> people = await _db.debtsDao.allParticipants();
+    return _toEntities(await _db.debtsDao.getAll(), people);
+  }
 
   @override
-  Future<Debt?> getById(String id) async =>
-      (await _db.debtsDao.getById(id))?.toEntity();
+  Future<Debt?> getById(String id) async {
+    final DebtRow? row = await _db.debtsDao.getById(id);
+    if (row == null) return null;
+    return row.toEntity(personIds: await _db.debtsDao.participantsFor(id));
+  }
 
   @override
-  Stream<Debt?> watchById(String id) =>
-      _db.debtsDao.watchById(id).map((DebtRow? row) => row?.toEntity());
+  Stream<Debt?> watchById(String id) => _watch(
+        () async {
+          final DebtRow? row = await _db.debtsDao.getById(id);
+          if (row == null) return null;
+          return row.toEntity(
+            personIds: await _db.debtsDao.participantsFor(id),
+          );
+        },
+      );
 
   @override
-  Stream<List<Debt>> watchForPerson(String personId) =>
-      _db.debtsDao.watchForPerson(personId).map(_toEntities);
+  Stream<List<Debt>> watchForPerson(String personId) => _watch(
+        () => forPerson(personId),
+      );
 
   @override
   Future<List<Debt>> forPerson(String personId) async {
     // Filtered by the database. Loading the whole table and filtering in Dart
     // made this 265 ms at 2,500 debts, and the person page runs it for every
     // debt a person has.
-    return _toEntities(await _db.debtsDao.getForPerson(personId));
+    final List<DebtRow> rows = await _db.debtsDao.getForPerson(personId);
+    final Map<String, List<String>> people = await _db.debtsDao
+        .participantsForDebts(rows.map((DebtRow row) => row.id).toList());
+    return _toEntities(rows, people);
   }
 
   @override
-  Future<void> save(Debt debt) => _db.debtsDao.upsert(debt.toRow());
+  Future<void> save(Debt debt) =>
+      _db.debtsDao.upsert(debt.toRow(), personIds: debt.personIds);
+
+  /// Replaces who a record is with, leaving every other field alone.
+  @override
+  Future<void> setParticipants(String debtId, List<String> personIds) =>
+      _db.debtsDao.setParticipants(debtId, personIds);
 
   @override
   Future<void> setArchived(String id, {required bool archived}) {
@@ -64,8 +100,35 @@ class DebtRepositoryImpl implements DebtRepository {
   @override
   Future<void> delete(String id) => _db.debtsDao.deleteById(id);
 
-  static List<Debt> _toEntities(List<DebtRow> rows) =>
-      rows.map((DebtRow row) => row.toEntity()).toList(growable: false);
+  /// Re-reads on any change to the debts or to who they are with.
+  ///
+  /// The links are their own table, so a change to them is a change to what a
+  /// debt *is* — editing the participants alone must repaint the ledger and the
+  /// person pages, and drift would only watch the debts table if the query
+  /// happened to mention it.
+  Stream<T> _watch<T>(Future<T> Function() read) async* {
+    yield await read();
+    final Stream<Set<TableUpdate>> updates = _db.tableUpdates(
+      TableUpdateQuery.onAllTables(<TableInfo<Table, dynamic>>[
+        _db.debts,
+        _db.debtPeople,
+      ]),
+    );
+    await for (final Set<TableUpdate> _ in updates) {
+      yield await read();
+    }
+  }
+
+  static List<Debt> _toEntities(
+    List<DebtRow> rows,
+    Map<String, List<String>> people,
+  ) =>
+      rows
+          .map(
+            (DebtRow row) =>
+                row.toEntity(personIds: people[row.id] ?? const <String>[]),
+          )
+          .toList(growable: false);
 }
 
 /// SQLite-backed payment store.
@@ -119,7 +182,7 @@ Debt newDebt({
   required int principalMinor,
   required AppCurrency currency,
   required DateTime issuedAt,
-  String? personId,
+  List<String> personIds = const <String>[],
   String title = '',
   DateTime? dueAt,
   String? note,
@@ -132,7 +195,7 @@ Debt newDebt({
   final DateTime timestamp = now ?? DateTime.now();
   return Debt(
     id: newId(),
-    personId: personId,
+    personIds: personIds,
     direction: direction,
     title: title.trim(),
     principalMinor: principalMinor,

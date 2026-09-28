@@ -165,8 +165,17 @@ class _SummaryStrip extends StatelessWidget {
                         style: theme.textTheme.labelSmall,
                       ),
                       const SizedBox(width: AppSpacing.sm),
+                      // The side this screen is showing, not the owe-side total:
+                      // the totals carry both directions, and printing `iOwe`
+                      // unconditionally made the owed-to-me headline read ₹0
+                      // above a list of ₹2,000 (proven on the device).
                       MoneyText(
-                        Money(entry.iOweMinor, entry.currency),
+                        Money(
+                          direction.isIOwe
+                              ? entry.iOweMinor
+                              : entry.owedToMeMinor,
+                          entry.currency,
+                        ),
                         color: accent,
                         style: theme.textTheme.titleLarge,
                       ),

@@ -1,4 +1,5 @@
 {
+  "@@locale": "en",
   "actionArchive": "Archive",
   "actionCancel": "Cancel",
   "actionClear": "Clear",
@@ -85,10 +86,27 @@
   "collapse": "Collapse",
   "copiedToClipboard": "Copied",
   "currencySymbolWithCode": "{code} {symbol}",
+  "@currencySymbolWithCode": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      },
+      "symbol": {
+        "type": "String"
+      }
+    }
+  },
   "dashboardAgainstYou": "Against you",
   "dashboardBalanced": "Even",
   "dashboardDueSoon": "Due Soon",
   "dashboardDueSoonHint": "Within {days} days",
+  "@dashboardDueSoonHint": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "dashboardEmptyAddDebt": "Add your first debt",
   "dashboardEmptyAddObligation": "Add an obligation",
   "dashboardEmptyBody": "Add your first debt or commitment and Dhimmah will handle the reminders.",
@@ -109,11 +127,46 @@
   "dashboardUpcoming": "Upcoming",
   "dashboardViewAll": "View all",
   "dateDayCount": "{count, plural, =1{1 day} other{{count} days}}",
+  "@dateDayCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "dateDaysAgo": "{days, plural, =1{1 day ago} other{{days} days ago}}",
+  "@dateDaysAgo": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "dateDueOn": "Due {date}",
+  "@dateDueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "dateInDays": "{days, plural, =1{In 1 day} other{In {days} days}}",
+  "@dateInDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "dateNoDueDate": "No due date",
   "dateOverdueBy": "{days, plural, =1{1 day late} other{{days} days late}}",
+  "@dateOverdueBy": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "dateToday": "Today",
   "dateTomorrow": "Tomorrow",
   "dateYesterday": "Yesterday",
@@ -128,14 +181,37 @@
   "debtSettled": "Debt settled in full",
   "debtUpdated": "Debt updated",
   "deleteConfirmBody": "This cannot be undone.",
+  "deleteUndoableBody": "The debt will be deleted. You can undo this for a few seconds.",
+  "recordGone": "This record no longer exists.",
   "deleteConfirmTitle": "Delete this record?",
   "detailClosedOn": "Settled on {date}",
+  "@detailClosedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "detailDueOn": "Due on",
   "detailIssuedOn": "Recorded on",
   "detailNoPayments": "No payments recorded yet.",
   "detailOverpaid": "Payments exceed the original amount by {amount}.",
+  "@detailOverpaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "detailPaid": "Paid",
   "detailProgress": "{percent}% paid",
+  "@detailProgress": {
+    "placeholders": {
+      "percent": {
+        "type": "int"
+      }
+    }
+  },
   "detailRecordPayment": "Record a payment",
   "detailRemaining": "Remaining",
   "detailTimeline": "Timeline",
@@ -191,7 +267,21 @@
   "filterType": "Type",
   "filterUnpaid": "Unpaid",
   "filtersApplied": "{count, plural, =0{No filters} =1{1 filter} other{{count} filters}}",
+  "@filtersApplied": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "importDone": "Imported {count} records",
+  "@importDone": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "ioweEmptyBody": "Debts you record will appear here with their due dates.",
   "ioweEmptyTitle": "You owe nothing.",
   "ioweSubtitle": "Money you have to pay",
@@ -199,11 +289,25 @@
   "languageArabic": "Arabic",
   "languageEnglish": "English",
   "leadCount": "{count, plural, =0{No reminder} =1{1 reminder} other{{count} reminders}}",
+  "@leadCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "leadNone": "No reminder",
   "leadOnDueDate": "On the due date",
   "leadOneDayBefore": "1 day before",
   "leadOneWeekBefore": "1 week before",
   "leadSummary": "Reminder: {lead}",
+  "@leadSummary": {
+    "placeholders": {
+      "lead": {
+        "type": "String"
+      }
+    }
+  },
   "leadThreeDaysBefore": "3 days before",
   "leadTwoDaysBefore": "2 days before",
   "leadTwoWeeksBefore": "2 weeks before",
@@ -211,11 +315,24 @@
   "ledgerSwitchIOwe": "I Owe",
   "ledgerSwitchOwedToMe": "Owed to Me",
   "loading": "Loading…",
-  "@@locale": "en",
   "lockAttemptsLeft": "{count} attempts left",
+  "@lockAttemptsLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "lockBiometricReason": "Confirm it's you to open Dhimmah",
   "lockConfirmPin": "Enter the PIN again to confirm",
   "lockCreatePin": "Create a {length}-digit PIN",
+  "@lockCreatePin": {
+    "placeholders": {
+      "length": {
+        "type": "int"
+      }
+    }
+  },
   "lockCurrentPin": "Current PIN",
   "lockDisabledForSession": "Lock is off until you close the app.",
   "lockEnterPin": "Enter your PIN to continue",
@@ -228,6 +345,13 @@
   "lockWrongPin": "Wrong PIN. Try again.",
   "longPressForOptions": "Long press for options",
   "monthEndDayNumber": "Day {day}",
+  "@monthEndDayNumber": {
+    "placeholders": {
+      "day": {
+        "type": "int"
+      }
+    }
+  },
   "monthEndLastDay": "Last day of the month",
   "moreFollowUpSection": "Follow-up",
   "moreTitle": "More",
@@ -246,30 +370,118 @@
   "noInternetNeeded": "Works offline",
   "notifChannelDueBody": "A payment is due today or already late",
   "notifChannelDueName": "Due now",
-  "notifChannelRemindersBody": "Alerts before a debt or obligation falls due",
-  "notifChannelRemindersName": "Due date reminders",
+  "notifChannelBackupName": "Backup problem",
+  "notifChannelBackupBody": "An alert when Dhimmah cannot save a copy of your data",
+  "backupAlertTitle": "Backups need your attention",
+  "backupAlertBody": "Dhimmah could not save a copy of your changes. Your data is saved inside the app, and it will try again on its own.",
   "notifChannelSummaryBody": "A summary of your ledger at the end of each month",
   "notifChannelSummaryName": "Monthly summary",
   "notifChannelUpcomingBody": "A payment falls due in the next few days",
   "notifChannelUpcomingName": "Coming up",
   "notifDueSoonBody": "{name} — {amount} · {when}",
+  "@notifDueSoonBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "notifDueSoonTitle": "A payment is coming up",
   "notifDueTodayBody": "{name} — {amount} is due today.",
+  "@notifDueTodayBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "notifDueTodayTitle": "Due today",
   "notifMonthEndBody": "You owe {iOwe} · Owed to you {owedToMe} · Paid {paid}",
+  "@notifMonthEndBody": {
+    "placeholders": {
+      "iOwe": {
+        "type": "String"
+      },
+      "owedToMe": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      }
+    }
+  },
   "notifMonthEndBodyWithOverdue": "You owe {iOwe} · Owed to you {owedToMe} · Paid {paid} · Overdue {overdue}",
+  "@notifMonthEndBodyWithOverdue": {
+    "placeholders": {
+      "iOwe": {
+        "type": "String"
+      },
+      "owedToMe": {
+        "type": "String"
+      },
+      "paid": {
+        "type": "String"
+      },
+      "overdue": {
+        "type": "String"
+      }
+    }
+  },
   "notifMonthEndTitle": "Your month in review",
   "notifObligationTitle": "An obligation is due",
   "notifOverdueBody": "{name} — {amount} · {when}",
+  "@notifOverdueBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "when": {
+        "type": "String"
+      }
+    }
+  },
   "notifOverdueTitle": "An overdue payment",
   "notifPermissionDenied": "Notifications are turned off in system settings.",
   "notifReminderBody": "{title}",
+  "@notifReminderBody": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
   "notifReminderTitle": "Reminder",
   "notifWeeklyDigestTitle": "{count} commitments due this week",
+  "@notifWeeklyDigestTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "numeralsArabicIndic": "Arabic-Indic (١٢٣٤)",
   "numeralsLatin": "Western (1234)",
   "obligationArchived": "Archived obligation",
   "obligationEndedOn": "Ends {date}",
+  "@obligationEndedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "obligationFormEdit": "Edit obligation",
   "obligationFormNew": "New obligation",
   "obligationHistory": "History",
@@ -278,6 +490,13 @@
   "obligationMarkedSkipped": "Period skipped",
   "obligationMonthlyAmount": "Amount",
   "obligationNextDue": "Next due {date}",
+  "@obligationNextDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "obligationSkip": "Skip this period",
   "obligationUndoPayment": "Undo payment",
   "obligationsEmptyBody": "Add rent, bills or subscriptions and Dhimmah will track them for you.",
@@ -315,9 +534,23 @@
   "paymentDeleted": "Payment deleted",
   "paymentEditTitle": "Edit payment",
   "paymentExceedsRemaining": "That is more than the remaining {amount}; the debt will be settled in full.",
+  "@paymentExceedsRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "paymentNote": "Note",
   "paymentPayFull": "Pay the full remaining amount",
   "paymentRemainingAfter": "Remaining after this payment: {amount}",
+  "@paymentRemainingAfter": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "paymentSave": "Save payment",
   "paymentSaved": "Payment recorded",
   "paymentTitle": "Record a payment",
@@ -328,10 +561,24 @@
   "periodAny": "Any time",
   "periodCustom": "Custom",
   "periodFrom": "From {date}",
+  "@periodFrom": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "periodFromLabel": "From date",
   "periodThisMonth": "This month",
   "periodThisWeek": "This week",
   "periodTo": "To {date}",
+  "@periodTo": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "periodToLabel": "To date",
   "periodToday": "Today",
   "personAddDebt": "Add a debt for this person",
@@ -339,6 +586,13 @@
   "personAvatarColor": "Avatar colour",
   "personBalance": "Balance",
   "personDebtCount": "{count, plural, =0{No debts} =1{1 debt} other{{count} debts}}",
+  "@personDebtCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "personDebtsSection": "Debts",
   "personDeleteBody": "Their debts are kept, but will no longer be linked to them.",
   "personDeleteTitle": "Delete this person?",
@@ -352,8 +606,25 @@
   "recordDeleted": "Deleted",
   "recordSaved": "Saved",
   "recordsCount": "{count, plural, =0{No records} =1{1 record} other{{count} records}}",
+  "@recordsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "recurrenceCustom": "Custom",
   "recurrenceEveryN": "Every {count} {unit}",
+  "@recurrenceEveryN": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "unit": {
+        "type": "String"
+      }
+    }
+  },
   "recurrenceMonthly": "Monthly",
   "recurrenceNone": "Does not repeat",
   "recurrenceQuarterly": "Every 3 months",
@@ -441,6 +712,16 @@
   "reportOptionsTitle": "Statement options",
   "reportOverdue": "Overdue",
   "reportPageOf": "Page {page} of {total}",
+  "@reportPageOf": {
+    "placeholders": {
+      "page": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "reportPaidOut": "Paid out",
   "reportPaymentHistory": "Payment history",
   "reportPeopleCount": "People",
@@ -455,6 +736,13 @@
   "reportStatementReadyBody": "You can review it before sending.",
   "reportStatementTitle": "Debt Statement",
   "reportTrend": "Last {months} months",
+  "@reportTrend": {
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
   "reportTrendNewDebt": "New debts",
   "reportTrendSettled": "Paid",
   "reportsSubtitle": "A clear monthly summary",
@@ -509,11 +797,59 @@
   "shareLineDirectionIOwe": "I owe this",
   "shareLineDirectionOwedToMe": "Owed to me",
   "shareLineDue": "Due: {date}",
+  "@shareLineDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "shareLinePaid": "Paid: {amount}",
+  "@shareLinePaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "shareLinePaidOn": "Paid on: {date}",
+  "@shareLinePaidOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "shareLineRemaining": "Remaining: {amount}",
+  "@shareLineRemaining": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "shareLineTotal": "Total: {amount}",
+  "@shareLineTotal": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "sharePaymentBody": "{person} · {amount} · {date}",
+  "@sharePaymentBody": {
+    "placeholders": {
+      "person": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "sharePaymentTitle": "Payment receipt",
   "shareSubject": "Debt details",
   "somethingWentWrong": "Something went wrong.",
@@ -552,7 +888,7 @@
   "unitMonth": "month",
   "unitWeek": "week",
   "unitYear": "year",
-  "unknownPerson": "Unnamed",
+  "unknownPerson": "Untitled",
   "updateAvailableBody": "A newer version of Dhimmah is ready on Google Play.",
   "updateAvailableTitle": "A new update is available",
   "updateDownloadingBody": "You can keep using Dhimmah while it downloads.",
@@ -581,7 +917,327 @@
   "validationNegative": "Negative values are not allowed.",
   "validationNoteTooLong": "That note is too long.",
   "validationOverPayment": "That is more than the remaining {amount}.",
+  "@validationOverPayment": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "validationPhoneInvalid": "Enter a valid phone number.",
   "validationRequired": "This field is required.",
-  "validationTitleTooLong": "That description is too long."
+  "validationTitleTooLong": "That description is too long.",
+  "debtFormWithPerson": "Debt with {name}",
+  "@debtFormWithPerson": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "debtSavedMoved": "Saved. The debt moved to “{side}”.",
+  "@debtSavedMoved": {
+    "placeholders": {
+      "side": {
+        "type": "String"
+      }
+    }
+  },
+  "debtSavedParticipantRemoved": "Saved. No longer linked to {name}.",
+  "@debtSavedParticipantRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "fieldPeople": "People",
+  "fieldPersonPlaceholder": "Choose one or more people",
+  "participantsAdd": "Add a person",
+  "participantsAddMore": "Add more people",
+  "participantsSearchHint": "Search for a person",
+  "participantsSelected": "Selected",
+  "requiredFieldsMissing": "{count, plural, =1{One required field is still missing.} other{{count} required fields are still missing.}}",
+  "@requiredFieldsMissing": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "unsavedChangesBody": "Your changes are not saved. Leave anyway?",
+  "unsavedChangesLeave": "Leave without saving",
+  "unsavedChangesStay": "Keep editing",
+  "unsavedChangesTitle": "Unsaved changes",
+  "validationSelectDirection": "Choose the debt type: I owe, or owed to me.",
+  "validationSelectParticipant": "Choose at least one person.",
+  "reminderNotArmedOff": "Reminders are switched off in Settings, so this record will not notify you.",
+  "reminderNotArmedDenied": "Notifications are blocked by the system, so this record will not notify you.",
+  "settingsBackup": "Backup and restore",
+  "backupSectionHint": "A copy of everything, in one file you can keep.",
+  "backupAutoTitle": "Automatic backup",
+  "backupAutoStateOn": "On",
+  "backupAutoStateOff": "Off",
+  "backupAutoOnBody": "Dhimmah saves your changes on its own after every important change, and when you leave the app.",
+  "backupAutoOffBody": "Your current data is saved inside the app. No new copies will be made on their own until you turn it back on.",
+  "backupDetailAutomatic": "Automatic saving",
+  "backupDetailLastCopy": "Last copy",
+  "backupDetailRestorable": "Copies to restore",
+  "backupDetailPending": "Unsaved changes",
+  "backupDetailFolder": "Backup folder",
+  "backupDetailAttempts": "Failed attempts",
+  "backupHistoryLatest": "Latest copy",
+  "backupHistoryVerified": "Verified",
+  "backupFolderTitle": "Backup folder",
+  "backupFolderSetupTitle": "Set up a place for your backups",
+  "backupFolderSetupBody": "Dhimmah will use this folder to save backups, and to open them directly when restoring.",
+  "backupFolderChoose": "Choose the backup folder",
+  "backupFolderChange": "Change folder",
+  "backupFolderCheck": "Check now",
+  "backupFolderLater": "Later",
+  "backupFolderAvailable": "Available",
+  "backupFolderMissing": "The backup folder is not available",
+  "backupFolderLostAccess": "The app can no longer reach this folder: access was removed, or the folder was moved or deleted.",
+  "backupFolderReauthorize": "Allow access again",
+  "backupFolderBackupsCount": "{count, plural, =0{No valid backups} =1{One valid backup} other{{count} valid backups}}",
+  "@backupFolderBackupsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupFolderEmpty": "No backups in this folder",
+  "backupFolderConfirmTitle": "Use this folder?",
+  "backupFolderConfirmBody": "A “Dhimmah Backups” folder cannot be created here. Save the backups in the folder you picked?",
+  "backupFolderUseIt": "Use this folder",
+  "backupFolderDecline": "Choose another folder",
+  "backupFolderInvalidNote": "Files that look like backups but are not valid: {count}",
+  "@backupFolderInvalidNote": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupFolderNotWritable": "The folder is read-only",
+  "backupFolderError": "The folder could not be reached",
+  "backupFolderVerifying": "Checking the folder",
+  "backupHistoryInternal": "Inside the app",
+  "backupHistoryFolder": "In the backup folder",
+  "backupExternalDeleted": "Deleted from the folder",
+  "backupExternalDeleteFailed": "Could not delete it from the folder",
+  "backupNowAction": "Save an external copy",
+  "backupSaveExternalBody": "A file you keep, in a place you choose.",
+  "backupShareTile": "Share the copy",
+  "backupShareTileBody": "Send a copy to another app.",
+  "backupExternalSaved": "The copy was saved and verified",
+  "backupExternalSavedBody": "File: {name} · {size}",
+  "@backupExternalSavedBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "backupExternalFailedWrite": "The file could not be written to the place you chose",
+  "backupExternalFailedReadBack": "The file was written but could not be verified afterwards",
+  "backupExternalFailedIncomplete": "The saved file is empty or incomplete",
+  "backupExternalFailedInvalid": "The saved file did not pass the content check",
+  "backupExternalFailedUnavailable": "This device offers no way to choose where to save",
+  "backupRestoreAction": "Restore from a file",
+  "backupPreviousAction": "Previous backups",
+  "backupCopiesCount": "{count, plural, =0{No copies} =1{One copy} other{{count} copies}}",
+  "@backupCopiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupPreviousTitle": "Previous backups",
+  "backupProtectionProtected": "Your data is protected",
+  "backupProtectionPending": "Some changes are waiting to be saved",
+  "backupProtectionBackingUp": "Saving your changes",
+  "backupProtectionNever": "Your data is not protected yet",
+  "backupProtectionRecoverable": "A copy can be restored",
+  "backupProtectionAttention": "Backups need your attention",
+  "backupProtectionStorage": "Could not write to the backup location",
+  "backupProtectionNoLocation": "No permanent backup location yet",
+  "backupProtectionLastSuccess": "Last successful copy · {when}",
+  "@backupProtectionLastSuccess": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backupProtectionNeverWorked": "No copy has been saved yet",
+  "backupProtectionDetails": "Protection details",
+  "backupProtectionHideDetails": "Hide details",
+  "backupProtectionCopiesInside": "{count, plural, =0{Nothing inside the app} =1{One copy inside the app} other{{count} copies inside the app}}",
+  "@backupProtectionCopiesInside": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProtectionCopiesOutside": "{count, plural, =0{none in your folder} =1{one in your folder} other{{count} in your folder}}",
+  "@backupProtectionCopiesOutside": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProtectionWaiting": "{count, plural, =0{No records} =1{One record} other{{count} records}}",
+  "@backupProtectionWaiting": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProtectionFolderNone": "Not chosen yet",
+  "backupProtectionAutoOff": "Automatic saving is off",
+  "backupProtectionFailedTimes": "{count, plural, =1{once} other{{count} times}}",
+  "@backupProtectionFailedTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupProtectionDataSafe": "Your current data is saved inside the app and is unaffected.",
+  "backupProtectionHowTitle": "How Dhimmah protects your data",
+  "backupProtectionHowBody": "Dhimmah saves a copy of your changes on its own, and verifies every copy by reading it back after it is written. It keeps enough recovery points to step back, and never deletes a copy you made by hand. A restore never starts without your confirmation, and a safety copy of your current data is taken first. If saving fails, the data inside the app is left exactly as it is.",
+  "backupPreviousEmpty": "No backups are stored on this device.",
+  "backupEntryAuto": "Automatic",
+  "backupEntryManual": "Manual",
+  "backupEntrySafety": "Taken before a restore",
+  "backupShareAction": "Share",
+  "backupDeleteAction": "Delete",
+  "backupDeleted": "Backup deleted",
+  "backupDeleteFailed": "The backup could not be deleted, and is still listed",
+  "backupCreated": "Backup created",
+  "backupStepReading": "Reading the records",
+  "backupStepBuilding": "Preparing the copy",
+  "backupStepHashing": "Computing its fingerprint",
+  "backupStepWriting": "Writing the file",
+  "backupStepVerifying": "Reading it back to verify it",
+  "backupStepRetaining": "Tidying older copies",
+  "restoreStepReading": "Reading the file",
+  "restoreStepDecoding": "Decoding the file",
+  "restoreStepChecking": "Checking the file’s integrity",
+  "restoreStepValidating": "Checking the data",
+  "restoreStepPlanning": "Working out what will be written",
+  "restoreStepSnapshot": "Taking a safety copy of your current data",
+  "restoreStepWriting": "Writing the data",
+  "restoreStepVerifying": "Verifying the result",
+  "restoreStepRebuilding": "Rebuilding the schedule and reminders",
+  "backupCreateFailed": "The backup could not be created",
+  "backupRestoreTitle": "Restore a backup",
+  "backupRestoreQuestion": "Restore this data?",
+  "backupRestoreFrom": "A backup from",
+  "backupRestoreCounts": "{people, plural, one{One person} other{{people} people}} · {debts, plural, one{One debt} other{{debts} debts}} · {payments, plural, one{One payment} other{{payments} payments}}",
+  "@backupRestoreCounts": {
+    "placeholders": {
+      "people": {
+        "type": "int"
+      },
+      "debts": {
+        "type": "int"
+      },
+      "payments": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreMore": "{obligations, plural, one{One obligation} other{{obligations} obligations}} · {reminders, plural, one{One reminder} other{{reminders} reminders}} · {links, plural, one{One link} other{{links} links}}",
+  "@backupRestoreMore": {
+    "placeholders": {
+      "obligations": {
+        "type": "int"
+      },
+      "reminders": {
+        "type": "int"
+      },
+      "links": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreLastChange": "Last change in the file: {when}",
+  "@backupRestoreLastChange": {
+    "placeholders": {
+      "when": {
+        "type": "String"
+      }
+    }
+  },
+  "backupRestoreCurrencies": "{count, plural, =1{Currency: {codes}} other{Currencies: {codes}}}",
+  "@backupRestoreCurrencies": {
+    "placeholders": {
+      "codes": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreUnencrypted": "This file is not encrypted: anyone who opens it can read your data.",
+  "backupRestoreSafetyNote": "Dhimmah will back up your current data before restoring, so you can go back.",
+  "backupRestoreMode": "How to restore",
+  "backupModeReplace": "Replace",
+  "backupModeReplaceBody": "The file becomes your data; what is on this device is replaced.",
+  "backupModeMerge": "Merge",
+  "backupModeMergeBody": "New records are added, newer ones update, and anything ambiguous is reported instead of guessed.",
+  "backupRestoreConfirm": "Restore",
+  "backupRestoreDone": "Restored successfully",
+  "backupRestoreSummary": "{people, plural, one{One person} other{{people} people}} · {debts, plural, one{One debt} other{{debts} debts}} · {payments, plural, one{One payment} other{{payments} payments}}",
+  "@backupRestoreSummary": {
+    "placeholders": {
+      "people": {
+        "type": "int"
+      },
+      "debts": {
+        "type": "int"
+      },
+      "payments": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreSkipped": "Already present: {count}",
+  "@backupRestoreSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreConflictsTitle": "Records that need a look",
+  "backupRestoreConflictsBody": "{count, plural, =1{One record differs in the backup and was not newer; the one you have was kept.} other{{count} records differ in the backup and were not newer; the ones you have were kept.}}",
+  "@backupRestoreConflictsBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "backupRestoreFailed": "The restore failed, and your data is unchanged.",
+  "backupRestoreInvalid": "This backup could not be restored because the file is invalid or damaged.",
+  "backupRestoreNotOurs": "This file is not a valid Dhimmah backup.",
+  "backupRestoreTooNew": "This backup comes from a newer version of the app. Update Dhimmah and try again.",
+  "backupRestoreContinue": "Continue to Dhimmah",
+  "backupFoundTitle": "We found a backup",
+  "backupFoundBody": "There is no data on this device, and a saved copy can be restored.",
+  "backupPrivacyTitle": "Where are backups kept?",
+  "backupPrivacyBody": "Automatic copies live inside the app and nothing else can read them. When you share one, you choose the place — Files, Drive or another — and the file is not encrypted. Deleting the app deletes the copies inside it, so keep a copy off the device if the data matters.",
+  "backupSeparateFromExport": "Export (CSV and JSON) is for reading and analysis, and is not used for restoring. The backup is what comes back."
 }

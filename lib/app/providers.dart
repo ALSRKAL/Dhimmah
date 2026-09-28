@@ -114,6 +114,16 @@ final Provider<NotificationService> notificationServiceProvider =
   return service;
 });
 
+/// Whether the phone will actually show Dhimmah's notifications.
+///
+/// A stream rather than a value read once: the user can grant or revoke this in
+/// the system settings while the app is in the background, and every screen that
+/// speaks about reminders has to tell the truth about it.
+final StreamProvider<NotificationPermission> notificationPermissionProvider =
+    StreamProvider<NotificationPermission>((Ref ref) {
+  return ref.watch(notificationServiceProvider).permissionChanges;
+});
+
 final Provider<PinService> pinServiceProvider =
     Provider<PinService>((Ref ref) => PinService());
 
@@ -202,6 +212,13 @@ class SettingsController {
     await _ref.read(ledgerServiceProvider).refreshNotifications();
     // ignore: unused_local_variable
     next;
+  }
+
+  /// The automatic-snapshot switch. Deliberately does *not* rebuild the
+  /// notification schedule: this is a preference about files, not a change to
+  /// the ledger.
+  Future<void> setBackupAutoEnabled(bool enabled) async {
+    await _repository.update((AppSettings s) => s.copyWith(backupAutoEnabled: enabled));
   }
 
   Future<void> setLanguage(AppLanguage language) =>

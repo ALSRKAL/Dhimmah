@@ -254,26 +254,32 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        minimum: const EdgeInsets.fromLTRB(
-          AppSpacing.lg,
-          AppSpacing.sm,
-          AppSpacing.lg,
-          AppSpacing.md,
-        ),
-        child: FilledButton(
-          onPressed: _busy ? null : _save,
-          style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
-          child: _busy
-              ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : Text(_isEditing ? localizations.saveChanges : localizations.actionSave),
+      // The pinned Save rides above the IME by hand: with edge-to-edge the
+      // window never resizes, and the Scaffold leaves its bottomNavigationBar
+      // at the window bottom — behind the keyboard.
+      bottomNavigationBar: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+        child: SafeArea(
+          minimum: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.sm,
+            AppSpacing.lg,
+            AppSpacing.md,
+          ),
+          child: FilledButton(
+            onPressed: _busy ? null : _save,
+            style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+            child: _busy
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : Text(_isEditing ? localizations.saveChanges : localizations.actionSave),
+          ),
         ),
       ),
     );
