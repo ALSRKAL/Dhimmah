@@ -1,0 +1,254 @@
+{
+  "01_GOOGLE_PLAY/PHONE_AR/01_dashboard_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/01_dashboard_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_AR/02_add_debt_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/02_add_debt_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_AR/03_people_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/03_people_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_AR/04_debt_detail_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/04_debt_detail_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_AR/05_obligations_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/05_obligations_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_AR/06_ledger_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/06_ledger_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_AR/07_backup_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/08_backup_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_AR/08_reports_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/07_reports_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_AR/ALTERNATES/01_dashboard_dark_ar_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/AR/01_dashboard_dark_ar.png",
+    "box": [
+      196,
+      334,
+      687,
+      1526
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 260
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/01_dashboard_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/01_dashboard_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 357
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/02_add_debt_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/02_add_debt_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 248
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/03_people_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/03_people_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 248
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/04_debt_detail_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/04_debt_detail_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 248
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/05_obligations_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/05_obligations_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 357
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/06_ledger_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/06_ledger_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 248
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/07_backup_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/08_backup_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 248
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/08_reports_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/07_reports_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 248
+  },
+  "01_GOOGLE_PLAY/PHONE_EN/ALTERNATES/01_dashboard_dark_en_google_1080x1920.png": {
+    "source": "04_SOURCE_SCREENSHOTS/ANDROID/EN/01_dashboard_dark_en.png",
+    "box": [
+      218,
+      431,
+      643,
+      1429
+    ],
+    "source_size": [
+      1080,
+      2400
+    ],
+    "text_band_px": 248
+  }
+}

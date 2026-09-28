@@ -1,0 +1,175 @@
+file,check,expected,actual,status
+01_GOOGLE_PLAY/PHONE_AR/01_dashboard_ar_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/01_dashboard_ar_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_AR/01_dashboard_ar_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_AR/01_dashboard_ar_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_AR/01_dashboard_ar_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/01_dashboard_ar_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/01_dashboard_ar_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/02_add_debt_ar_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/02_add_debt_ar_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_AR/02_add_debt_ar_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_AR/02_add_debt_ar_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_AR/02_add_debt_ar_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/02_add_debt_ar_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/02_add_debt_ar_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/03_people_ar_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/03_people_ar_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_AR/03_people_ar_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_AR/03_people_ar_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_AR/03_people_ar_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/03_people_ar_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/03_people_ar_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/04_debt_detail_ar_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/04_debt_detail_ar_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_AR/04_debt_detail_ar_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_AR/04_debt_detail_ar_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_AR/04_debt_detail_ar_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/04_debt_detail_ar_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/04_debt_detail_ar_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/05_obligations_ar_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/05_obligations_ar_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_AR/05_obligations_ar_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_AR/05_obligations_ar_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_AR/05_obligations_ar_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/05_obligations_ar_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/05_obligations_ar_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/06_ledger_ar_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/06_ledger_ar_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_AR/06_ledger_ar_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_AR/06_ledger_ar_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_AR/06_ledger_ar_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/06_ledger_ar_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/06_ledger_ar_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/07_backup_ar_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/07_backup_ar_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_AR/07_backup_ar_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_AR/07_backup_ar_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_AR/07_backup_ar_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/07_backup_ar_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/07_backup_ar_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/08_reports_ar_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/08_reports_ar_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_AR/08_reports_ar_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_AR/08_reports_ar_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_AR/08_reports_ar_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/08_reports_ar_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR/08_reports_ar_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_AR,set has exactly 8 screenshots,8,8,PASS
+01_GOOGLE_PLAY/PHONE_AR,names match the manifest,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/01_dashboard_en_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/01_dashboard_en_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_EN/01_dashboard_en_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_EN/01_dashboard_en_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_EN/01_dashboard_en_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/01_dashboard_en_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/01_dashboard_en_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/02_add_debt_en_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/02_add_debt_en_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_EN/02_add_debt_en_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_EN/02_add_debt_en_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_EN/02_add_debt_en_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/02_add_debt_en_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/02_add_debt_en_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/03_people_en_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/03_people_en_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_EN/03_people_en_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_EN/03_people_en_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_EN/03_people_en_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/03_people_en_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/03_people_en_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/04_debt_detail_en_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/04_debt_detail_en_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_EN/04_debt_detail_en_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_EN/04_debt_detail_en_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_EN/04_debt_detail_en_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/04_debt_detail_en_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/04_debt_detail_en_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/05_obligations_en_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/05_obligations_en_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_EN/05_obligations_en_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_EN/05_obligations_en_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_EN/05_obligations_en_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/05_obligations_en_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/05_obligations_en_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/06_ledger_en_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/06_ledger_en_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_EN/06_ledger_en_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_EN/06_ledger_en_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_EN/06_ledger_en_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/06_ledger_en_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/06_ledger_en_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/07_backup_en_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/07_backup_en_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_EN/07_backup_en_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_EN/07_backup_en_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_EN/07_backup_en_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/07_backup_en_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/07_backup_en_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/08_reports_en_google_1080x1920.png,exists,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/08_reports_en_google_1080x1920.png,dimensions,1080x1920,1080x1920,PASS
+01_GOOGLE_PLAY/PHONE_EN/08_reports_en_google_1080x1920.png,format,PNG,PNG,PASS
+01_GOOGLE_PLAY/PHONE_EN/08_reports_en_google_1080x1920.png,alpha,none,none,PASS
+01_GOOGLE_PLAY/PHONE_EN/08_reports_en_google_1080x1920.png,within store bounds (320..3840),yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/08_reports_en_google_1080x1920.png,aspect ratio 9:16,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN/08_reports_en_google_1080x1920.png,file size under limit,yes,yes,PASS
+01_GOOGLE_PLAY/PHONE_EN,set has exactly 8 screenshots,8,8,PASS
+01_GOOGLE_PLAY/PHONE_EN,names match the manifest,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR,has the 8 screens,8,8,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/01_dashboard_dark_ar.png,dark capture exists,yes,yes,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/01_dashboard_ar.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/02_add_debt_ar.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/03_people_ar.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/04_debt_detail_ar.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/05_obligations_ar.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/06_ledger_ar.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/07_reports_ar.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/AR/08_backup_ar.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN,has the 8 screens,8,8,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/01_dashboard_dark_en.png,dark capture exists,yes,yes,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/01_dashboard_en.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/02_add_debt_en.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/03_people_en.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/04_debt_detail_en.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/05_obligations_en.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/06_ledger_en.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/07_reports_en.png,native capture size,1080x2400,1080x2400,PASS
+04_SOURCE_SCREENSHOTS/ANDROID/EN/08_backup_en.png,native capture size,1080x2400,1080x2400,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_dark_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_dark_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS

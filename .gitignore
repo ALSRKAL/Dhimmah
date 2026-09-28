@@ -49,3 +49,19 @@ app.*.map.json
 # editor's file listing; neither is part of the app.
 .zcodeignore
 .mimosa/
+
+# Agent session state (plans, transcripts) — machine-local.
+.zcode/
+
+# Raw evidence and mission logs stay on the machine: screenshots, hierarchy
+# dumps and test logs run to hundreds of megabytes. The reports that cite them
+# are tracked, under docs/.
+/artifacts/
+docs/final-acceptance/
+
+# Signing material must never enter history: the upload key and its passwords
+# are the release's identity. Play App Signing keeps the app restorable if the
+# upload key is lost, but a leaked key is permanent.
+android/key.properties
+*.jks
+*.keystore

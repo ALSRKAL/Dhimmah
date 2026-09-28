@@ -1,0 +1,44 @@
+check,file,expected,actual,status
+"declared currency, ar",06_VALIDATION/build_info.json,USD or YER,YER,PASS
+"declared currency, en",06_VALIDATION/build_info.json,USD or YER,USD,PASS
+no currency the listing must not show,README.md,no banned currency,none,PASS
+no currency the listing must not show,04_SOURCE_SCREENSHOTS/README.md,no banned currency,none,PASS
+no currency the listing must not show,04_SOURCE_SCREENSHOTS/IOS/NOT_CAPTURED.md,no banned currency,none,PASS
+no currency the listing must not show,04_SOURCE_SCREENSHOTS/IPAD/NOT_CAPTURED.md,no banned currency,none,PASS
+no currency the listing must not show,06_VALIDATION/FINAL-STORE-ASSETS-REPORT.md,no banned currency,none,PASS
+no currency the listing must not show,06_VALIDATION/build_info.json,no banned currency,none,PASS
+no currency the listing must not show,06_VALIDATION/source_map.json,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/MASTER_PROMPT.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_dark_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_dark_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_ar_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_en_google_nano_banana_prompt.md,no banned currency,none,PASS
+no currency the listing must not show,05_NANO_BANANA_PROMPTS/APP_STORE/README.md,no banned currency,none,PASS
+no currency the listing must not show,00_README/APPLE_UPLOAD_ORDER.md,no banned currency,none,PASS
+no currency the listing must not show,00_README/ASSET_MANIFEST.csv,no banned currency,none,PASS
+no currency the listing must not show,00_README/ASSET_MANIFEST.json,no banned currency,none,PASS
+no currency the listing must not show,00_README/FINAL_QA.md,no banned currency,none,PASS
+no currency the listing must not show,00_README/GOOGLE_PLAY_UPLOAD_ORDER.md,no banned currency,none,PASS
+no currency the listing must not show,00_README/STORE_ASSET_GUIDE.md,no banned currency,none,PASS
+no currency the listing must not show,00_README/STORE_REQUIREMENTS.md,no banned currency,none,PASS
+no currency the listing must not show,02_APP_STORE/NOT_PRODUCED.md,no banned currency,none,PASS
+no currency the listing must not show,02_APP_STORE/IPAD_EN/README.md,no banned currency,none,PASS
+no currency the listing must not show,02_APP_STORE/IPAD_AR/README.md,no banned currency,none,PASS
+no currency the listing must not show,02_APP_STORE/IPHONE_EN/README.md,no banned currency,none,PASS
+no currency the listing must not show,02_APP_STORE/IPHONE_AR/README.md,no banned currency,none,PASS

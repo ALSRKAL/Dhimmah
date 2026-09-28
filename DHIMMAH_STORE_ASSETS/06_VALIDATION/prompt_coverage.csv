@@ -1,0 +1,39 @@
+file,check,expected,actual,status
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_ar_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_en_google_nano_banana_prompt.md,prompt exists for asset,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_dark_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/02_add_debt_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/03_people_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/04_debt_detail_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/05_obligations_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/06_ledger_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/07_backup_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/08_reports_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/01_dashboard_dark_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_ar_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS
+05_NANO_BANANA_PROMPTS/GOOGLE_PLAY/feature_graphic_en_google_nano_banana_prompt.md,prompt exists for the asset it describes,yes,yes,PASS

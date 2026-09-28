@@ -1,0 +1,18 @@
+{
+  "built_from": "tool/store_capture/compose_assets.py",
+  "story": "tool/store_capture/store_story.json",
+  "checked": "2026-09-26",
+  "currency": {
+    "$comment": "The ledger each listing is photographed in. The capture refuses any other money, and the demo dataset scales its figures to it, so the amounts in the screenshots are the app's own rendering of a real ledger in that currency.",
+    "ar": "YER",
+    "en": "USD"
+  },
+  "source_captures": "04_SOURCE_SCREENSHOTS/ANDROID/<LANG>/<key>.png, captured by integration_test/store_capture_test.dart",
+  "canvases": {
+    "google_play_phone": "1080x1920",
+    "google_play_feature_graphic": "1024x500",
+    "google_play_icon": "512x512",
+    "apple_icon": "1024x1024"
+  },
+  "assets": 18
+}

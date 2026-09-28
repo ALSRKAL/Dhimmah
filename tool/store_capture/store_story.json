@@ -1,0 +1,128 @@
+{
+  "$comment": "The store story: one entry per screenshot, both languages. Single source for the compositor, the prompt generator and the manifests. Headlines are short and functional; nothing here claims a ranking, a rating or a result.",
+  "checked": "2026-09-26",
+  "currency": {
+    "$comment": "The ledger each listing is photographed in. The capture refuses any other money, and the demo dataset scales its figures to it, so the amounts in the screenshots are the app's own rendering of a real ledger in that currency.",
+    "ar": "YER",
+    "en": "USD"
+  },
+  "screens": [
+    {
+      "key": "01_dashboard",
+      "screen": "Dashboard",
+      "source": "01_dashboard",
+      "headline_ar": "اعرف ما لك وما عليك",
+      "headline_en": "Know what you owe, and what you're owed",
+      "support_ar": "كل دين ودفعة في مكان واحد، بالأرقام الصحيحة",
+      "support_en": "Every debt and payment in one place, with the numbers right",
+      "alt_ar": "لوحة ذِمّة الرئيسية تعرض ما للمستخدم وما عليه وما يحتاج إلى متابعة.",
+      "alt_en": "Dhimmah dashboard showing what you owe, what is owed to you, and items needing attention.",
+      "objective_ar": "أن يفهم من يرى الصورة الأولى ما يفعله التطبيق في ثانية.",
+      "objective_en": "The first image has to say what the app does, in one second."
+    },
+    {
+      "key": "02_add_debt",
+      "screen": "Add debt",
+      "source": "02_add_debt",
+      "headline_ar": "سجّل الدين في ثوانٍ",
+      "headline_en": "Record a debt in seconds",
+      "support_ar": "المبلغ والتاريخ والطرف الآخر — نموذج واحد واضح",
+      "support_en": "Amount, date and the other party — one clear form",
+      "alt_ar": "نموذج إضافة دين في ذِمّة مع اختيار الطرف الآخر والمبلغ وتاريخ الاستحقاق.",
+      "alt_en": "Dhimmah's add-debt form with the other party, the amount and the due date.",
+      "objective_ar": "أن يظهر أن الإدخال سريع وبسيط.",
+      "objective_en": "Show how quickly a record can be entered."
+    },
+    {
+      "key": "03_people",
+      "screen": "People",
+      "source": "03_people",
+      "headline_ar": "كل شخص وسجله بوضوح",
+      "headline_en": "Every person, their own record",
+      "support_ar": "من له ومن عليه، مجموعًا لكل شخص",
+      "support_en": "Who owes and who is owed, totalled per person",
+      "alt_ar": "شاشة الأشخاص في ذِمّة تعرض كل شخص ورصيده من الديون.",
+      "alt_en": "Dhimmah's people screen listing each person with their balance.",
+      "objective_ar": "أن يظهر تنظيم السجل حسب الأشخاص.",
+      "objective_en": "Show that the ledger is organised by person."
+    },
+    {
+      "key": "04_debt_detail",
+      "screen": "Debt detail",
+      "source": "04_debt_detail",
+      "headline_ar": "تابع المدفوع والمتبقي",
+      "headline_en": "Track what's paid and what's left",
+      "support_ar": "كل دفعة بتاريخها، والمتبقي يتحدث فورًا",
+      "support_en": "Every payment dated, the remainder updated at once",
+      "alt_ar": "تفاصيل دين في ذِمّة تعرض الدفعات المسجلة والمبلغ المتبقي.",
+      "alt_en": "A Dhimmah debt detail showing recorded payments and the remaining amount.",
+      "objective_ar": "أن يظهر تتبع الدفعات بدقة.",
+      "objective_en": "Show precise payment tracking."
+    },
+    {
+      "key": "05_obligations",
+      "screen": "Obligations",
+      "source": "05_obligations",
+      "headline_ar": "التزاماتك الشهرية تحت السيطرة",
+      "headline_en": "Your recurring commitments, in order",
+      "support_ar": "إيجار وفواتير وأقساط، مع تذكير قبل الاستحقاق",
+      "support_en": "Rent, bills and installments, with a reminder before each due date",
+      "alt_ar": "شاشة الالتزامات في ذِمّة تعرض الأقساط والالتزامات الشهرية وحالة كل منها.",
+      "alt_en": "Dhimmah's obligations screen showing monthly commitments and their status.",
+      "objective_ar": "أن يظهر أن التطبيق يتجاوز الديون إلى الالتزامات المتكررة.",
+      "objective_en": "Show the app goes past one-off debts to recurring commitments."
+    },
+    {
+      "key": "06_ledger",
+      "screen": "Ledger",
+      "source": "06_ledger",
+      "headline_ar": "كل سجلك في مكان واحد",
+      "headline_en": "Your whole ledger in one place",
+      "support_ar": "ابحث وفلتر بين كل الديون والدفعات",
+      "support_en": "Search and filter every debt and payment",
+      "alt_ar": "سجل ذِمّة الكامل لقائمة الديون مع حالتها ومبالغها.",
+      "alt_en": "Dhimmah's full ledger listing debts with their status and amounts.",
+      "objective_ar": "أن يظهر أن السجل كامل ومنظم.",
+      "objective_en": "Show that the ledger is complete and ordered."
+    },
+    {
+      "key": "07_backup",
+      "screen": "Backup",
+      "source": "08_backup",
+      "headline_ar": "بياناتك معك دائمًا",
+      "headline_en": "Your data stays yours",
+      "support_ar": "نسخ احتياطي محلي وتصدير بضغطة",
+      "support_en": "A local backup and an export, one tap away",
+      "alt_ar": "شاشة النسخ الاحتياطي في ذِمّة مع حالة آخر نسخة وخيارات التصدير.",
+      "alt_en": "Dhimmah's backup screen with the last snapshot's status and export options.",
+      "objective_ar": "أن يطمئن المستخدم على بياناته.",
+      "objective_en": "Reassure the reader about their data."
+    },
+    {
+      "key": "08_reports",
+      "screen": "Reports",
+      "source": "07_reports",
+      "headline_ar": "كشف حساب واضح تشاركه",
+      "headline_en": "A clear statement you can share",
+      "support_ar": "ملخص شهري وأرقام جاهزة للتصدير",
+      "support_en": "A monthly summary with figures ready to export",
+      "alt_ar": "شاشة التقارير في ذِمّة تعرض ملخص الشهر للديون والمدفوعات.",
+      "alt_en": "Dhimmah's reports screen with the month's summary of debts and payments.",
+      "objective_ar": "أن يظهر أن للتطبيق مخرجات وليس فقط إدخالًا.",
+      "objective_en": "Show the app produces output, not only input."
+    }
+  ],
+  "dark_extra": {
+    "key": "01_dashboard_dark",
+    "screen": "Dashboard (dark)",
+    "source": "01_dashboard_dark",
+    "headline_ar": "مريح للعين ليلًا",
+    "headline_en": "Easy on the eyes at night",
+    "support_ar": "الوضع الداكن كامل، لكل الشاشات",
+    "support_en": "A full dark theme, across every screen",
+    "alt_ar": "لوحة ذِمّة بالوضع الداكن تعرض ما للمستخدم وما عليه.",
+    "alt_en": "Dhimmah's dashboard in dark mode showing what you owe and what you're owed.",
+    "objective_ar": "أن يظهر دعم الوضع الداكن.",
+    "objective_en": "Show that dark mode is supported."
+  }
+}
