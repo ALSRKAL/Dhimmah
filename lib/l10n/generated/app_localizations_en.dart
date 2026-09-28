@@ -1604,6 +1604,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsPrivacyNote => 'Your data stays on your device';
 
   @override
+  String get settingsPrivacyPolicy => 'Privacy policy';
+
+  @override
+  String get settingsPrivacyPolicyBody => 'Opens in your browser';
+
+  @override
+  String get linkOpenFailed =>
+      'Couldn\'t open the link. Check that a browser is available.';
+
+  @override
   String get settingsRateApp => 'Rate Dhimmah';
 
   @override

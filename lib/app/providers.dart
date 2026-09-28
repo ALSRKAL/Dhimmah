@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/formatting/app_formatting.dart';
 import '../core/money/currency.dart';
@@ -129,6 +130,16 @@ final Provider<PinService> pinServiceProvider =
 
 final Provider<BiometricService> biometricServiceProvider =
     Provider<BiometricService>((Ref ref) => BiometricService());
+
+/// Opens a link in whatever app handles it — the browser, never in-app.
+///
+/// A provider over the launcher rather than a direct call, so a test can watch
+/// which URL the app would open and what happens when nothing can open it —
+/// without a browser, and without the platform channel.
+final Provider<Future<bool> Function(Uri)> urlOpenerProvider =
+    Provider<Future<bool> Function(Uri)>(
+  (Ref ref) => (Uri url) => launchUrl(url, mode: LaunchMode.externalApplication),
+);
 
 // ---------------------------------------------------------------------------
 // Repositories

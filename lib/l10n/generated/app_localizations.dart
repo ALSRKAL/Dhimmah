@@ -2923,6 +2923,24 @@ abstract class AppLocalizations {
   /// **'بياناتك على جهازك فقط'**
   String get settingsPrivacyNote;
 
+  /// No description provided for @settingsPrivacyPolicy.
+  ///
+  /// In ar, this message translates to:
+  /// **'سياسة الخصوصية'**
+  String get settingsPrivacyPolicy;
+
+  /// No description provided for @settingsPrivacyPolicyBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تُفتح في المتصفح'**
+  String get settingsPrivacyPolicyBody;
+
+  /// No description provided for @linkOpenFailed.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعذّر فتح الرابط. تأكد من وجود متصفح على الجهاز.'**
+  String get linkOpenFailed;
+
   /// No description provided for @settingsRateApp.
   ///
   /// In ar, this message translates to:

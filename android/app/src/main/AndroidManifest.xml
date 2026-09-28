@@ -25,6 +25,20 @@
     <uses-permission android:name="android.permission.USE_FINGERPRINT"
         tools:node="remove"/>
 
+    <!--
+      Android 11+ hides other apps unless a package says what it intends to ask
+      for. Dhimmah opens exactly one kind of link — an https page in the
+      browser, the privacy policy in Settings — and this declares that and
+      nothing else. It is a visibility declaration, not a permission, and it
+      does not give the app any network access of its own.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+    </queries>
+
     <application
         android:label="ذِمّة"
         android:name="${applicationName}"

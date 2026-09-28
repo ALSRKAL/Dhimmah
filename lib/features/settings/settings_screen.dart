@@ -6,6 +6,7 @@ import '../../app/backup_providers.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
+import '../../core/links.dart';
 import '../../core/money/currency.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/security/biometric_service.dart';
@@ -244,6 +245,12 @@ class SettingsScreen extends ConsumerWidget {
                 onTap: () => context.push(AppRoutes.about),
               ),
               SettingsTile(
+                title: localizations.settingsPrivacyPolicy,
+                subtitle: localizations.settingsPrivacyPolicyBody,
+                icon: Icons.privacy_tip_outlined,
+                onTap: () => _openPrivacyPolicy(context, ref),
+              ),
+              SettingsTile(
                 title: localizations.settingsLicenses,
                 icon: Icons.description_outlined,
                 onTap: () => showLicensePage(
@@ -466,6 +473,19 @@ class SettingsScreen extends ConsumerWidget {
       case BiometricAvailability.notSupported:
       case BiometricAvailability.unsupportedPlatform:
         AppFeedback.error(context, localizations.biometricUnavailable);
+    }
+  }
+
+  /// Opens the privacy policy in the browser.
+  ///
+  /// The page is the one the Play listing cites; the request belongs to the
+  /// browser, so the app still needs no internet permission of its own.
+  Future<void> _openPrivacyPolicy(BuildContext context, WidgetRef ref) async {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final bool opened =
+        await ref.read(urlOpenerProvider)(AppLinks.privacyPolicy);
+    if (!opened && context.mounted) {
+      AppFeedback.error(context, localizations.linkOpenFailed);
     }
   }
 

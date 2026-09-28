@@ -1610,6 +1610,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsPrivacyNote => 'بياناتك على جهازك فقط';
 
   @override
+  String get settingsPrivacyPolicy => 'سياسة الخصوصية';
+
+  @override
+  String get settingsPrivacyPolicyBody => 'تُفتح في المتصفح';
+
+  @override
+  String get linkOpenFailed =>
+      'تعذّر فتح الرابط. تأكد من وجود متصفح على الجهاز.';
+
+  @override
   String get settingsRateApp => 'قيّم التطبيق';
 
   @override

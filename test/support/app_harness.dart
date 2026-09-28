@@ -209,6 +209,7 @@ Future<ProviderContainer> pumpDhimmah(
   Directory? backupDirectory,
   BackupLocationRepository? backupFolders,
   PinService? pinService,
+  Future<bool> Function(Uri)? urlOpener,
 }) async {
   if (settings != null) {
     await db.settingsDao.replace(
@@ -256,6 +257,7 @@ Future<ProviderContainer> pumpDhimmah(
       if (backupFolders != null)
         backupLocationRepositoryProvider.overrideWithValue(backupFolders),
       if (pinService != null) pinServiceProvider.overrideWithValue(pinService),
+      if (urlOpener != null) urlOpenerProvider.overrideWithValue(urlOpener),
     ],
   );
   addTearDown(container.dispose);
