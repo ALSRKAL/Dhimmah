@@ -17,7 +17,7 @@ Offline-first, Arabic-first, and designed to be understood in under a minute.
 | **الالتزامات / Obligations** | Rent, bills, subscriptions, salaries — with automatic next periods |
 | **التذكيرات / Reminders** | Local notifications for anything with a deadline |
 | **التقارير / Reports** | A monthly report with paid, received and overdue totals |
-| **الأشخاص / People** | One page per person, rolling up every debt linked to them |
+| **الأشخاص / People** | One page per person, rolling up every debt linked to them — a debt linked to several people appears on each of their pages as one of their own |
 | **كشف حساب / Statement** | A real PDF debt statement, in Arabic or English, to send or print |
 
 Five destinations, no duplicates. The dashboard answers four questions before you
@@ -33,12 +33,27 @@ never a guess.
 * **One nudge, not a stream.** A late item produces a single reminder two days
   after the deadline, not a daily notification, and notifications come in three
   tiers so the loud one still means something.
+* **Inexact reminders, and no exact-alarm permission.** A reminder is "look at
+  this today", not an alarm clock, so nothing asks Android to fire at a precise
+  millisecond — and the app therefore never requests `SCHEDULE_EXACT_ALARM`,
+  which Android 14+ denies by default anyway, nor `USE_EXACT_ALARM`, which Play
+  reserves for alarm and calendar apps.
+* **The soonest 400, not everything.** Android — Samsung's build in particular —
+  does not hold an unbounded number of alarms per app. A large ledger asks for
+  more than any phone will keep, so the app arms the soonest four hundred and
+  rebuilds the set on every launch, every save and every environment change.
 * **No invented insight.** Every sentence the app says about your money is
   computed from records you entered.
 * **Nothing shown twice.** One add button, one currency mechanism, one place per
   fact. Two ways to do the same thing is one too many.
 * **Money in integers.** Amounts are stored as integer minor units, so
   `0.1 + 0.2` never decides whether a debt is settled.
+* **No share per person.** A debt can be recorded with several people, and the
+  app never divides it between them: there is no field to store a share and no
+  rule to derive one. The amount is one amount, it is counted once in the ledger,
+  and it is listed on every participant's page without being added to any of
+  their balances — see *One record, several people* below for why that is the
+  only answer that cannot be wrong.
 
 ---
 
@@ -145,8 +160,11 @@ not do arithmetic on money, and the domain may not import Flutter.
   commitment always has its next period ready.
 * **`domain/services/notification_planner.dart`** — pure planning. Given the
   records and a clock it returns the complete set of notifications that should
-  exist, and the service replaces whatever was scheduled with that set. This is
-  why paying a debt off cancels its reminders automatically.
+  exist; the service then makes the phone agree with it, which is why paying a
+  debt off cancels its reminders automatically. The planner never touches the
+  platform and the platform never decides anything: the records are the source
+  of truth and a pending notification is only a scheduled representation of them.
+  See **Reminders** below for what that costs and how it is kept in step.
 * **`domain/services/attention_list.dart`** — what needs attention, derived from
   the records and a date. Nothing is invented; an item disappears the moment it is
   settled, which is what makes the section worth trusting.
@@ -240,6 +258,94 @@ gated behind a second confirmation.
 Calendar dates are stored as `yyyy-MM-dd` rather than as instants, so a due date
 cannot shift by a day when the device changes timezone.
 
+### One record, several people
+
+A debt is one financial fact: a dinner bill of 1,500 with three friends is one
+record linked to three people, not three records of 1,500. Who a record is with
+therefore lives in its own table — `debt_people`, keyed on `(debt_id, person_id)`,
+so the database itself refuses to link the same person twice — rather than in a
+column of ids or a blob of JSON.
+
+`debts.person_id` survives as a *projection* of that table: the participant at
+position 0, written by the one place that writes the links, so the two can never
+disagree. It is what a payment's attribution, a notification's heading and the
+foreign key that unlinks a debt when a person is deleted have always read.
+
+The version-3 migration copies every existing `debts.person_id` into a link row
+and touches nothing else. It is written as a sequence of additive steps — the new
+table, then any index the file is missing, then the data — because drift's
+`CREATE INDEX` is not conditional: the earlier version-2 migration's
+`createAll()` worked on a version-1 file and failed on a version-2 one, and the
+tests now build a real database in each old shape and upgrade it
+(`test/data/migration_test.dart`).
+
+**The relation is bookkeeping; the interface is a page per person.** Nothing in
+the app calls a record "shared", and no person's page names the other people the
+record is also linked to: each of them reads it as one of their own debts, with
+the ordinary row, the ordinary figure and the ordinary totals. Who else is on the
+record is visible on the record's own page, which is where it is edited, and in
+the flat ledger list, where a row has to say who it is with.
+
+**Counted once, never multiplied, never split.** Every aggregate reads the
+`debts` table, and the link table is only ever joined to answer *who*: the
+dashboard, the ledger, the monthly report and the statement each count the record
+once, so a 1,500 dinner bill with three people on it is 1,500 and never 4,500.
+Within one person's page it is counted once too — the page is the answer to "what
+is between me and this person", and the record is one of the things between them.
+There is no per-person share anywhere in the product, so the app divides nothing
+either: a dinner bill is not always split evenly, and a car loan with a co-signer
+is not split at all. Two people's pages can therefore each state the same record,
+which is deliberate — pages are views of one relationship each and are never
+added together. The ledger is the only place records are summed, and it sums each
+one once.
+
+### Reminders
+
+A reminder is a *scheduled representation* of a record, never a second source of
+truth. Every write, every launch and every change to the phone's environment
+rebuilds the set the records ask for, and the phone is then made to agree with
+it:
+
+* **Reconciled, not wiped.** The service compares what it wants with what the
+  platform reports holding, cancels only what is no longer wanted, and schedules
+  only what is missing. The older behaviour — cancel everything, re-schedule
+  everything — also cleared the notification shade, so every save erased the
+  reminders the user had already received, and cost thousands of platform calls
+  on a large ledger. The same correction made a payment write go from **1,819 ms
+  to 40 ms** at 2,500 records and from **7,470 ms to 40 ms** at 10,000
+  (measured by `test/tool/startup_write_profile_test.dart`).
+* **Identity is the record, the kind of reminder and the moment.** Android
+  replaces a notification with a matching id, so the id is derived from those
+  three things and nothing else — never a position in a list, never the time of
+  computing it. Two records can hash to the same 31-bit id in principle, so a
+  clash is resolved deterministically inside a pass; a test arms 10,000 of them
+  and fails on any duplicate.
+* **The soonest four hundred are armed.** Android, and Samsung's implementation
+  in particular, does not hold an unbounded number of alarms per app: exceeding
+  the limit throws rather than degrading. The cap is by time, ties are broken by
+  id so the choice is a function of the records alone, and every launch and save
+  re-plans — so the reminders that are armed are always the ones closest to
+  being due.
+* **A tap opens the record.** The payload is `type:stable-id` and nothing else —
+  no amounts, no names, nothing to leak from a lock screen. A tap that *launches*
+  the app is read from the platform at start-up and routed after the first frame;
+  the app used to lose it, so tapping a reminder on a closed app opened the
+  dashboard.
+* **A reminder that cannot arrive says so.** If reminders are switched off in
+  Settings, or the system blocks notifications, the reminder field and the
+  record's page say that the notification will not come. Permission is asked when
+  the user turns reminders on, never at launch, and the state is re-read whenever
+  the app comes back to the foreground — so granting it in the system settings
+  starts working without a restart.
+* **Boot and updates are the plugin's job.** `RECEIVE_BOOT_COMPLETED` and a
+  `MY_PACKAGE_REPLACED` receiver are declared, and `flutter_local_notifications`
+  re-arms its own store; if the alarms were lost anyway, the next reconciliation
+  puts them back (`test/data/notification_lifecycle_test.dart` case 8).
+* **Inexact by design.** Reminders are scheduled with `inexactAllowWhileIdle`:
+  a few minutes of slack costs nothing for "look at this today", and exact
+  scheduling needs a permission Android 14+ denies by default and Play restricts
+  to alarm and calendar apps.
+
 ---
 
 ## Testing
@@ -249,22 +355,39 @@ test/domain/        77 tests — balances, statuses, schedules, month arithmetic
                                the attention list, the monthly insight, what the
                                planner decides to schedule and when, and what the
                                service refuses to store
-test/core/         102 tests — Arabic shaping and bidi, amount parsing, currency
+test/core/         122 tests — the notification delivery policy against a fake
+                               platform (idempotent scheduling, reconciliation,
+                               the cap, permission and timezone changes, the
+                               cold-start tap), plus Arabic shaping and bidi,
+                               amount parsing, currency
                                formatting, numerals, date phrasing, the WCAG
                                contrast of every colour pair in both themes, that
                                English is really English, and the statement's own
-                               geometry read back out of the finished PDF
-test/data/           9 tests — schema, converters, constraints, clearing fields,
-                               opening a database written by an earlier build
-test/integration/   26 tests — the service against a real SQLite database
-test/widget/        65 tests — the real UI driven end to end: onboarding, recording,
+                               geometry read back out of the finished PDF,
+                               including a record linked to several people
+test/data/          69 tests — schema, converters, constraints, the link table's
+                               own rules, clearing fields, opening a database
+                               written by an earlier build (both upgrade paths),
+                               several people on one record, what an export
+                               contains, and the reminder lifecycle: every way a
+                               notification can be created, moved, cancelled,
+                               paid off or lost, plus the read the plan costs
+test/integration/   27 tests — the service against a real SQLite database,
+                               including a record edited, closed and reopened from
+                               the file it was written to
+test/widget/        97 tests — the real UI driven end to end: onboarding, recording,
                                RTL, dark mode, the statement screen, the
-                               open-a-person-pay-and-share journey, layout at
-                               1.0x/1.3x/1.5x text scale on a 360px screen, and the
-                               places where a number must *not* mirror, and the
-                               update card in both languages and both themes,
-                               and an About screen that prints the installed
-                               version rather than a hardcoded one
+                               open-a-person-pay-and-share journey, editing every
+                               field of a record without losing it, required
+                               fields and their errors, the refusal-and-retry
+                               walk-through, adding a debt from a person, one
+                               record linked to three people read on each of
+                               their pages with nobody else named, layout
+                               at 1.0x/1.3x/1.5x text scale on a
+                               360px screen, the places where a number must *not*
+                               mirror, the update card in both languages and both
+                               themes, and an About screen that prints the
+                               installed version rather than a hardcoded one
 test/app/           34 tests — the start-up failure path (a schema from the
                                future is recognised, the screen names the cause
                                in both languages, never shows the raw error, and
@@ -279,13 +402,15 @@ test/platform/       9 tests — the Android declarations that no Dart test can 
                                channel names agree across the bridge, the Play
                                library is the per-feature one, and the update
                                path cannot reach the ledger
-test/performance/    5 tests — a scale measurement (prints, does not assert) and
-                               the proof that the SQL aggregate returns exactly
-                               what summing the rows in Dart returned
-test/tool/           2 tests — the seed and statement generators
+test/performance/    7 tests — two scale measurements (500/2,500/10,000 and
+                               1,000/10,000/50,000, print only) and the proof that
+                               the SQL aggregate returns exactly what summing the
+                               rows in Dart returned, for multi-person records too
+test/tool/           6 tests — the seed and statement generators and the
+                               query-plan and write profiles
 ```
 
-329 tests. Several exist to hold a decision in place rather than to check a
+448 tests. Several exist to hold a decision in place rather than to check a
 behaviour: the contrast test, the design invariants (one focus figure and one
 primary action per screen, the person page's single balance), and the two journeys
 driven the way a person drives them — open someone, record a payment, watch the
@@ -453,6 +578,122 @@ regression test:
     per-debt payment total into a `SUM … GROUP BY`: 20 ms instead of 499 ms, and
     the person page 23 ms instead of 287 ms. `test/performance/` prints the
     numbers and pins the aggregate against the Dart sum it replaced.
+
+29. **Editing any field of a debt silently unlinked it from its person.** The form
+    read the amount, the note, the dates, the reminder and the title back out of
+    the stored record, and never read the person — so the first save wrote
+    `personId: null`. The record stayed in the database with all its money and
+    vanished from the page it was recorded on, which is the worst shape a bug in
+    a ledger can take: silent, and about the wrong number. Fixed by hydrating
+    every field the form owns, and by making the *service* refuse a record that
+    names nobody, so no screen can write one. There is a test per field
+    (`test/widget/debt_edit_test.dart`), and the write path that used to drop the
+    link is pinned by the tests that create, edit, close and reopen the file.
+30. **A migration that could only run once.** `createAll()` was doing double duty
+    as "create what is missing": it emitted `CREATE TABLE IF NOT EXISTS` for
+    tables and a bare `CREATE INDEX` for indexes, so it was safe on a version-1
+    file (which had no indexes) and failed on a version-2 one with
+    *index idx_debts_person already exists*. The version-3 upgrade that adds the
+    link table hit it immediately. The migration is now explicit about each step
+    and creates indexes with `IF NOT EXISTS` from the generated schema, and
+    `test/data/migration_test.dart` builds a database in the shape of version 1
+    *and* version 2 and upgrades both — a fixture the shipped build could never
+    have exercised.
+31. **An empty direction field that had already answered.** `عليّ / لي` opened
+    with `عليّ` selected, because the form's direction parameter defaulted to it —
+    so a debt recorded without touching the field was recorded as money the user
+    owes, and the one screen that could have caught it showed a choice the user
+    never made. The field now starts unselected (`DebtDirection?`), the route
+    passes only the side the user actually tapped, and a save without it says
+    *اختر نوع الدين: عليّ أو لي* next to the field and scrolls to it.
+32. **A form that failed without saying what was missing.** A save with gaps did
+    nothing visible if the user had scrolled past the field, or showed a single
+    generic sentence. Required fields are now marked with `*`, each carries its
+    own message, the screen scrolls to the first one and puts the caret in the
+    amount, a summary at the top counts them, and nothing the user typed is
+    cleared. `test/widget/debt_form_test.dart` drives the whole refusal and retry,
+    including the draft surviving it.
+33. **A record with three people on it presented as a shared debt.** A debt linked
+    to several people was labelled `مشترك`, each participant's page listed the
+    *others* by name, the statement carried a `ديون مشتركة` section beside the
+    total, and the person's balance left the record out with a note explaining
+    why. The relation is bookkeeping: it stays in `debt_people`, and none of it is
+    shown as a concept. Each person's page now shows the record as one of their
+    own — the ordinary row, the ordinary figure, counted once — the statement is
+    that page in print, and the shared vocabulary is gone from the interface
+    entirely. `test/widget/multi_person_pages_test.dart` opens all three pages and
+    fails if another participant's name appears on one of them, and
+    `integration_test/multi_person_on_device_test.dart` does the same on a phone.
+
+34. **Tapping a reminder on a closed app opened the dashboard.** The tap was
+    delivered through the plugin's callback, which only fires while the app is
+    running; a process *started* by the tap was never asked what launched it. The
+    payload is now read from the platform during start-up and routed after the
+    first frame, so a cold start lands on the record — the case a reminder is
+    most likely to be tapped in.
+35. **Every save erased the notification shade.** Reconciliation called
+    `cancelAll()`, which on Android is `NotificationManager.cancelAll()`: it
+    clears what is *displayed* as well as what is scheduled, so saving a payment
+    deleted the reminders the user had already received. It now cancels only
+    pending notifications and only the ones the records no longer ask for.
+36. **One save rebuilt the whole plan, and asked the phone for thousands of
+    alarms.** `refreshNotifications` read every record, every payment and every
+    person on every write — 1,819 ms at 2,500 records and 8,112 ms at 10,000, all
+    of it inside the write — and then asked Android to hold every notification
+    the ledger implied, which Samsung's Android caps at 500 per app and throws
+    beyond. The plan now reads only the records that carry a reminder, soonest
+    first, in pages, stopping as soon as nothing further out could deliver
+    earlier; and only the soonest four hundred notifications are armed. A
+    payment write went from 1,819 ms to 40 ms, and from 7,470 ms to 40 ms at
+    10,000 records.
+37. **A reminder that could not possibly arrive said nothing.** With reminders
+    switched off, or notifications blocked by the system, the form happily
+    offered lead times and the record stated them as if they would fire. Both now
+    say so where the choice is made and where it is read, and the permission is
+    re-read whenever the app returns to the foreground — granting it in the
+    system settings used to require a restart.
+38. **An install was greeted by a month-end summary reporting zeroes.** The
+    catch-up path had nothing to catch up on and delivered anyway; it now needs a
+    ledger with something in it.
+39. **A cap boundary could swap a notification for no reason.** The armed set is
+    the soonest four hundred, and ties were ordered by nothing in particular — so
+    two passes over the same records could choose different members of a tie and
+    Android would cancel and re-schedule a reminder for no reason at all. Ties
+    are now broken by id, which makes the choice a function of the records alone.
+
+### On a device
+
+Two suites need real hardware, because they measure the engine and the platform
+rather than the widgets:
+
+```
+flutter test integration_test/frame_measure_test.dart -d `device`
+flutter test integration_test/multi_person_on_device_test.dart -d `device`
+flutter test integration_test/notifications_on_device_test.dart -d `device`
+```
+
+The notification run needs the runtime permission, and Android 13+ installs an
+app with it off, so allow it first — otherwise the test checks the denied path
+(nothing armed, ledger intact) instead:
+
+```
+adb shell pm grant com.dhimmah.dhimmah android.permission.POST_NOTIFICATIONS
+```
+
+The first seeds 500 people / 2,500 debts (a third of them linked to three people)
+and reports the engine's own frame timings for the dashboard, the ledger, the
+people list and the obligations list. On a Galaxy S24 Ultra (Android 16) the two
+long lists scrolled at a p90 build of 20.1 ms and 16.9 ms with no frame over
+33 ms. The third drives the real notification plugin: it arms the reminders for
+two records, checks the phone is holding exactly four (a lead and the nudge for
+each), re-runs the write and confirms nothing changed, delivers one notification
+and finds it in the system's list, and then switches reminders off and confirms
+the phone is holding nothing. The second is deliberately small — three people, two records — so it runs
+where the first one cannot: it opens each participant's page and asserts that the
+record is there and that nobody else is named. A 500-person benchmark wants a
+device with room to spare; a phone under memory pressure will have the process
+reaped by the system's low-memory killer, which is a property of the device, not
+of the app.
 
 ---
 

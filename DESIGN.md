@@ -331,6 +331,45 @@ the code.
 12. **A fact is stated once per screen.** The person page's header used to count
     the debts in one wording while the list controls counted them in another.
     Where two components can count the same thing, only one of them may.
+13. **A required field says so before Save, in more than one channel.** The label
+    carries `*`, the message appears under the field itself, and the save that
+    found it says how many are missing and moves the screen to the first one. The
+    asterisk and the words carry the meaning; the colour only reinforces it, so a
+    raised-contrast or greyscale screen loses nothing. A form that answers with a
+    single sentence about "invalid input" is a form that makes the user hunt.
+14. **A field with no answer is not given one.** `عليّ / لي` opens with neither
+    side selected, because a debt recorded as "I owe" only because that is what
+    the form happened to be showing is a wrong record that nobody chose. The same
+    rule applies to the optional fields: a default is only allowed where the
+    product genuinely has one (the currency comes from settings, the reminder
+    from the user's own preference), never to make a required field look filled.
+15. **One record can be linked to several people, and none of them is told.**
+    The link is bookkeeping. On a person's page the record is one of *their*
+    debts: the ordinary row, the ordinary figure, the ordinary totals — no
+    `مشترك` label, no banner, no list of the other people, and nothing that
+    leaks their names. The record's own page names everyone it is with, because
+    that is where it is edited, and the flat ledger list names them too, because
+    a row in a list of records has to say who it is with. The amount is printed
+    once wherever it appears, whichever page it is on.
+
+16. **A reminder is a representation of a record, never a second truth.** The
+    records decide what should be pending; the phone is then made to agree with
+    them, and nothing is stored about a notification that the records do not
+    already say. Reconciling compares the two sets and acts on the difference —
+    cancelling only what is no longer wanted, scheduling only what is missing —
+    because "clear everything and re-add it" also clears the notifications the
+    user has already received. An id is the record, the kind of reminder and the
+    moment, so the same reminder is the same notification on every pass, and the
+    choice at the platform's limit is a function of the records rather than of
+    the order they happened to be read in.
+17. **A reminder that cannot arrive is never implied.** If reminders are off, or
+    the system blocks notifications, the form where the reminder is chosen and
+    the record where it is read both say so. The permission is asked when the
+    user turns reminders on — never at launch — and re-read whenever the app
+    comes back, because the user can change it while Dhimmah is in the
+    background. A reminder is also never exact: "look at this today" does not
+    need a millisecond, and the permission that would buy one is denied by
+    default on Android 14+ and reserved by Play for alarm and calendar apps.
 
 **Numbers do not mirror.** Every dialer puts 1 at the top left in Cairo exactly
 as in London, and a PIN is a sequence of digits read left to right. The keypad
