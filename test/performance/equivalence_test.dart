@@ -11,6 +11,7 @@ import 'package:dhimmah/data/services/ledger_service.dart';
 import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
 import 'package:dhimmah/domain/entities/ledger_views.dart';
+import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/services/debt_calculator.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -54,11 +55,29 @@ void main() {
 
   final DateTime today = dateOnly(DateTime.now());
 
+  /// A person every record in this file is with: a debt has to name somebody,
+  /// and these tests are about how the sums are arrived at.
+  late String personId;
+  setUp(() async {
+    personId = (await service.createPerson(const PersonDraft(name: 'أحمد'))).id;
+  });
+
+  DebtDraft draft(String title, int principal, {bool usd = false}) => DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[personId],
+        title: title,
+        principalMinor: principal,
+        currency: usd ? AppCurrency.usd : AppCurrency.inr,
+        issuedAt: dateOnly(DateTime.now()),
+        dueAt: addDays(dateOnly(DateTime.now()), 4),
+      );
+
   group('the SQL sum equals summing in Dart', () {
     test('for a debt with no payments at all', () async {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
+          personIds: <String>[personId],
           title: 'بدون دفعات',
           principalMinor: 500000,
           currency: AppCurrency.inr,
@@ -70,13 +89,13 @@ void main() {
     });
 
     test('for partial payments, a settled debt, and an overpayment', () async {
-      final Debt partial = await service.createDebt(_draft('جزئي', 1000000));
+      final Debt partial = await service.createDebt(draft('جزئي', 1000000));
       await service.recordPayment(
         partial.id,
         PaymentDraft(amountMinor: 250000, paidAt: addDays(today, -5)),
       );
 
-      final Debt settled = await service.createDebt(_draft('مسدَّد', 300000));
+      final Debt settled = await service.createDebt(draft('مسدَّد', 300000));
       await service.recordPayment(
         settled.id,
         PaymentDraft(amountMinor: 300000, paidAt: addDays(today, -2)),
@@ -84,7 +103,7 @@ void main() {
 
       // Overpaying settles and must not produce a negative total or a negative
       // remaining.
-      final Debt overpaid = await service.createDebt(_draft('زائد', 100000));
+      final Debt overpaid = await service.createDebt(draft('زائد', 100000));
       await service.recordPayment(
         overpaid.id,
         PaymentDraft(amountMinor: 250000, paidAt: addDays(today, -1)),
@@ -92,7 +111,7 @@ void main() {
 
       // Several payments on one debt, so the aggregate has to sum rather than
       // take the last row.
-      final Debt many = await service.createDebt(_draft('عدة دفعات', 900000));
+      final Debt many = await service.createDebt(draft('عدة دفعات', 900000));
       for (final int i in <int>[1, 2, 3, 4]) {
         await service.recordPayment(
           many.id,
@@ -104,7 +123,7 @@ void main() {
     });
 
     test('with payments spread far apart in time', () async {
-      final Debt debt = await service.createDebt(_draft('قديم', 1000000));
+      final Debt debt = await service.createDebt(draft('قديم', 1000000));
       for (final int days in <int>[400, 200, 100, 30, 1]) {
         await service.recordPayment(
           debt.id,
@@ -114,16 +133,51 @@ void main() {
       await expectSameViews(queries, service, today);
     });
 
+    test('for a record three people share', () async {
+      final Person ali = await service.createPerson(const PersonDraft(name: 'علي'));
+      final Person mohammed =
+          await service.createPerson(const PersonDraft(name: 'محمد'));
+      final Debt shared = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.owedToMe,
+          personIds: <String>[personId, ali.id, mohammed.id],
+          title: 'عشاء',
+          principalMinor: 150000,
+          currency: AppCurrency.inr,
+          issuedAt: today,
+        ),
+      );
+      await service.recordPayment(
+        shared.id,
+        PaymentDraft(amountMinor: 50000, paidAt: addDays(today, -1)),
+      );
+
+      await expectSameViews(queries, service, today);
+
+      // One record, three links, one amount.
+      final List<DebtView> views = <DebtView>[];
+      await for (final List<DebtView> batch in queries.watchDebtViews(
+        dueSoonWindowDays: 7,
+        asOf: today,
+      )) {
+        views.addAll(batch);
+        break;
+      }
+      expect(views, hasLength(1));
+      expect(views.single.participants, hasLength(3));
+      expect(views.single.remainingMinor, 100000);
+    });
+
     test(
       'with payments in other currencies left over from a correction',
       () async {
-        final Debt debt = await service.createDebt(_draft('عملة', 400000));
+        final Debt debt = await service.createDebt(draft('عملة', 400000));
         await service.recordPayment(
           debt.id,
           PaymentDraft(amountMinor: 100000, paidAt: addDays(today, -3)),
         );
         // A currency correction retags the payments; the totals must follow.
-        await service.updateDebt(debt.id, _draft('عملة', 400000, usd: true));
+        await service.updateDebt(debt.id, draft('عملة', 400000, usd: true));
         await service.recordPayment(
           debt.id,
           PaymentDraft(amountMinor: 150000, paidAt: addDays(today, -1)),
@@ -134,15 +188,6 @@ void main() {
   });
 
 }
-
-DebtDraft _draft(String title, int principal, {bool usd = false}) => DebtDraft(
-  direction: DebtDirection.iOwe,
-  title: title,
-  principalMinor: principal,
-  currency: usd ? AppCurrency.usd : AppCurrency.inr,
-  issuedAt: dateOnly(DateTime.now()),
-  dueAt: addDays(dateOnly(DateTime.now()), 4),
-);
 
 Future<void> expectSameViews(
   LedgerQueries queries,
@@ -161,11 +206,20 @@ Future<void> expectSameViews(
   }
 
   final List<DebtView> fromRows = <DebtView>[];
+  final Map<String, Person> peopleById = <String, Person>{
+    for (final Person person in await service.people.getAll()) person.id: person,
+  };
   for (final Debt debt in await service.debts.getAll()) {
     fromRows.add(
       DebtCalculator.buildView(
         debt: debt,
         payments: await service.payments.forDebt(debt.id),
+        // Resolved the same way the ledger read resolves them, so the two paths
+        // are compared on the whole view and not just on its arithmetic.
+        participants: <Person>[
+          for (final String id in debt.personIds)
+            if (peopleById[id] != null) peopleById[id]!,
+        ],
         asOf: today,
         dueSoonWindowDays: 7,
       ),
@@ -200,5 +254,12 @@ Future<void> expectSameViews(
     expect(a.status, b.status, reason: 'status differs for ${a.debt.title}');
     expect(a.isSettled, b.isSettled);
     expect(a.isPartiallyPaid, b.isPartiallyPaid);
+    // The people are part of the view: a ledger read and a per-debt read have to
+    // agree on who a record is with, in the same order.
+    expect(
+      a.participants.map((Person p) => p.id),
+      b.participants.map((Person p) => p.id),
+      reason: 'participants differ for ${a.debt.title}',
+    );
   }
 }

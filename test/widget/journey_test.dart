@@ -40,7 +40,7 @@ void main() {
     await buildService(db).createDebt(
       DebtDraft(
         direction: DebtDirection.iOwe,
-        personId: person.id,
+        personIds: <String>[person.id],
         title: 'قرض سيارة',
         principalMinor: 1000000,
         currency: AppCurrency.inr,

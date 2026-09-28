@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dhimmah/core/formatting/app_formatting.dart';
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/notifications/notification_composer.dart';
@@ -27,9 +29,13 @@ import 'package:dhimmah/domain/enums/obligation_enums.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
 import 'package:dhimmah/domain/enums/recurrence.dart';
 import 'package:dhimmah/domain/services/notification_planner.dart';
+import 'package:dhimmah/domain/services/participant_rules.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
+import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/app_harness.dart';
 
 /// End-to-end behaviour through the real service and a real database.
 ///
@@ -122,7 +128,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 2000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -144,7 +150,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.owedToMe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1500000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -162,7 +168,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 5000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -195,7 +201,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 3000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -219,7 +225,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 3000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -244,7 +250,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -267,7 +273,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           title: 'إيجار',
           principalMinor: 2000000,
           currency: AppCurrency.inr,
@@ -354,7 +360,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -364,7 +370,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.owedToMe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 2500000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -374,7 +380,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 100000,
           currency: AppCurrency.usd,
           issuedAt: clock,
@@ -426,7 +432,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -453,7 +459,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 5000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -484,7 +490,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 3500000,
           currency: AppCurrency.inr,
           issuedAt: addDays(clock, -30),
@@ -495,7 +501,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1500000,
           currency: AppCurrency.inr,
           issuedAt: addDays(clock, -10),
@@ -520,6 +526,68 @@ void main() {
     });
   });
 
+  group('across a restart', () {
+    test('an edited record and its participants are on disk', () async {
+      // A real file, closed and reopened: everything the app keeps in memory
+      // between a write and a read is gone, so this reads what was written.
+      final Directory temp =
+          await Directory.systemTemp.createTemp('dhimmah-restart');
+      addTearDown(() => temp.delete(recursive: true));
+      final File file = File('${temp.path}/dhimmah.sqlite');
+
+      final AppDatabase first = AppDatabase(NativeDatabase(file));
+      final LedgerService firstService = buildService(first);
+      final Person ahmed = await firstService.createPerson(
+        const PersonDraft(name: 'أحمد'),
+      );
+      final Person ali = await firstService.createPerson(
+        const PersonDraft(name: 'علي'),
+      );
+      final Debt debt = await firstService.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[ahmed.id],
+          title: 'قرض',
+          principalMinor: 1000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      await firstService.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 250000, paidAt: clock),
+      );
+      await firstService.updateDebt(
+        debt.id,
+        DebtDraft(
+          direction: DebtDirection.owedToMe,
+          personIds: <String>[ahmed.id, ali.id],
+          title: 'قرض معدل',
+          principalMinor: 1200000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      await first.close();
+
+      final AppDatabase second = AppDatabase(NativeDatabase(file));
+      addTearDown(second.close);
+      final PersonRepositoryImpl people = PersonRepositoryImpl(second);
+      final DebtRepositoryImpl debts = DebtRepositoryImpl(second);
+      final PaymentRepositoryImpl payments = PaymentRepositoryImpl(second);
+
+      final Debt reloaded = (await debts.getById(debt.id))!;
+      expect(reloaded.id, debt.id);
+      expect(reloaded.title, 'قرض معدل');
+      expect(reloaded.principalMinor, 1200000);
+      expect(reloaded.direction, DebtDirection.owedToMe);
+      expect(reloaded.personIds, <String>[ahmed.id, ali.id]);
+      expect(await payments.forDebt(debt.id), hasLength(1));
+      expect(await debts.getAll(), hasLength(1));
+      expect((await people.getAll()), hasLength(2));
+    });
+  });
+
   group('clearing a field', () {
     // A regression guard. Drift's upsert and `update().write(row)` both skip
     // columns whose new value is null, so clearing a field used to appear to work
@@ -529,7 +597,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -542,7 +610,7 @@ void main() {
         debt.id,
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -554,12 +622,12 @@ void main() {
       expect(reloaded.status, DebtLifecycleStatus.active);
     });
 
-    test('removes a note and a person link when cleared', () async {
+    test('clears a note, and refuses a save that names nobody', () async {
       final Person person = await addPerson('أحمد');
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           note: 'ملاحظة',
           principalMinor: 1000000,
           currency: AppCurrency.inr,
@@ -571,6 +639,7 @@ void main() {
         debt.id,
         DebtDraft(
           direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -579,7 +648,25 @@ void main() {
 
       final DebtView reloaded = (await views()).single;
       expect(reloaded.debt.note, isNull);
-      expect(reloaded.debt.personId, isNull);
+      expect(reloaded.debt.personIds, <String>[person.id]);
+
+      // A record that names nobody is refused at the service, and the refusal
+      // leaves the stored record exactly as it was: the rule is enforced on the
+      // way in, not repaired afterwards.
+      await expectLater(
+        () => service.updateDebt(
+          debt.id,
+          DebtDraft(
+            direction: DebtDirection.iOwe,
+            principalMinor: 2000000,
+            currency: AppCurrency.inr,
+            issuedAt: clock,
+          ),
+        ),
+        throwsA(isA<MissingParticipantsException>()),
+      );
+      expect((await views()).single.debt.personIds, <String>[person.id]);
+      expect((await views()).single.debt.principalMinor, 1000000);
     });
 
     test('restores a debt when it is unarchived', () async {
@@ -587,7 +674,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -625,7 +712,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -645,7 +732,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -667,7 +754,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -710,7 +797,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
@@ -733,7 +820,7 @@ void main() {
       final Debt debt = await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,

@@ -72,7 +72,7 @@ void main() {
     final Debt main = await service.createDebt(
       DebtDraft(
         direction: DebtDirection.iOwe,
-        personId: ahmed.id,
+        personIds: <String>[ahmed.id],
         title: 'سلفة شخصية',
         principalMinor: 2500000,
         currency: AppCurrency.inr,
@@ -97,7 +97,7 @@ void main() {
     final Debt second = await service.createDebt(
       DebtDraft(
         direction: DebtDirection.iOwe,
-        personId: ahmed.id,
+        personIds: <String>[ahmed.id],
         title: 'قرض سيارة',
         principalMinor: 3500000,
         currency: AppCurrency.inr,
@@ -113,7 +113,7 @@ void main() {
     await service.createDebt(
       DebtDraft(
         direction: DebtDirection.owedToMe,
-        personId: ahmed.id,
+        personIds: <String>[ahmed.id],
         title: 'مشاركة في مصاريف السفر',
         principalMinor: 850000,
         currency: AppCurrency.inr,
@@ -125,7 +125,7 @@ void main() {
     await service.createDebt(
       DebtDraft(
         direction: DebtDirection.iOwe,
-        personId: ahmed.id,
+        personIds: <String>[ahmed.id],
         title: 'تحويل بالدولار',
         principalMinor: 120000,
         currency: AppCurrency.usd,
@@ -139,7 +139,7 @@ void main() {
     final Debt paid = await service.createDebt(
       DebtDraft(
         direction: DebtDirection.owedToMe,
-        personId: settled.id,
+        personIds: <String>[settled.id],
         title: 'فاتورة خدمات',
         principalMinor: 900000,
         currency: AppCurrency.inr,

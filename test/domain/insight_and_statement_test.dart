@@ -33,7 +33,7 @@ void main() {
   }) {
     return Debt(
       id: id,
-      personId: personId,
+      personIds: personId == null ? const <String>[] : <String>[personId],
       direction: direction,
       title: '',
       principalMinor: principal,

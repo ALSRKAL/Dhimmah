@@ -91,6 +91,25 @@ void main() {
           ),
     ];
     await db.batch((Batch b) => b.insertAll(db.debts, debts));
+    // The links, which are what a person's page and a row's heading are read
+    // from: one person per record, and every third record linked to three
+    // people, so the screens are measured with the shape the app really stores
+    // rather than with records that name nobody.
+    await db.batch((Batch b) => b.insertAll(db.debtPeople, <DebtPeopleCompanion>[
+          for (int index = 0; index < debts.length; index++)
+            for (final (int position, String personId)
+                in <String>[
+              'p${index ~/ debtsPerPerson}',
+              if (index % 3 == 0) 'p${(index ~/ debtsPerPerson + 1) % people}',
+              if (index % 3 == 0) 'p${(index ~/ debtsPerPerson + 2) % people}',
+            ].indexed)
+              DebtPeopleCompanion.insert(
+                debtId: debts[index].id.value,
+                personId: personId,
+                position: drift.Value<int>(position),
+                createdAt: today,
+              ),
+        ]));
     await db.batch((Batch b) => b.insertAll(db.payments, <PaymentsCompanion>[
           for (final DebtsCompanion d in debts)
             for (int k = 0; k < paymentsPerDebt; k++)

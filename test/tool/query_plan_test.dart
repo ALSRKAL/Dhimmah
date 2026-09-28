@@ -24,8 +24,23 @@ void main() {
       }
     }
 
-    await plan('debts for one person',
-        "SELECT * FROM debts WHERE person_id = 'p1' ORDER BY issued_at DESC");
+    // One person's records, in the shape the person page asks for them: the
+    // link table decides who is on a record, so the plan has to be read from
+    // the join over `debt_people` rather than from the mirror column.
+    await plan(
+      'debts for one person',
+      'SELECT * FROM debts WHERE id IN '
+          "(SELECT debt_id FROM debt_people WHERE person_id = 'p1')",
+    );
+    await plan(
+      'participants of one debt',
+      "SELECT person_id FROM debt_people WHERE debt_id = 'd1_1' "
+          'ORDER BY position ASC',
+    );
+    await plan(
+      'every participant, in order',
+      'SELECT debt_id, person_id FROM debt_people ORDER BY position ASC',
+    );
     await plan('payments for one debt',
         "SELECT * FROM payments WHERE debt_id = 'd1_1'");
     await plan('payment totals by debt',

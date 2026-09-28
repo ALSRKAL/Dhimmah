@@ -53,6 +53,20 @@ void main() {
       }
     }
     await db.batch((Batch b) => b.insertAll(db.debts, debts));
+    // The links, because the person page reads through them: without these the
+    // measurement would report a person page with no debts on it, which is the
+    // shape of a ledger that has lost its data rather than one that is fast.
+    await db.batch(
+      (Batch b) => b.insertAll(db.debtPeople, <DebtPeopleCompanion>[
+            for (final DebtsCompanion d in debts)
+              DebtPeopleCompanion.insert(
+                debtId: d.id.value,
+                personId: d.personId.value!,
+                position: const drift.Value<int>(0),
+                createdAt: today,
+              ),
+          ]),
+    );
     final List<PaymentsCompanion> payments = <PaymentsCompanion>[];
     for (final DebtsCompanion d in debts) {
       for (int k = 0; k < 4; k++) {

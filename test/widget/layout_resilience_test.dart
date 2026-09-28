@@ -75,6 +75,29 @@ void main() {
       expectNoOverflow(tester);
       expect(find.textContaining('محمد'), findsWidgets);
     });
+
+    for (final double scale in <double>[1.0, 1.5]) {
+      testWidgets('a record’s row menu at ${scale}x',
+          (WidgetTester tester) async {
+        // The menu is a heading and four rows in a sheet whose height is capped.
+        // It clipped its own last row by a pixel and a half at the largest
+        // scale, and the row it clipped was delete.
+        await pumpAt(tester, scale);
+        await tester.tap(find.text('الأشخاص').last);
+        await tester.pumpAndSettle();
+        await tester.tap(find.textContaining('محمد').first);
+        await tester.pumpAndSettle();
+
+        await tester.longPress(find.textContaining('قرض').first);
+        await tester.pumpAndSettle();
+        expectNoOverflow(tester);
+        expect(
+          find.textContaining('حذف'),
+          findsWidgets,
+          reason: 'the last row has to be reachable',
+        );
+      });
+    }
   });
 
   group('both scripts lay out in their own direction', () {

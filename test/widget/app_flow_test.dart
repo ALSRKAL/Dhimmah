@@ -119,7 +119,7 @@ void main() {
     await service.createDebt(
       DebtDraft(
         direction: DebtDirection.iOwe,
-        personId: person.id,
+        personIds: <String>[person.id],
         principalMinor: 2500000,
         currency: AppCurrency.inr,
         issuedAt: addDays(today, -40),
@@ -193,6 +193,11 @@ void main() {
         'أحمد محمد',
       );
       await tester.tap(find.text('حفظ'));
+      await tester.pumpAndSettle();
+
+      // The picker is a selection, not a one-shot choice, so the new person is
+      // confirmed before the form takes over again.
+      await tester.tap(find.text('تم'));
       await tester.pumpAndSettle();
 
       // The amount, then save.
@@ -330,6 +335,7 @@ void main() {
 Setting _settingsRow(AppSettings settings) {
   return Setting(
     id: Settings.singletonId,
+    backupAutoEnabled: settings.backupAutoEnabled,
     language: settings.language,
     themeMode: settings.themeMode,
     numerals: settings.numerals,

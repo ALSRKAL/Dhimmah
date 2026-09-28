@@ -126,7 +126,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 100000,
           currency: AppCurrency.inr,
           issuedAt: addDays(today, -1),
@@ -306,7 +306,7 @@ void main() {
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personId: person.id,
+          personIds: <String>[person.id],
           principalMinor: 100000,
           currency: AppCurrency.inr,
           issuedAt: today,
@@ -342,7 +342,7 @@ void main() {
         await service.createDebt(
           DebtDraft(
             direction: DebtDirection.iOwe,
-            personId: person.id,
+            personIds: <String>[person.id],
             principalMinor: 100000,
             currency: AppCurrency.inr,
             issuedAt: today,

@@ -37,6 +37,18 @@ void main() {
 
   final DateTime today = dateOnly(DateTime.now());
 
+  /// A person every record in this file is with.
+  ///
+  /// A debt has to name somebody, so these tests — which are about amounts —
+  /// create one person and reuse it rather than testing that rule again.
+  late String personId;
+  setUp(() async {
+    personId = (await buildService(db).createPerson(
+      const PersonDraft(name: 'أحمد'),
+    ))
+        .id;
+  });
+
   Future<Debt> aDebt(
     LedgerService service, {
     int principalMinor = 100000,
@@ -45,6 +57,7 @@ void main() {
       service.createDebt(
         DebtDraft(
           direction: DebtDirection.iOwe,
+          personIds: <String>[personId],
           title: 'قرض سيارة',
           principalMinor: principalMinor,
           currency: currency,
@@ -61,6 +74,7 @@ void main() {
           () => service.createDebt(
             DebtDraft(
               direction: DebtDirection.iOwe,
+              personIds: <String>[personId],
               title: 'bad',
               principalMinor: bad,
               currency: AppCurrency.inr,
@@ -109,6 +123,7 @@ void main() {
           debt.id,
           DebtDraft(
             direction: DebtDirection.iOwe,
+            personIds: <String>[personId],
             title: 'قرض سيارة',
             principalMinor: -1,
             currency: AppCurrency.inr,
@@ -179,6 +194,7 @@ void main() {
         debt.id,
         DebtDraft(
           direction: DebtDirection.iOwe,
+          personIds: <String>[personId],
           title: 'قرض سيارة',
           principalMinor: 100000,
           currency: AppCurrency.usd,
@@ -226,6 +242,7 @@ void main() {
         debt.id,
         DebtDraft(
           direction: DebtDirection.iOwe,
+          personIds: <String>[personId],
           title: 'قرض سيارة',
           principalMinor: 200000,
           currency: AppCurrency.inr,

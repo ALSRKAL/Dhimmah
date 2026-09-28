@@ -251,6 +251,74 @@ void main() {
     expect(debt!.personId, isNull);
   });
 
+  group('the table that joins a debt to its people', () {
+    Future<void> addPerson(String id, String name) => db.peopleDao.upsert(
+          PersonRow(
+            id: id,
+            name: name,
+            colorIndex: 0,
+            createdAt: DateTime(2026, 9, 22),
+            updatedAt: DateTime(2026, 9, 22),
+          ),
+        );
+
+    Future<void> addDebt(String id) => db.debtsDao.upsert(
+          DebtRow(
+            id: id,
+            direction: DebtDirection.iOwe,
+            title: 'دين',
+            principalMinor: 100,
+            currencyCode: 'SAR',
+            issuedAt: DateTime(2026, 9, 22),
+            reminderLeads: const <ReminderLead>[],
+            recurrence: RecurrenceFrequency.none,
+            recurrenceInterval: 0,
+            createdAt: DateTime(2026, 9, 22),
+            updatedAt: DateTime(2026, 9, 22),
+          ),
+          personIds: <String>['p1'],
+        );
+
+    test('refuses the same person twice on one record', () async {
+      await addPerson('p1', 'أحمد');
+      await addDebt('d1');
+
+      await expectLater(
+        db.customStatement(
+          'INSERT INTO debt_people (debt_id, person_id, position, created_at) '
+          "VALUES ('d1', 'p1', 5, 0)",
+        ),
+        throwsA(isA<SqliteException>()),
+        reason: 'the pair is the primary key, so the rule holds in the database '
+            'and not only in the screen that collects it',
+      );
+    });
+
+    test('removes a debt’s links when the debt goes', () async {
+      await addPerson('p1', 'أحمد');
+      await addDebt('d1');
+      expect(await db.debtsDao.participantsFor('d1'), <String>['p1']);
+
+      await db.debtsDao.deleteById('d1');
+
+      expect(await db.debtsDao.allParticipants(), isEmpty);
+    });
+
+    test('removes a person’s links when the person goes', () async {
+      await addPerson('p1', 'أحمد');
+      await addPerson('p2', 'علي');
+      await addDebt('d1');
+      await db.debtsDao.setParticipants('d1', <String>['p1', 'p2']);
+
+      await db.peopleDao.deleteById('p2');
+
+      // The link is gone and the record's one-value column now names the person
+      // who is still there rather than the one who is not.
+      expect(await db.debtsDao.participantsFor('d1'), <String>['p1']);
+      expect((await db.debtsDao.getById('d1'))!.personId, 'p1');
+    });
+  });
+
   test('clearAllData empties user tables but keeps settings', () async {
     final DateTime now = DateTime(2026, 9, 22);
     await db.remindersDao.upsert(

@@ -13,6 +13,7 @@ import 'package:dhimmah/data/repositories/obligation_repository_impl.dart';
 import 'package:dhimmah/data/repositories/person_repository_impl.dart';
 import 'package:dhimmah/data/repositories/reminder_repository_impl.dart';
 import 'package:dhimmah/data/services/statement_service.dart';
+import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/entities/ledger_views.dart';
 import 'package:dhimmah/domain/entities/obligation.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
@@ -23,6 +24,8 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/store_demo_seed.dart';
+
 /// Backward compatibility.
 ///
 /// Opens a database file written by an earlier build of the app and reads it with
@@ -30,10 +33,16 @@ import 'package:flutter_test/flutter_test.dart';
 /// existing install must keep every record and the app must be able to build a
 /// statement from it.
 ///
-/// The file is produced by `test/tool/seed_demo_data_test.dart`; if it is absent
-/// the test is skipped rather than failing, so a clean checkout still passes.
+/// The file is produced by `test/tool/seed_demo_data_test.dart`, which writes two
+/// copies: the current one, and one in the shape of the previous version. This
+/// opens the **old** copy, so what it proves is not only that the records survive
+/// but that the upgrade that adds the link table put every debt's person where
+/// the app now reads it.
+///
+/// If the file is absent the test is skipped rather than failing, so a clean
+/// checkout still passes.
 void main() {
-  final File databaseFile = File('build/demo/dhimmah.sqlite');
+  final File databaseFile = File('build/demo/dhimmah_v2.sqlite');
 
   test('an existing database opens and every record survives', () async {
     if (!databaseFile.existsSync()) {
@@ -72,11 +81,23 @@ void main() {
       await temp.delete(recursive: true);
     });
 
-    // Nothing in the file was lost.
-    expect(await people.getAll(), hasLength(3));
-    expect(await debts.getAll(), hasLength(8));
-    expect(await payments.getAll(), hasLength(3));
-    expect(await obligations.getAll(), hasLength(4));
+    // Nothing in the file was lost. The numbers come from the dataset that
+    // produced the file rather than being repeated here, so this test cannot
+    // disagree with the seed about how big the seed is.
+    expect(await people.getAll(), hasLength(storeDemoShape.people));
+    expect(await debts.getAll(), hasLength(storeDemoShape.debts));
+    expect(await payments.getAll(), hasLength(storeDemoShape.payments));
+    expect(await obligations.getAll(), hasLength(storeDemoShape.obligations));
+
+    // And the upgrade gave every debt its person: the app reads participants
+    // from the link table, so a record that arrived without a link would look
+    // like a debt nobody is on.
+    final List<Debt> migrated = await debts.getAll();
+    expect(
+      migrated.where((Debt debt) => debt.personIds.isNotEmpty),
+      hasLength(8),
+      reason: 'every seeded debt was recorded with a person',
+    );
 
     // The stored settings row is read with the current model.
     final Setting? settings = await db.settingsDao.get();
@@ -119,7 +140,7 @@ void main() {
     ).buildData(
       ledger: ledger!,
       payments: await payments.getAll(),
-      currency: AppCurrency.inr,
+      currency: storeDemoCurrency,
       now: asOf,
     );
     expect(data.remainingMinor, greaterThanOrEqualTo(0));

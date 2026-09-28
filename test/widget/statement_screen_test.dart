@@ -68,7 +68,7 @@ void main() {
     final Debt debt = await service.createDebt(
       DebtDraft(
         direction: DebtDirection.iOwe,
-        personId: person.id,
+        personIds: <String>[person.id],
         title: 'سلفة',
         principalMinor: 2500000,
         currency: AppCurrency.inr,

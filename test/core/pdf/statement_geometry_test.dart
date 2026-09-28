@@ -148,6 +148,58 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
     }
   }
 
+  group('a statement with a multi-person record', () {
+    test('prints it as an ordinary line, and names nobody else', () async {
+      final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            title: 'فاتورة العشاء',
+            extraDebts: <String>['سلفة'],
+          ),
+        ),
+      );
+
+      // Two records put the breakdown table on the page, and the record that is
+      // linked to several people is simply one of its rows: its own title, its
+      // own figures, and no heading or block of its own.
+      expect(
+        lineWithAllWords(page, 'فاتورة العشاء'),
+        isNotEmpty,
+        reason: 'the record has to be named',
+      );
+      expect(
+        lineWithAllWords(page, l10n.reportDebtsBreakdown),
+        isNotEmpty,
+        reason: 'and to be one row of the ordinary breakdown',
+      );
+      expect(
+        lineWithAllWords(page, 'علي محمد'),
+        isEmpty,
+        reason: 'a statement speaks for one person, and never names the '
+            'others the record is also linked to',
+      );
+      expectInsideMargins(page, 'a multi-person record');
+    });
+
+    test('stays inside the margins when there are several of them', () async {
+      final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            title: 'مشاركة في مصاريف رحلة الصيف الطويلة إلى الجنوب',
+            extraDebts: <String>['سلفة', 'قرض', 'إيجار', 'مصاريف', 'فواتير'],
+          ),
+        ),
+      );
+
+      // Long titles and a dozen rows: the table grows and nothing may run off
+      // the page. There is no participants column for it to grow into either.
+      expectInsideMargins(page, 'several records');
+      expect(lineWithAllWords(page, l10n.reportColumnDebt), isNotEmpty);
+    });
+  });
+
   group('no text leaves the page', () {
     test('a long Arabic statement stays inside the margins', () async {
       final PdfInspection page = inspectPdf(await render(_arabicStatement()));

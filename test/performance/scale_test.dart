@@ -25,9 +25,15 @@ import 'package:flutter_test/flutter_test.dart';
 /// to know which one Dhimmah is, is to build the large one and read it.
 ///
 /// Run with `flutter test test/performance/scale_test.dart --reporter expanded`
-/// and read the printed table. The assertions at the end are deliberately loose:
+/// and read the printed tables. The assertions at the end are deliberately loose:
 /// they catch a catastrophic regression (a query that becomes quadratic, or a
-/// screen that stops responding) without turning a noisy machine into a red build.
+/// screen that stops responding) without turning a noisy machine into a red
+/// build.
+///
+/// The seed gives roughly every third record more than one participant, because
+/// that is the shape the ledger has to stay fast at: a shared record is read
+/// through the link table, and a read that forgot to would show up here as a
+/// number that is too good to be true.
 void main() {
   late AppDatabase db;
   late LedgerQueries queries;
@@ -46,30 +52,17 @@ void main() {
   });
   tearDown(() async => db.close());
 
-  Future<void> time<T>(
-    String label,
-    Future<T> Function() body,
-    Map<String, int> into,
-  ) async {
-    final Stopwatch watch = Stopwatch()..start();
-    await body();
-    watch.stop();
-    into[label] = watch.elapsedMilliseconds;
-  }
-
-  test('measure the read path at 500 people / 2500 debts / 10000 payments',
-      () async {
+  /// Fills the database and reports how much of each thing it holds.
+  Future<({int debts, int payments, int links, int obligations})> seed({
+    required int people,
+    required int debtsPerPerson,
+    required int paymentsPerDebt,
+    required int obligations,
+  }) async {
     final DateTime today = dateOnly(DateTime.now());
-    final Map<String, int> timings = <String, int>{};
-    const int peopleCount = 500;
-    const int debtsPerPerson = 5; // 2500 debts
-    const int paymentsPerDebt = 4; // 10000 payments
-    const int obligationsCount = 2000;
 
-    final Stopwatch seeding = Stopwatch()..start();
-
-    final List<PeopleCompanion> people = <PeopleCompanion>[
-      for (int i = 0; i < peopleCount; i++)
+    final List<PeopleCompanion> peopleRows = <PeopleCompanion>[
+      for (int i = 0; i < people; i++)
         PeopleCompanion.insert(
           id: 'p$i',
           name: 'شخص رقم $i',
@@ -78,15 +71,22 @@ void main() {
           updatedAt: today,
         ),
     ];
-    await db.batch((Batch b) => b.insertAll(db.people, people));
+    await db.batch((Batch b) => b.insertAll(db.people, peopleRows));
 
-    final List<DebtsCompanion> debts = <DebtsCompanion>[];
-    for (int p = 0; p < peopleCount; p++) {
+    final List<DebtsCompanion> debtRows = <DebtsCompanion>[];
+    final List<DebtPeopleCompanion> linkRows = <DebtPeopleCompanion>[];
+    for (int p = 0; p < people; p++) {
       for (int d = 0; d < debtsPerPerson; d++) {
-        debts.add(
+        final String id = 'd${p}_$d';
+        // Every third record is shared, with two or three people on it.
+        final int participants = d % 3 == 0 ? 2 + (p % 2) : 1;
+        final List<String> participantIds = <String>[
+          for (int k = 0; k < participants; k++) 'p${(p + k * 7) % people}',
+        ];
+        debtRows.add(
           DebtsCompanion.insert(
-            id: 'd${p}_$d',
-            personId: drift.Value<String>('p$p'),
+            id: id,
+            personId: drift.Value<String?>(participantIds.first),
             direction: d.isEven ? DebtDirection.iOwe : DebtDirection.owedToMe,
             title: drift.Value<String>('قرض رقم $d للشخص $p'),
             principalMinor: 100000 + d * 10000,
@@ -98,15 +98,26 @@ void main() {
             updatedAt: today,
           ),
         );
+        for (int k = 0; k < participantIds.length; k++) {
+          linkRows.add(
+            DebtPeopleCompanion.insert(
+              debtId: id,
+              personId: participantIds[k],
+              position: drift.Value<int>(k),
+              createdAt: today,
+            ),
+          );
+        }
       }
     }
-    await db.batch((Batch b) => b.insertAll(db.debts, debts));
+    await db.batch((Batch b) => b.insertAll(db.debts, debtRows));
+    await db.batch((Batch b) => b.insertAll(db.debtPeople, linkRows));
 
-    final List<PaymentsCompanion> payments = <PaymentsCompanion>[];
-    for (int p = 0; p < peopleCount; p++) {
+    final List<PaymentsCompanion> paymentRows = <PaymentsCompanion>[];
+    for (int p = 0; p < people; p++) {
       for (int d = 0; d < debtsPerPerson; d++) {
         for (int k = 0; k < paymentsPerDebt; k++) {
-          payments.add(
+          paymentRows.add(
             PaymentsCompanion.insert(
               id: 'pay${p}_${d}_$k',
               debtId: drift.Value<String>('d${p}_$d'),
@@ -120,10 +131,10 @@ void main() {
         }
       }
     }
-    await db.batch((Batch b) => b.insertAll(db.payments, payments));
+    await db.batch((Batch b) => b.insertAll(db.payments, paymentRows));
 
-    final List<ObligationsCompanion> obligations = <ObligationsCompanion>[
-      for (int i = 0; i < obligationsCount; i++)
+    final List<ObligationsCompanion> obligationRows = <ObligationsCompanion>[
+      for (int i = 0; i < obligations; i++)
         ObligationsCompanion.insert(
           id: 'o$i',
           name: 'التزام رقم $i',
@@ -138,10 +149,36 @@ void main() {
           updatedAt: today,
         ),
     ];
-    await db.batch((Batch b) => b.insertAll(db.obligations, obligations));
-    seeding.stop();
+    await db.batch((Batch b) => b.insertAll(db.obligations, obligationRows));
 
-    // --- the read paths a user actually triggers --------------------------
+    return (
+      debts: debtRows.length,
+      payments: paymentRows.length,
+      links: linkRows.length,
+      obligations: obligations,
+    );
+  }
+
+  Future<void> time<T>(
+    String label,
+    Future<T> Function() body,
+    Map<String, int> into,
+  ) async {
+    final Stopwatch watch = Stopwatch()..start();
+    await body();
+    watch.stop();
+    into[label] = watch.elapsedMilliseconds;
+  }
+
+  /// The reads a user actually triggers, measured one by one.
+  Future<Map<String, int>> measureLedger() async {
+    final DateTime today = dateOnly(DateTime.now());
+    final Map<String, int> timings = <String, int>{};
+    int ledgerRows = 0;
+    int sharedRows = 0;
+    int ledgerRemaining = 0;
+    int ledgerPrincipal = 0;
+
     await time('dashboard snapshot', () async {
       await for (final DashboardSnapshot s in queries.watchDashboard(
         dueSoonWindowDays: 7,
@@ -160,8 +197,14 @@ void main() {
         dueSoonWindowDays: 7,
         asOf: today,
       )) {
-        // ignore: avoid_print
-        print('   (ledger lists ${v.length} records)');
+        ledgerRows = v.length;
+        sharedRows = v.where((DebtView view) => view.isShared).length;
+        ledgerRemaining =
+            v.fold<int>(0, (int sum, DebtView view) => sum + view.remainingMinor);
+        ledgerPrincipal = v.fold<int>(
+          0,
+          (int sum, DebtView view) => sum + view.debt.principalMinor,
+        );
         break;
       }
     }, timings);
@@ -179,7 +222,8 @@ void main() {
       await for (final PersonLedger? l
           in queries.watchPersonLedger('p42', dueSoonWindowDays: 7, asOf: today)) {
         // ignore: avoid_print
-        print('   (person page shows ${l?.debts.length} debts)');
+        print('   (person page shows ${l?.debts.length} debts, '
+            '${l?.totals.length} currencies)');
         break;
       }
     }, timings);
@@ -222,39 +266,130 @@ void main() {
         views.addAll(v);
         break;
       }
-      final int hits = views
-          .where((DebtView v) => v.displayName.contains('42'))
-          .length;
+      final int hits =
+          views.where((DebtView v) => v.displayName.contains('42')).length;
       // ignore: avoid_print
       print('   (search matched $hits of ${views.length})');
     }, timings);
 
+    // The money is counted once per record, however many people share it.
+    // `sharedRows` records carry more than one participant, so a read that
+    // joined and multiplied would show up here as a ledger far larger than the
+    // debts table.
+    expect(ledgerRows, greaterThan(0));
+    expect(sharedRows, greaterThan(0));
+    expect(
+      ledgerRemaining,
+      lessThanOrEqualTo(ledgerPrincipal),
+      reason: 'remaining can never exceed the sum of principals',
+    );
+
+    // ignore: avoid_print
+    print('   (ledger rows $ledgerRows, of which $sharedRows are shared; '
+        'principal sum $ledgerPrincipal, remaining sum $ledgerRemaining)');
+
+    return timings;
+  }
+
+  void report(String title, Map<String, int> timings, String seedingNote) {
     // ignore: avoid_print
     print('''
-=== SCALE MEASUREMENT — $peopleCount people / ${debts.length} debts / ${payments.length} payments / $obligationsCount obligations ===
-   seeding                  : ${seeding.elapsedMilliseconds} ms (batched, not representative of user writes)
+=== $title ===
+$seedingNote
 ${timings.entries.map((MapEntry<String, int> e) => '   ${e.key.padRight(25)}: ${e.value} ms').join('\n')}
 ''');
+  }
 
-    // A hang detector, not a benchmark.
-    //
-    // These numbers come from a debug build — Dart JIT, drift's row mapping
-    // unoptimised — on a shared machine whose load moved between 4 and 14 during
-    // this work, so an absolute millisecond ceiling would flap and teach nothing.
-    // It fired once here at 6,457 ms for the monthly report, which is the same
-    // linear cost measured earlier at 4,514 ms.
-    //
-    // The real gates on this code are the correctness tests in
-    // `equivalence_test.dart` and the ordinary suite; this file exists to print a
-    // number when someone changes the read layer, and to fail if a read stops
-    // returning at all.
+  /// A hang detector, not a benchmark.
+  ///
+  /// These numbers come from a debug build — Dart JIT, drift's row mapping
+  /// unoptimised — on a shared machine whose load moved between 4 and 14 during
+  /// this work, so an absolute millisecond ceiling would flap and teach nothing.
+  /// It fired once here at 6,457 ms for the monthly report, which is the same
+  /// linear cost measured earlier at 4,514 ms.
+  ///
+  /// The real gates on this code are the correctness tests in
+  /// `equivalence_test.dart` and the ordinary suite; this file exists to print a
+  /// number when someone changes the read layer, and to fail if a read stops
+  /// returning at all.
+  void gate(Map<String, int> timings) {
     for (final MapEntry<String, int> entry in timings.entries) {
+      // A termination gate, not a performance budget: the figures that matter
+      // are printed above and are only meaningful when this file runs alone.
+      // The ceiling is high on purpose — under the full suite these reads share
+      // the machine with hundreds of other tests, and what must never happen is
+      // a read that does not come back at all.
       expect(
         entry.value,
-        lessThan(30000),
+        lessThan(120000),
         reason: '${entry.key} took ${entry.value} ms — far beyond a slow debug '
             'read, which suggests it no longer terminates',
       );
     }
+  }
+
+  // Seeding and reading a ledger this size is not a unit of behaviour: the
+  // default budget is meant for tests that assert something, and these print.
+  // The budget is generous because the numbers are only meaningful when the
+  // measurement has the machine to itself — run this file alone for the figures
+  // quoted in the README, and read the run under the full suite as a smoke test.
+  const Timeout budget = Timeout(Duration(minutes: 20));
+
+  test('measure the read path at 500 people / 2500 debts / 10000 payments',
+      timeout: budget,
+      () async {
+    const int peopleCount = 500;
+    const int debtsPerPerson = 5;
+    const int paymentsPerDebt = 4;
+    const int obligationsCount = 2000;
+
+    final Stopwatch seeding = Stopwatch()..start();
+    final counts = await seed(
+      people: peopleCount,
+      debtsPerPerson: debtsPerPerson,
+      paymentsPerDebt: paymentsPerDebt,
+      obligations: obligationsCount,
+    );
+    seeding.stop();
+
+    final Map<String, int> timings = await measureLedger();
+    report(
+      'SCALE MEASUREMENT — $peopleCount people / ${counts.debts} debts / '
+      '${counts.payments} payments / ${counts.links} links / '
+      '$obligationsCount obligations',
+      timings,
+      '   seeding                  : ${seeding.elapsedMilliseconds} ms '
+          '(batched, not representative of user writes)',
+    );
+    gate(timings);
+  });
+
+  test('measure the read path at 1000 people / 10000 debts / 50000 payments',
+      timeout: budget,
+      () async {
+    const int peopleCount = 1000;
+    const int debtsPerPerson = 10;
+    const int paymentsPerDebt = 5;
+    const int obligationsCount = 2000;
+
+    final Stopwatch seeding = Stopwatch()..start();
+    final counts = await seed(
+      people: peopleCount,
+      debtsPerPerson: debtsPerPerson,
+      paymentsPerDebt: paymentsPerDebt,
+      obligations: obligationsCount,
+    );
+    seeding.stop();
+
+    final Map<String, int> timings = await measureLedger();
+    report(
+      'SCALE MEASUREMENT — $peopleCount people / ${counts.debts} debts / '
+      '${counts.payments} payments / ${counts.links} links / '
+      '$obligationsCount obligations',
+      timings,
+      '   seeding                  : ${seeding.elapsedMilliseconds} ms '
+          '(batched, not representative of user writes)',
+    );
+    gate(timings);
   });
 }

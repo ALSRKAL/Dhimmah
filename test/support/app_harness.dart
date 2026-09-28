@@ -1,9 +1,15 @@
+import 'dart:io';
+
 import 'package:dhimmah/app/app.dart';
+import 'package:dhimmah/app/backup_providers.dart';
 import 'package:dhimmah/app/providers.dart';
+import 'package:dhimmah/core/files/backup_location_repository.dart';
+import 'package:dhimmah/core/files/file_gateway.dart';
 import 'package:dhimmah/core/formatting/app_formatting.dart';
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/notifications/notification_composer.dart';
 import 'package:dhimmah/core/notifications/notification_service.dart';
+import 'package:dhimmah/core/security/pin_service.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/data/repositories/activity_repository_impl.dart';
@@ -22,6 +28,7 @@ import 'package:dhimmah/domain/enums/obligation_enums.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
 import 'package:dhimmah/domain/enums/recurrence.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -31,7 +38,9 @@ import 'package:flutter_test/flutter_test.dart';
 ///
 /// The app is exercised as a whole rather than screen by screen, so a change to
 /// navigation or to a shared widget shows up here instead of only on a device.
-LedgerService buildService(AppDatabase db) {
+/// [notifications] lets a test hand the service a fake platform, so the
+/// delivery policy can be driven without a phone.
+LedgerService buildService(AppDatabase db, {NotificationService? notifications}) {
   final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
   return LedgerService(
     database: db,
@@ -42,7 +51,7 @@ LedgerService buildService(AppDatabase db) {
     reminders: ReminderRepositoryImpl(db),
     activity: ActivityRepositoryImpl(db),
     settings: SettingsRepositoryImpl(db),
-    notifications: NotificationService(),
+    notifications: notifications ?? NotificationService(),
     localizations: () => l10n,
     composer: () => NotificationComposer(
       localizations: l10n,
@@ -81,7 +90,7 @@ Future<({Person ahmed, Person khalid})> seedLedger(
   final Debt late = await service.createDebt(
     DebtDraft(
       direction: DebtDirection.iOwe,
-      personId: ahmed.id,
+      personIds: <String>[ahmed.id],
       title: 'قرض سيارة',
       principalMinor: 3500000,
       currency: AppCurrency.inr,
@@ -97,7 +106,7 @@ Future<({Person ahmed, Person khalid})> seedLedger(
   await service.createDebt(
     DebtDraft(
       direction: DebtDirection.owedToMe,
-      personId: khalid.id,
+      personIds: <String>[khalid.id],
       title: 'سلفة',
       principalMinor: 1500000,
       currency: AppCurrency.inr,
@@ -110,7 +119,7 @@ Future<({Person ahmed, Person khalid})> seedLedger(
     await service.createDebt(
       DebtDraft(
         direction: DebtDirection.owedToMe,
-        personId: ahmed.id,
+        personIds: <String>[ahmed.id],
         title: 'Transfer',
         principalMinor: 120000,
         currency: extraCurrency,
@@ -136,12 +145,70 @@ Future<({Person ahmed, Person khalid})> seedLedger(
   return (ahmed: ahmed, khalid: khalid);
 }
 
+/// A keystore the test writes by hand: it can hold a PIN, be empty, or refuse
+/// to answer at all — the three states the lock gate has to tell apart, and the
+/// reason the gate could not be tested against the real [PinService], whose
+/// storage is a platform plugin the test environment does not have.
+class FakePinService implements PinService {
+  FakePinService({this.configured = false, this.readError});
+
+  /// Whether a digest exists in the keystore.
+  bool configured;
+
+  /// When set, every keystore access throws it — the platform that cannot be
+  /// read, as opposed to one that is empty.
+  final Object? readError;
+
+  String? _pin;
+
+  @override
+  Future<bool> isConfigured() async {
+    if (readError != null) throw readError!;
+    return configured;
+  }
+
+  @override
+  Future<void> setPin(String pin) async {
+    if (readError != null) throw readError!;
+    _pin = pin;
+    configured = true;
+  }
+
+  @override
+  Future<PinVerification> verify(String pin) async {
+    if (readError != null) throw readError!;
+    if (!configured) {
+      return const PinVerification(accepted: false, configured: false);
+    }
+    return PinVerification(accepted: pin == _pin, configured: true);
+  }
+
+  @override
+  Future<void> clear() async {
+    if (readError != null) throw readError!;
+    _pin = null;
+    configured = false;
+  }
+
+  @override
+  Future<Duration> lockoutRemaining() async => Duration.zero;
+}
+
 /// Pumps the whole app against [db].
-Future<void> pumpDhimmah(
+///
+/// Returns the container the app was built on, so a test that needs to wait for
+/// a real asynchronous step — a directory read, a file write — can watch the
+/// provider that holds its result instead of guessing how many frames to pump.
+Future<ProviderContainer> pumpDhimmah(
   WidgetTester tester, {
   required AppDatabase db,
   bool onboardingCompleted = true,
   AppSettings? settings,
+  NotificationPermission? notificationPermission,
+  FileGateway? fileGateway,
+  Directory? backupDirectory,
+  BackupLocationRepository? backupFolders,
+  PinService? pinService,
 }) async {
   if (settings != null) {
     await db.settingsDao.replace(
@@ -163,12 +230,33 @@ Future<void> pumpDhimmah(
         lockEnabled: settings.lockEnabled,
         biometricEnabled: settings.biometricEnabled,
         onboardingCompleted: true,
+        // Taken from the caller rather than forced. It used to be pinned to
+        // true, which meant a test could not express the state an upgrade can
+        // land in — automatic saving switched off — and the screen was free to
+        // claim protection while nothing was watching.
+        backupAutoEnabled: settings.backupAutoEnabled,
       ),
     );
   }
 
   final ProviderContainer container = ProviderContainer(
-    overrides: [databaseProvider.overrideWithValue(db)],
+    // The list's element type comes from the constructor, so no test has to
+    // name Riverpod's override type (it is not part of the public API).
+    overrides: [
+      databaseProvider.overrideWithValue(db),
+      if (notificationPermission != null)
+        notificationPermissionProvider.overrideWith(
+          (Ref ref) =>
+              Stream<NotificationPermission>.value(notificationPermission),
+        ),
+      if (fileGateway != null)
+        fileGatewayProvider.overrideWithValue(fileGateway),
+      if (backupDirectory != null)
+        backupDirectoryProvider.overrideWithValue(backupDirectory),
+      if (backupFolders != null)
+        backupLocationRepositoryProvider.overrideWithValue(backupFolders),
+      if (pinService != null) pinServiceProvider.overrideWithValue(pinService),
+    ],
   );
   addTearDown(container.dispose);
 
@@ -180,4 +268,5 @@ Future<void> pumpDhimmah(
   );
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
+  return container;
 }

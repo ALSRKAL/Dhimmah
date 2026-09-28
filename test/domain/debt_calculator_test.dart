@@ -22,7 +22,7 @@ void main() {
   }) {
     return Debt(
       id: 'd1',
-      personId: 'p1',
+      personIds: const <String>['p1'],
       direction: direction,
       title: '',
       principalMinor: principal,
