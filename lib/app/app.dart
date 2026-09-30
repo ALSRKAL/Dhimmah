@@ -246,7 +246,20 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
   void _openPayload(String payload) {
     final String? location = AppRoutes.forNotificationPayload(payload);
     if (location == null) return;
+    // Tapping the same reminder twice, or a reminder for the page already on
+    // screen, used to stack an identical page on top of it — one more back
+    // press for every tap.
+    if (_isShowing(location)) return;
     _router.push(location);
+  }
+
+  /// Whether [location] is the page the user is already looking at.
+  ///
+  /// The top of the stack, pushed pages included: the configuration's own
+  /// location is the page underneath them.
+  bool _isShowing(String location) {
+    if (_router.routerDelegate.currentConfiguration.isEmpty) return false;
+    return _router.state.uri.toString() == location;
   }
 
   @override
