@@ -171,6 +171,53 @@ void main() {
       expect(items.single.daysUntilDue, -2);
     });
 
+    test('the figures count every period of a commitment, not only its row',
+        () {
+      // Rent three months behind is three rents late, though the section lists
+      // it once, at the oldest period.
+      final List<AttentionItem> items = AttentionList.build(
+        debts: const <DebtView>[],
+        obligations: <ObligationInstance>[
+          obligationInstance(id: 'rent', dueAt: addDays(today, -62)),
+          obligationInstance(id: 'rent', dueAt: addDays(today, -31)),
+          obligationInstance(id: 'rent', dueAt: addDays(today, -1)),
+          obligationInstance(id: 'rent', dueAt: addDays(today, 5)),
+          obligationInstance(id: 'rent', dueAt: addDays(today, 29)),
+        ],
+        asOf: today,
+        limit: null,
+      );
+      expect(items, hasLength(1));
+      expect(items.single.amountMinor, 200000,
+          reason: 'the row still shows the one period to pay first');
+
+      final ({int overdueMinor, int dueSoonMinor}) totals =
+          AttentionList.totalsFor(items, AppCurrency.inr);
+      expect(totals.overdueMinor, 600000);
+      expect(
+        totals.dueSoonMinor,
+        200000,
+        reason: 'the next period is inside the window; the one after is not',
+      );
+    });
+
+    test('a debt adds its own amount to the figure its row is under', () {
+      final List<AttentionItem> items = AttentionList.build(
+        debts: <DebtView>[
+          view(debt(id: 'late', dueAt: addDays(today, -3), principal: 70000)),
+          view(debt(id: 'today', dueAt: today, principal: 5000)),
+          view(debt(id: 'soon', dueAt: addDays(today, 4), principal: 300)),
+        ],
+        obligations: const <ObligationInstance>[],
+        asOf: today,
+        limit: null,
+      );
+      final ({int overdueMinor, int dueSoonMinor}) totals =
+          AttentionList.totalsFor(items, AppCurrency.inr);
+      expect(totals.overdueMinor, 70000);
+      expect(totals.dueSoonMinor, 5300, reason: 'due soon includes today');
+    });
+
     test('respects the due-soon window', () {
       final List<DebtView> debts = <DebtView>[
         view(debt(id: 'd1', dueAt: addDays(today, 10))),

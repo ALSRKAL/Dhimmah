@@ -273,6 +273,8 @@ class DashboardSnapshot {
     required this.primaryCurrency,
     required this.upcoming,
     required this.upcomingObligations,
+    required this.attentionDebts,
+    required this.attentionObligations,
     required this.recentActivity,
     required this.peopleCount,
     required this.openDebtCount,
@@ -292,11 +294,23 @@ class DashboardSnapshot {
   /// Obligation periods coming up, soonest first.
   final List<ObligationInstance> upcomingObligations;
 
+  /// Every open debt with a due date, for the attention section.
+  ///
+  /// Not [upcoming]: that is the first six, and the section's figures must sum
+  /// every item, not the few that fit on the screen — with seven late debts,
+  /// "late" used to add up six of them.
+  final List<DebtView> attentionDebts;
+
+  /// Every open commitment period, for the attention section, for the same
+  /// reason: [upcomingObligations] is the four soonest.
+  final List<ObligationInstance> attentionObligations;
+
   final List<ActivityEntry> recentActivity;
   final int peopleCount;
   final int openDebtCount;
 
-  /// False on a fresh install, which is what triggers the empty state.
+  /// False until a debt or a commitment is recorded, which is what triggers
+  /// the empty state.
   final bool hasAnyRecord;
 
   CurrencyTotals get primary {

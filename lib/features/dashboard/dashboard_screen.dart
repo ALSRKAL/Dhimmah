@@ -66,9 +66,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Built once without a cap: the two figures above the list must sum
           // every item — including the obligations the debt-only totals used to
           // skip — while the list itself still shows only the most urgent few.
+          // Built from the full lists, not the display ones: those stop at six
+          // debts and four periods, and a seventh late debt was left out of
+          // "late".
           final List<AttentionItem> allAttention = AttentionList.build(
-            debts: data.upcoming,
-            obligations: data.upcomingObligations,
+            debts: data.attentionDebts,
+            obligations: data.attentionObligations,
             asOf: asOf,
             windowDays: dueSoonWindowDays,
             limit: null,
@@ -305,8 +308,9 @@ class _NeedsAttention extends StatelessWidget {
 
   final List<AttentionItem> items;
 
-  /// Summed from [items] themselves — debts and obligations alike — so the
-  /// figures always equal what the list below them shows.
+  /// Summed over everything that needs attention — debts and obligations
+  /// alike, every period of a commitment, and the records past the rows shown —
+  /// so the figures are what is really late and due, not what fits here.
   final Money overdue;
   final Money dueSoon;
   final VoidCallback onViewAll;

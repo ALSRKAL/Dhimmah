@@ -27,6 +27,8 @@ class AttentionItem {
     this.isObligation = false,
     this.debtId,
     this.obligationId,
+    this.overdueTotalMinor,
+    this.dueSoonTotalMinor,
   });
 
   final AttentionReason reason;
@@ -48,6 +50,17 @@ class AttentionItem {
   final bool isObligation;
   final String? debtId;
   final String? obligationId;
+
+  /// What this row adds to the section's "late" figure, when that is not
+  /// simply [amountMinor].
+  ///
+  /// A commitment is one row, its oldest unpaid period, but every late period
+  /// is money that is late: rent three months behind is three rents, not one.
+  /// Null means the row stands for exactly [amountMinor] under its [reason].
+  final int? overdueTotalMinor;
+
+  /// The same for the "due soon" figure, which includes today.
+  final int? dueSoonTotalMinor;
 
   bool get isLate => daysUntilDue < 0;
 
@@ -107,8 +120,13 @@ abstract final class AttentionList {
     // One row per commitment, not one per unpaid period. A weekly bill can have
     // two periods inside the window, and two identical rows would read as a bug
     // rather than as two things to pay. The oldest period is the one to act on.
+    //
+    // The row's figures still count every period: each late one under "late",
+    // each one due inside the window under "due soon".
     final Map<String, ObligationInstance> oldestPeriod =
         <String, ObligationInstance>{};
+    final Map<String, int> overdueById = <String, int>{};
+    final Map<String, int> dueSoonById = <String, int>{};
     for (final ObligationInstance instance in obligations) {
       if (!instance.occurrence.isPayable) continue;
       final String id = instance.obligation.id;
@@ -117,9 +135,16 @@ abstract final class AttentionList {
           instance.occurrence.dueAt.isBefore(current.occurrence.dueAt)) {
         oldestPeriod[id] = instance;
       }
+      final AttentionReason? reason =
+          _reasonFor(instance.occurrence.dueAt, asOf, windowDays);
+      if (reason == null) continue;
+      final Map<String, int> bucket =
+          reason == AttentionReason.overdue ? overdueById : dueSoonById;
+      bucket[id] = (bucket[id] ?? 0) + instance.occurrence.amountMinor;
     }
 
     for (final ObligationInstance instance in oldestPeriod.values) {
+      final String id = instance.obligation.id;
       final DateTime due = instance.occurrence.dueAt;
       final AttentionReason? reason = _reasonFor(due, asOf, windowDays);
       if (reason == null) continue;
@@ -132,7 +157,9 @@ abstract final class AttentionList {
           dueAt: due,
           daysUntilDue: daysBetween(asOf, due),
           isObligation: true,
-          obligationId: instance.obligation.id,
+          obligationId: id,
+          overdueTotalMinor: overdueById[id] ?? 0,
+          dueSoonTotalMinor: dueSoonById[id] ?? 0,
         ),
       );
     }
@@ -151,7 +178,9 @@ abstract final class AttentionList {
   ///
   /// Summed per currency over every item — including obligations, which the
   /// debt-only totals used to leave out: a late rent bill sat under a "late"
-  /// figure that did not count it (measured on the device).
+  /// figure that did not count it (measured on the device). A commitment adds
+  /// every one of its periods, through [AttentionItem.overdueTotalMinor] and
+  /// [AttentionItem.dueSoonTotalMinor].
   static ({int overdueMinor, int dueSoonMinor}) totalsFor(
     List<AttentionItem> items,
     AppCurrency currency,
@@ -160,11 +189,9 @@ abstract final class AttentionList {
     int dueSoon = 0;
     for (final AttentionItem item in items) {
       if (item.currency != currency) continue;
-      if (item.reason == AttentionReason.overdue) {
-        overdue += item.amountMinor;
-      } else {
-        dueSoon += item.amountMinor;
-      }
+      final bool late = item.reason == AttentionReason.overdue;
+      overdue += item.overdueTotalMinor ?? (late ? item.amountMinor : 0);
+      dueSoon += item.dueSoonTotalMinor ?? (late ? 0 : item.amountMinor);
     }
     return (overdueMinor: overdue, dueSoonMinor: dueSoon);
   }
