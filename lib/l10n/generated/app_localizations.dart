@@ -527,7 +527,7 @@ abstract class AppLocalizations {
   /// No description provided for @clearDataBody.
   ///
   /// In ar, this message translates to:
-  /// **'سيتم حذف جميع الأشخاص والديون والدفعات والالتزامات والتذكيرات نهائيًا. لا يمكن التراجع.'**
+  /// **'سيُحذف كل الأشخاص والديون والدفعات والالتزامات والتذكيرات من هذا الجهاز. تُحفظ نسخة أمان أولًا وتبقى النسخ الاحتياطية على الجهاز، فيمكن استعادة الدفتر من «النسخ الاحتياطي والاستعادة».'**
   String get clearDataBody;
 
   /// No description provided for @clearDataTitle.

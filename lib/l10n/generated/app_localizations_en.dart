@@ -229,7 +229,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearDataBody =>
-      'Every person, debt, payment, obligation and reminder will be permanently removed. This cannot be undone.';
+      'Every person, debt, payment, obligation and reminder will be removed from this phone. A safety copy is saved first and the backups on this phone are kept, so the ledger can be restored from Backup and restore.';
 
   @override
   String get clearDataTitle => 'Delete everything?';
