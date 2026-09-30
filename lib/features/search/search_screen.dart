@@ -9,6 +9,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/search_text.dart';
 import '../../core/widgets/app_card.dart';
+import '../../core/widgets/directional_field.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/person_avatar.dart';
 import '../../core/widgets/record_rows.dart';
@@ -113,18 +114,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: TextField(
+        title: DirectionalField(
           controller: _controller,
-          focusNode: _focus,
-          onChanged: (String value) => setState(() => _query = value),
-          textInputAction: TextInputAction.search,
-          decoration: InputDecoration(
-            hintText: localizations.searchHint,
-            border: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            filled: false,
-            contentPadding: EdgeInsets.zero,
+          builder: (BuildContext context, FieldLayout field) => TextField(
+            controller: field.controller,
+            textDirection: field.direction,
+            textAlign: field.align,
+            onTap: field.onTap,
+            focusNode: _focus,
+            onChanged: (String value) => setState(() => _query = value),
+            textInputAction: TextInputAction.search,
+            decoration: InputDecoration(
+              hintText: localizations.searchHint,
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              filled: false,
+              contentPadding: EdgeInsets.zero,
+            ),
           ),
         ),
         actions: <Widget>[

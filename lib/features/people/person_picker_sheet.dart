@@ -6,6 +6,7 @@ import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/search_text.dart';
 import '../../core/widgets/bottom_sheet_shell.dart';
+import '../../core/widgets/directional_field.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/form_fields.dart';
 import '../../core/widgets/person_avatar.dart';
@@ -126,18 +127,24 @@ class _PeoplePickerSheetState extends ConsumerState<PeoplePickerSheet> {
             ),
             const SizedBox(height: AppSpacing.lg),
           ],
-          TextField(
+          DirectionalField(
             controller: _search,
-            onChanged: (_) => setState(() {}),
-            decoration: InputDecoration(
-              hintText: localizations.participantsSearchHint,
-              prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _search.text.isEmpty
-                  ? null
-                  : IconButton(
-                      icon: const Icon(Icons.close, size: 18),
-                      onPressed: () => setState(_search.clear),
-                    ),
+            builder: (BuildContext context, FieldLayout field) => TextField(
+              controller: field.controller,
+              textDirection: field.direction,
+              textAlign: field.align,
+              onTap: field.onTap,
+              onChanged: (_) => setState(() {}),
+              decoration: InputDecoration(
+                hintText: localizations.participantsSearchHint,
+                prefixIcon: const Icon(Icons.search, size: 20),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () => setState(_search.clear),
+                      ),
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
