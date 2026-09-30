@@ -456,6 +456,35 @@ void main() {
       expect(reloaded!.nextDueAt, DateTime(2026, 10));
     });
 
+    test('undoing a payment leaves no paid stamp behind', () async {
+      final Obligation obligation = await service.createObligation(
+        ObligationDraft(
+          name: 'إيجار',
+          category: ObligationCategory.housing,
+          amountMinor: 2000000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.monthly,
+          startAt: DateTime(2026, 9),
+          dayOfMonth: 1,
+        ),
+      );
+      final ObligationInstance september = (await _instances(queries, dateOnly(clock)))
+          .firstWhere((ObligationInstance i) => i.occurrence.dueAt == DateTime(2026, 9));
+      await service.markObligationPaid(september);
+
+      final ObligationInstance paid = (await _instances(queries, dateOnly(clock)))
+          .firstWhere((ObligationInstance i) => i.id == september.id);
+      await service.undoObligationPayment(paid);
+
+      final ObligationOccurrence reopened = (await service.obligations
+              .occurrencesFor(obligation.id))
+          .firstWhere((ObligationOccurrence o) => o.id == september.id);
+      expect(reopened.status, ObligationStatus.upcoming);
+      expect(reopened.paidAt, isNull,
+          reason: 'an open period that says "closed on" is a lie on screen');
+      expect(reopened.paymentId, isNull);
+    });
+
     test('a skipped period stops being payable', () async {
       await service.createObligation(
         ObligationDraft(
@@ -475,6 +504,167 @@ void main() {
               .firstWhere((ObligationInstance i) => i.id == due.id);
       expect(after.occurrence.status, ObligationStatus.skipped);
       expect(after.occurrence.isPayable, isFalse);
+    });
+  });
+
+  // Where a commitment points next, and which periods exist, after each thing
+  // the user can do to one period or to the schedule. The clock is 22 September.
+  group('a commitment, period by period', () {
+    Future<Obligation> monthlyFromAugust({DateTime? endAt}) =>
+        service.createObligation(
+          ObligationDraft(
+            name: 'إيجار',
+            category: ObligationCategory.housing,
+            amountMinor: 2000000,
+            currency: AppCurrency.inr,
+            frequency: RecurrenceFrequency.monthly,
+            startAt: DateTime(2026, 8),
+            dayOfMonth: 1,
+            endAt: endAt,
+          ),
+        );
+
+    Future<List<ObligationOccurrence>> periodsOf(Obligation o) async =>
+        (await service.obligations.occurrencesFor(o.id))
+          ..sort((ObligationOccurrence a, ObligationOccurrence b) =>
+              a.dueAt.compareTo(b.dueAt));
+
+    Future<Obligation> reloaded(Obligation o) async =>
+        (await service.obligations.getById(o.id))!;
+
+    Future<void> pay(Obligation o, DateTime due) async {
+      final ObligationOccurrence period = (await periodsOf(o))
+          .firstWhere((ObligationOccurrence p) => p.dueAt == due);
+      await service.markObligationPaid(
+        ObligationInstance(obligation: await reloaded(o), occurrence: period),
+      );
+    }
+
+    test('paying the last period keeps it open while earlier ones are unpaid',
+        () async {
+      // August, September and October; the schedule ends with October.
+      final Obligation rent =
+          await monthlyFromAugust(endAt: DateTime(2026, 10, 31));
+      expect((await periodsOf(rent)).map((ObligationOccurrence p) => p.dueAt),
+          <DateTime>[DateTime(2026, 8), DateTime(2026, 9), DateTime(2026, 10)]);
+
+      await pay(rent, DateTime(2026, 10));
+
+      Obligation after = await reloaded(rent);
+      expect(after.isArchived, isFalse,
+          reason: 'August and September are still owed, and an archived '
+              'commitment is hidden from every list that would say so');
+      expect(after.nextDueAt, DateTime(2026, 8));
+
+      await pay(rent, DateTime(2026, 8));
+      await pay(rent, DateTime(2026, 9));
+      after = await reloaded(rent);
+      expect(after.isArchived, isTrue, reason: 'every period is paid now');
+    });
+
+    test('paying out of order points at the earliest period still open',
+        () async {
+      final Obligation rent = await monthlyFromAugust();
+
+      await pay(rent, DateTime(2026, 9));
+      expect((await reloaded(rent)).nextDueAt, DateTime(2026, 8),
+          reason: 'August is still unpaid');
+
+      await pay(rent, DateTime(2026, 8));
+      expect((await reloaded(rent)).nextDueAt, DateTime(2026, 10),
+          reason: 'not September, which is already paid');
+    });
+
+    test('skipping the next period moves "next due" on', () async {
+      final Obligation rent = await monthlyFromAugust();
+      await pay(rent, DateTime(2026, 8));
+      expect((await reloaded(rent)).nextDueAt, DateTime(2026, 9));
+
+      final ObligationOccurrence september = (await periodsOf(rent))
+          .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 9));
+      await service.skipObligationPeriod(
+        ObligationInstance(obligation: await reloaded(rent), occurrence: september),
+      );
+      expect((await reloaded(rent)).nextDueAt, DateTime(2026, 10));
+    });
+
+    test('a new rhythm starts today, without late periods it never had',
+        () async {
+      final Obligation rent = await monthlyFromAugust();
+
+      // Monthly rent becomes weekly on 22 September.
+      await service.updateObligation(
+        rent.id,
+        ObligationDraft(
+          name: 'إيجار',
+          category: ObligationCategory.housing,
+          amountMinor: 500000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.weekly,
+          startAt: DateTime(2026, 8),
+        ),
+      );
+      // And the app is opened again the next day.
+      await service.ensureOccurrences();
+
+      final List<ObligationOccurrence> periods = await periodsOf(rent);
+      final List<ObligationOccurrence> weekly = periods
+          .where((ObligationOccurrence p) => p.periodKey.contains('-W'))
+          .toList();
+      expect(weekly, isNotEmpty);
+      expect(
+        weekly.every((ObligationOccurrence p) => !p.dueAt.isBefore(dateOnly(clock))),
+        isTrue,
+        reason: 'no weekly period before the day the schedule became weekly: '
+            '${weekly.map((ObligationOccurrence p) => p.dueAt).toList()}',
+      );
+      // The monthly periods that really were due stay exactly as they were.
+      expect(
+        periods.where((ObligationOccurrence p) => !p.periodKey.contains('-W'))
+            .map((ObligationOccurrence p) => p.dueAt),
+        <DateTime>[DateTime(2026, 8), DateTime(2026, 9)],
+      );
+    });
+
+    test('a new amount keeps a skipped month skipped', () async {
+      final Obligation rent = await monthlyFromAugust();
+      final ObligationOccurrence november = (await periodsOf(rent))
+          .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 11));
+      await service.skipObligationPeriod(
+        ObligationInstance(obligation: await reloaded(rent), occurrence: november),
+      );
+
+      await service.updateObligation(
+        rent.id,
+        ObligationDraft(
+          name: 'إيجار',
+          category: ObligationCategory.housing,
+          amountMinor: 2500000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.monthly,
+          startAt: DateTime(2026, 8),
+          dayOfMonth: 1,
+        ),
+      );
+
+      final List<ObligationOccurrence> periods = await periodsOf(rent);
+      final ObligationOccurrence stillSkipped = periods
+          .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 11));
+      expect(stillSkipped.status, ObligationStatus.skipped);
+      expect(
+        periods
+            .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 10))
+            .amountMinor,
+        2500000,
+        reason: 'the months still to come are due at the new amount',
+      );
+      expect(
+        periods
+            .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 8))
+            .amountMinor,
+        2000000,
+        reason: 'what August cost does not change',
+      );
     });
   });
 

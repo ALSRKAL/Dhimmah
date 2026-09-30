@@ -158,11 +158,17 @@ class ObligationsDao extends DatabaseAccessor<AppDatabase>
   /// and written through a companion so that nulls are stored rather than
   /// skipped. Without both, clearing a payment note or a period's paid stamp
   /// appears to work and then quietly reverts.
-    Future<void> upsertOccurrence(ObligationOccurrenceRow row) async {
+  ///
+  /// The companion was missing here while every other table had it: `write`
+  /// given the row itself skips its null fields, so undoing a period's payment
+  /// set it back to "upcoming" and left its paid date and payment id in place —
+  /// the period then read "closed on …" while it was open, and pointed at a
+  /// payment that no longer existed.
+  Future<void> upsertOccurrence(ObligationOccurrenceRow row) async {
     await transaction(() async {
       final int changed = await (update(obligationOccurrences)
             ..where((t) => t.id.equals(row.id)))
-          .write(row);
+          .write(row.toCompanion(false));
       if (changed == 0) await into(obligationOccurrences).insert(row);
     });
   }
@@ -178,10 +184,21 @@ class ObligationsDao extends DatabaseAccessor<AppDatabase>
       for (final ObligationOccurrenceRow row in rows) {
         final int changed = await (update(obligationOccurrences)
               ..where((t) => t.id.equals(row.id)))
-            .write(row);
+            .write(row.toCompanion(false));
         if (changed == 0) await into(obligationOccurrences).insert(row);
       }
     });
+  }
+
+  /// The due date of the last period materialised for an obligation, or null
+  /// when it has none yet.
+  Future<DateTime?> latestPeriodDue(String obligationId) async {
+    final Expression<String> last = obligationOccurrences.dueAt.max();
+    final TypedResult row = await (selectOnly(obligationOccurrences)
+          ..addColumns(<Expression<Object>>[last])
+          ..where(obligationOccurrences.obligationId.equals(obligationId)))
+        .getSingle();
+    return tryParseIsoDate(row.read(last));
   }
 
   Future<void> deleteOccurrence(String id) =>

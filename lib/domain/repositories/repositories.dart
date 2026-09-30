@@ -120,6 +120,9 @@ abstract interface class ObligationRepository {
 
   /// Period keys already materialised for an obligation.
   Future<Set<String>> existingPeriodKeys(String obligationId);
+
+  /// The due date of the last period materialised, or null when there is none.
+  Future<DateTime?> latestPeriodDue(String obligationId);
 }
 
 abstract interface class ReminderRepository {
