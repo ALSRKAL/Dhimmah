@@ -241,54 +241,65 @@ class LedgerService {
   Future<void> updateDebt(String id, DebtDraft draft) async {
     _requireValidAmount(draft.principalMinor, 'debt principal');
     final List<String> personIds = _requireParticipants(draft.personIds);
-    final Debt? existing = await debts.getById(id);
-    if (existing == null) return;
 
-    // The record is edited, never replaced: the same id, the same created-at and
-    // the same payment history. Only the fields the form owns are written.
-    final Debt updated = existing.copyWith(
-      personIds: personIds,
-      direction: draft.direction,
-      title: draft.title.trim(),
-      principalMinor: draft.principalMinor,
-      currency: draft.currency,
-      issuedAt: dateOnly(draft.issuedAt),
-      dueAt: draft.dueAt == null ? null : dateOnly(draft.dueAt!),
-      note: _blankToNull(draft.note),
-      reminderLeads: ReminderLead.sorted(draft.reminderLeads),
-      recurrence: draft.recurrence,
-      recurrenceInterval: draft.recurrenceInterval,
-      recurrenceEndAt:
-          draft.recurrenceEndAt == null ? null : dateOnly(draft.recurrenceEndAt!),
-      updatedAt: clock(),
-    );
-    await debts.save(updated);
+    // One transaction: the record, the payments that follow its currency and
+    // its closing stamp are one fact, and a failure between them used to be
+    // able to leave a dollar debt holding rupee payments.
+    final bool found = await _db.transaction(() async {
+      final Debt? existing = await debts.getById(id);
+      if (existing == null) return false;
 
-    // A payment has no currency of its own: it is recorded in the debt's, and
-    // inherits it at creation. So when the user corrects the debt's currency,
-    // the payments must follow it — otherwise a debt retagged from rupees to
-    // dollars keeps rupee payments and the two get summed as though they were
-    // the same unit, which is a wrong number, not a missing feature.
-    if (existing.currency != updated.currency) {
-      final List<Payment> existingPayments = await payments.forDebt(id);
-      for (final Payment payment in existingPayments) {
-        if (payment.currency == updated.currency) continue;
-        await payments.save(
-          payment.copyWith(currency: updated.currency),
-        );
+      // The record is edited, never replaced: the same id, the same created-at
+      // and the same payment history. Only the fields the form owns are written.
+      final Debt updated = existing.copyWith(
+        personIds: personIds,
+        direction: draft.direction,
+        title: draft.title.trim(),
+        principalMinor: draft.principalMinor,
+        currency: draft.currency,
+        issuedAt: dateOnly(draft.issuedAt),
+        dueAt: draft.dueAt == null ? null : dateOnly(draft.dueAt!),
+        note: _blankToNull(draft.note),
+        reminderLeads: ReminderLead.sorted(draft.reminderLeads),
+        recurrence: draft.recurrence,
+        recurrenceInterval: draft.recurrenceInterval,
+        recurrenceEndAt: draft.recurrenceEndAt == null
+            ? null
+            : dateOnly(draft.recurrenceEndAt!),
+        updatedAt: clock(),
+      );
+      await debts.save(updated);
+
+      // A payment has no currency of its own: it is recorded in the debt's, and
+      // inherits it at creation. So when the user corrects the debt's currency,
+      // the payments must follow it — otherwise a debt retagged from rupees to
+      // dollars keeps rupee payments and the two get summed as though they were
+      // the same unit, which is a wrong number, not a missing feature.
+      if (existing.currency != updated.currency) {
+        final List<Payment> existingPayments = await payments.forDebt(id);
+        for (final Payment payment in existingPayments) {
+          if (payment.currency == updated.currency) continue;
+          await payments.save(
+            payment.copyWith(currency: updated.currency),
+          );
+        }
       }
-    }
 
-    await _log(
-      type: ActivityType.debtUpdated,
-      entityType: RelatedEntityType.debt,
-      entityId: id,
-      title: await _displayNameFor(updated),
-      amountMinor: updated.principalMinor,
-      currency: updated.currency,
-    );
-    // A changed balance can change whether a closing stamp is still correct.
-    await _syncClosedStamp(updated);
+      await _log(
+        type: ActivityType.debtUpdated,
+        entityType: RelatedEntityType.debt,
+        entityId: id,
+        title: await _displayNameFor(updated),
+        amountMinor: updated.principalMinor,
+        currency: updated.currency,
+      );
+      // A changed balance can change whether a closing stamp is still correct —
+      // and lowering the amount to what has already been paid closes the debt
+      // exactly as a final payment would, next period included.
+      await _settleIfPaid(updated);
+      return true;
+    });
+    if (!found) return;
     await refreshNotifications();
   }
 
@@ -372,43 +383,39 @@ class LedgerService {
   /// exactly what it just added.
   Future<Payment> recordPayment(String debtId, PaymentDraft draft) async {
     _requireValidAmount(draft.amountMinor, 'payment');
-    final Debt? debt = await debts.getById(debtId);
-    if (debt == null) {
-      throw StateError('Cannot record a payment for a debt that no longer exists');
-    }
-    final DateTime now = clock();
-    final Payment payment = Payment(
-      id: newId(),
-      debtId: debtId,
-      personId: debt.personId,
-      amountMinor: draft.amountMinor,
-      currency: debt.currency,
-      paidAt: dateOnly(draft.paidAt),
-      note: _blankToNull(draft.note),
-      createdAt: now,
-    );
-    await payments.save(payment);
-    await _log(
-      type: ActivityType.paymentRecorded,
-      entityType: RelatedEntityType.debt,
-      entityId: debtId,
-      title: await _displayNameFor(debt),
-      amountMinor: payment.amountMinor,
-      currency: payment.currency,
-    );
-
-    final Debt? settled = await _syncClosedStamp(debt);
-    if (settled != null && settled.closedAt != null) {
+    // The payment, its feed entry, the closing stamp and a recurring debt's next
+    // period are one write: a failure part-way must not leave a paid-off debt
+    // open, or an open one with nothing to show for the money.
+    final Payment payment = await _db.transaction(() async {
+      final Debt? debt = await debts.getById(debtId);
+      if (debt == null) {
+        throw StateError(
+          'Cannot record a payment for a debt that no longer exists',
+        );
+      }
+      final DateTime now = clock();
+      final Payment payment = Payment(
+        id: newId(),
+        debtId: debtId,
+        personId: debt.personId,
+        amountMinor: draft.amountMinor,
+        currency: debt.currency,
+        paidAt: dateOnly(draft.paidAt),
+        note: _blankToNull(draft.note),
+        createdAt: now,
+      );
+      await payments.save(payment);
       await _log(
-        type: ActivityType.debtClosed,
+        type: ActivityType.paymentRecorded,
         entityType: RelatedEntityType.debt,
         entityId: debtId,
         title: await _displayNameFor(debt),
-        amountMinor: settled.principalMinor,
-        currency: settled.currency,
+        amountMinor: payment.amountMinor,
+        currency: payment.currency,
       );
-      await _spawnNextRecurrence(settled);
-    }
+      await _settleIfPaid(debt);
+      return payment;
+    });
 
     await refreshNotifications();
     return payment;
@@ -416,61 +423,79 @@ class LedgerService {
 
   Future<void> updatePayment(String id, PaymentDraft draft) async {
     _requireValidAmount(draft.amountMinor, 'payment');
-    final Payment? existing = await payments.getById(id);
-    if (existing == null) return;
-    await payments.save(
-      existing.copyWith(
-        amountMinor: draft.amountMinor,
-        paidAt: dateOnly(draft.paidAt),
-        note: _blankToNull(draft.note),
-      ),
-    );
-    final String? debtId = existing.debtId;
-    if (debtId != null) {
-      final Debt? debt = await debts.getById(debtId);
-      if (debt != null) await _syncClosedStamp(debt);
-    }
+    final bool found = await _db.transaction(() async {
+      final Payment? existing = await payments.getById(id);
+      if (existing == null) return false;
+      await payments.save(
+        existing.copyWith(
+          amountMinor: draft.amountMinor,
+          paidAt: dateOnly(draft.paidAt),
+          note: _blankToNull(draft.note),
+        ),
+      );
+      final String? debtId = existing.debtId;
+      if (debtId != null) {
+        final Debt? debt = await debts.getById(debtId);
+        // A corrected amount can be the one that pays the debt off, and it
+        // closes the debt exactly as a new payment would.
+        if (debt != null) await _settleIfPaid(debt);
+      }
+      return true;
+    });
+    if (!found) return;
     await refreshNotifications();
   }
 
   /// Puts a deleted payment back, used by the undo on the payments list.
+  ///
+  /// Only the stamp is brought back in line: the debt's closing was announced
+  /// when the payment was first recorded, and its next period, if it has one,
+  /// already exists.
   Future<void> restorePaymentRecord(Payment payment) async {
-    await payments.save(payment);
-    final String? debtId = payment.debtId;
-    if (debtId != null) {
-      final Debt? debt = await debts.getById(debtId);
-      if (debt != null) await _syncClosedStamp(debt);
-    }
+    await _db.transaction(() async {
+      await payments.save(payment);
+      final String? debtId = payment.debtId;
+      if (debtId != null) {
+        final Debt? debt = await debts.getById(debtId);
+        if (debt != null) await _syncClosedStamp(debt);
+      }
+    });
     await refreshNotifications();
   }
 
   Future<void> deletePayment(String id) async {
-    final Payment? existing = await payments.getById(id);
-    if (existing == null) return;
-    await payments.delete(id);
-    final String? debtId = existing.debtId;
-    if (debtId != null) {
-      final Debt? debt = await debts.getById(debtId);
-      if (debt != null) {
-        await _syncClosedStamp(debt);
-        await _log(
-          type: ActivityType.paymentDeleted,
-          entityType: RelatedEntityType.debt,
-          entityId: debtId,
-          title: await _displayNameFor(debt),
-          amountMinor: existing.amountMinor,
-          currency: existing.currency,
-        );
+    final bool found = await _db.transaction(() async {
+      final Payment? existing = await payments.getById(id);
+      if (existing == null) return false;
+      await payments.delete(id);
+      final String? debtId = existing.debtId;
+      if (debtId != null) {
+        final Debt? debt = await debts.getById(debtId);
+        if (debt != null) {
+          await _syncClosedStamp(debt);
+          await _log(
+            type: ActivityType.paymentDeleted,
+            entityType: RelatedEntityType.debt,
+            entityId: debtId,
+            title: await _displayNameFor(debt),
+            amountMinor: existing.amountMinor,
+            currency: existing.currency,
+          );
+        }
       }
-    }
+      return true;
+    });
+    if (!found) return;
     await refreshNotifications();
   }
 
   /// Brings a debt's closing stamp in line with its payment history.
   ///
   /// This is the single place that decides whether a debt is closed, so the
-  /// stamp can never disagree with the payments that justify it.
-  Future<Debt?> _syncClosedStamp(Debt debt) async {
+  /// stamp can never disagree with the payments that justify it. It also says
+  /// whether *this* call is the one that closed it, which is the only moment
+  /// the closing may be announced or a recurring debt's next period created.
+  Future<({Debt debt, bool justClosed})> _syncClosedStamp(Debt debt) async {
     final List<Payment> history = await payments.forDebt(debt.id);
     final int remaining = DebtCalculator.remainingOf(
       debt.principalMinor,
@@ -481,14 +506,37 @@ class LedgerService {
     if (shouldBeClosed && debt.closedAt == null) {
       final Debt updated = debt.copyWith(closedAt: clock(), updatedAt: clock());
       await debts.save(updated);
-      return updated;
+      return (debt: updated, justClosed: true);
     }
     if (!shouldBeClosed && debt.closedAt != null) {
       final Debt updated = debt.copyWith(closedAt: null, updatedAt: clock());
       await debts.save(updated);
-      return updated;
+      return (debt: updated, justClosed: false);
     }
-    return debt;
+    return (debt: debt, justClosed: false);
+  }
+
+  /// Everything that follows a change to what a debt owes: the stamp, and —
+  /// only when this write is the one that closed it — the feed entry and a
+  /// recurring debt's next period.
+  ///
+  /// A payment, a corrected payment and a lowered amount can each be what pays
+  /// a debt off, and they used to disagree: only a new payment announced the
+  /// closing or created the next period, and it did so again when a debt that
+  /// was already closed received another payment.
+  Future<void> _settleIfPaid(Debt debt) async {
+    final ({Debt debt, bool justClosed}) closing = await _syncClosedStamp(debt);
+    if (!closing.justClosed) return;
+    final Debt settled = closing.debt;
+    await _log(
+      type: ActivityType.debtClosed,
+      entityType: RelatedEntityType.debt,
+      entityId: settled.id,
+      title: await _displayNameFor(settled),
+      amountMinor: settled.principalMinor,
+      currency: settled.currency,
+    );
+    await _spawnNextRecurrence(settled);
   }
 
   /// Creates the next period of a recurring debt once the current one is settled.

@@ -295,6 +295,130 @@ void main() {
     });
   });
 
+  // A debt can be paid off by a new payment, by a corrected payment, or by
+  // lowering its amount to what was already paid. Only the first used to
+  // announce the closing and create a recurring debt's next period, and it did
+  // both again when a debt that was already closed received another payment.
+  group('closing a debt, whichever write does it', () {
+    Future<Debt> monthlyRent(Person person) => service.createDebt(
+          DebtDraft(
+            direction: DebtDirection.iOwe,
+            personIds: <String>[person.id],
+            title: 'إيجار',
+            principalMinor: 2000000,
+            currency: AppCurrency.inr,
+            issuedAt: DateTime(2026, 9),
+            dueAt: DateTime(2026, 9),
+            recurrence: RecurrenceFrequency.monthly,
+          ),
+        );
+
+    Future<int> closings() async => (await db.activityDao.getRecent(limit: 100))
+        .where((ActivityEntryRow row) => row.type.name == 'debtClosed')
+        .length;
+
+    test('a corrected payment that pays it off creates the next period',
+        () async {
+      final Debt debt = await monthlyRent(await addPerson('المالك'));
+      final Payment payment = await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1500000, paidAt: DateTime(2026, 9)),
+      );
+      expect(await views(), hasLength(1));
+
+      await service.updatePayment(
+        payment.id,
+        PaymentDraft(amountMinor: 2000000, paidAt: DateTime(2026, 9)),
+      );
+
+      final List<DebtView> all = await views();
+      expect(all, hasLength(2));
+      expect(
+        all.firstWhere((DebtView v) => v.isOpen).debt.dueAt,
+        DateTime(2026, 10),
+      );
+      expect(await closings(), 1);
+    });
+
+    test('lowering the amount to what was paid closes it the same way',
+        () async {
+      final Person person = await addPerson('المالك');
+      final Debt debt = await monthlyRent(person);
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1500000, paidAt: DateTime(2026, 9)),
+      );
+
+      await service.updateDebt(
+        debt.id,
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          title: 'إيجار',
+          principalMinor: 1500000,
+          currency: AppCurrency.inr,
+          issuedAt: DateTime(2026, 9),
+          dueAt: DateTime(2026, 9),
+          recurrence: RecurrenceFrequency.monthly,
+        ),
+      );
+
+      final List<DebtView> all = await views();
+      expect(all, hasLength(2));
+      expect(all.firstWhere((DebtView v) => v.debt.id == debt.id).isSettled,
+          isTrue);
+      expect(await closings(), 1);
+    });
+
+    test('paying a debt that is already closed does not announce it again',
+        () async {
+      final Person person = await addPerson('سالم');
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          principalMinor: 1000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1000000, paidAt: clock),
+      );
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 100000, paidAt: clock),
+      );
+
+      expect(await closings(), 1);
+      expect((await views()).single.isSettled, isTrue);
+    });
+
+    test('a refused payment leaves nothing behind', () async {
+      final Person person = await addPerson('سالم');
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          principalMinor: 1000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      await service.deleteDebt(debt.id);
+
+      await expectLater(
+        () => service.recordPayment(
+          debt.id,
+          PaymentDraft(amountMinor: 1000, paidAt: clock),
+        ),
+        throwsStateError,
+      );
+      expect(await db.debtsDao.getAllPayments(), isEmpty);
+    });
+  });
+
   group('obligations', () {
     test('materialise their periods and pay one forward', () async {
       final Obligation obligation = await service.createObligation(

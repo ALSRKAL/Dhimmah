@@ -24,13 +24,17 @@ import '../../../l10n/generated/app_localizations.dart';
 /// The sheet keeps the consequence visible at all times: what will be left after
 /// this amount, and whether it settles the debt. Confirming a payment without
 /// knowing that is how a user ends up surprised by a balance.
+///
+/// With [existing], the same sheet corrects that payment instead of adding a
+/// new one.
 Future<bool> showPaymentSheet(
   BuildContext context, {
   required DebtView view,
+  Payment? existing,
 }) async {
   final bool? recorded = await showAppSheet<bool>(
     context,
-    child: PaymentSheet(view: view),
+    child: PaymentSheet(view: view, existing: existing),
   );
   return recorded ?? false;
 }
@@ -52,19 +56,49 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       TextEditingController(text: widget.existing?.note ?? '');
   late DateTime _paidAt = widget.existing?.paidAt ?? dateOnly(DateTime.now());
   late int _amountMinor = widget.existing?.amountMinor ?? widget.view.remainingMinor;
+
+  /// The amount's text, owned here so "pay in full" can write into it.
+  ///
+  /// The field used to own it, and the button only changed the number the sheet
+  /// would save: the field went on showing what had been typed, so a user who
+  /// typed 2,500 and pressed the button saw 2,500 and saved the full balance.
+  late final TextEditingController _amountController = TextEditingController(
+    text: formatMinorForInput(_amountMinor, widget.view.currency),
+  );
   bool _busy = false;
 
   @override
   void dispose() {
     _noteController.dispose();
+    _amountController.dispose();
     super.dispose();
   }
 
-  int get _remainingAfter {
+  /// Puts [minor] in the field and in the amount the sheet will save, together.
+  void _setAmount(int minor) {
+    final String text = formatMinorForInput(minor, widget.view.currency);
+    _amountController.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
+    setState(() => _amountMinor = minor);
+  }
+
+  /// What is left to pay before this payment counts.
+  ///
+  /// When correcting a payment, the amount it already covers is still open from
+  /// the correction's point of view: the new amount replaces it rather than
+  /// adding to it. Reading the debt's plain remaining balance here called a
+  /// correction of a settled debt an overpayment, and "pay in full" offered 0.
+  int get _remainingBefore {
     final int paidWithoutThis = widget.view.paidMinor -
         (widget.existing?.amountMinor ?? 0);
-    final int remaining =
-        widget.view.debt.principalMinor - paidWithoutThis - _amountMinor;
+    final int remaining = widget.view.debt.principalMinor - paidWithoutThis;
+    return remaining < 0 ? 0 : remaining;
+  }
+
+  int get _remainingAfter {
+    final int remaining = _remainingBefore - _amountMinor;
     return remaining < 0 ? 0 : remaining;
   }
 
@@ -77,7 +111,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     final ThemeData theme = Theme.of(context);
     final AppCurrency currency = widget.view.currency;
     final bool isEditing = widget.existing != null;
-    final int remainingBefore = widget.view.remainingMinor;
+    final int remainingBefore = _remainingBefore;
 
     return AppSheet(
       title: isEditing ? localizations.paymentEditTitle : localizations.paymentTitle,
@@ -92,7 +126,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
           AmountField(
             label: localizations.paymentAmount,
             currency: currency,
-            initialMinor: _amountMinor,
+            controller: _amountController,
             autofocus: !isEditing,
             onChanged: (int minor) => setState(() => _amountMinor = minor),
           ),
@@ -100,7 +134,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
           Align(
             alignment: AlignmentDirectional.centerEnd,
             child: TextButton.icon(
-              onPressed: () => setState(() => _amountMinor = remainingBefore),
+              onPressed: () => _setAmount(remainingBefore),
               icon: const Icon(Icons.done_all, size: 16),
               label: Text(localizations.paymentPayFull),
             ),
@@ -177,7 +211,13 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       Navigator.of(context).pop(true);
       AppFeedback.info(
         context,
-        _settles ? localizations.debtSettled : localizations.paymentSaved,
+        _settles
+            ? localizations.debtSettled
+            // A correction is saved, not recorded: "payment recorded" after an
+            // edit reads as though a second payment had been added.
+            : existing == null
+                ? localizations.paymentSaved
+                : localizations.recordSaved,
         icon: _settles ? Icons.check_circle_outline : Icons.payments_outlined,
       );
     } on Object {
@@ -339,7 +379,10 @@ class PaymentRow extends ConsumerWidget {
               title: Text(localizations.actionEdit),
               onTap: () async {
                 Navigator.of(context).pop();
-                await showPaymentSheet(context, view: view);
+                // The payment itself, so the sheet corrects it. Without it the
+                // sheet opened as "record a payment" and saving added a second
+                // payment beside the one being corrected.
+                await showPaymentSheet(context, view: view, existing: payment);
               },
             ),
             ListTile(
