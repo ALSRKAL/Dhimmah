@@ -65,3 +65,7 @@ docs/final-acceptance/
 android/key.properties
 *.jks
 *.keystore
+# The upload key and the file holding its password live outside version
+# control. `*.jks` already covers the key; this covers everything next to it,
+# including the plain-text password file, which no pattern above matched.
+Dhimmah-release-keys/
