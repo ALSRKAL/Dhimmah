@@ -115,7 +115,7 @@ Requires Flutter 3.44+ / Dart 3.12+. SQLite is bundled through Dart's
 native-assets build hooks, so there is no extra database setup on any platform.
 
 ```bash
-flutter test                       # 817 tests
+flutter test                       # 888 tests
 flutter analyze                    # clean
 python3 tool/generate_icons.py     # rebuild every icon from the master artwork
 flutter build apk --release
@@ -380,31 +380,33 @@ it:
 ## Testing
 
 ```
-test/domain/       112 tests — balances, statuses, schedules, month arithmetic,
+test/domain/       123 tests — balances, statuses, schedules, month arithmetic,
                                the attention list, the monthly insight, what the
                                planner decides to schedule and when, what the
                                service refuses to store, and which language a
                                phone's language list resolves to
-test/core/         131 tests — the notification delivery policy against a fake
+test/core/         143 tests — the notification delivery policy against a fake
                                platform (idempotent scheduling, reconciliation,
                                re-wording in place, the cap, permission and
                                timezone changes, the cold-start tap), plus Arabic
-                               shaping and bidi, amount parsing, currency
-                               formatting, numerals, date phrasing, the WCAG
-                               contrast of every colour pair in both themes, that
-                               English is really English and both ARB files hold
-                               the same keys, and the statement's own geometry
-                               read back out of the finished PDF
-test/data/         284 tests — schema, converters, constraints, the link table's
+                               shaping and bidi, Arabic search folding, amount
+                               parsing, currency formatting, numerals, date
+                               phrasing, the WCAG contrast of every colour pair
+                               in both themes, that English is really English
+                               and both ARB files hold the same keys, and the
+                               statement's own geometry read back out of the
+                               finished PDF
+test/data/         292 tests — schema, converters, constraints, the link table's
                                own rules, clearing fields, opening a database
                                written by every earlier version, several people
                                on one record, backups and restores, the language
                                preference across a restart and a backup, and the
                                reminder lifecycle — including one pass at a time
-test/integration/   27 tests — the service against a real SQLite database,
+test/integration/   39 tests — the service against a real SQLite database,
                                including a record edited, closed and reopened from
-                               the file it was written to
-test/widget/       179 tests — the real UI driven end to end: onboarding in the
+                               the file it was written to, and a deleted record
+                               undone with its history
+test/widget/       206 tests — the real UI driven end to end: onboarding in the
                                phone's language from the first frame, the
                                language switch, following a phone that changes
                                language, recording, RTL, dark mode, the statement
@@ -413,7 +415,7 @@ test/widget/       179 tests — the real UI driven end to end: onboarding in th
                                people, layout at 1.0x/1.3x/1.5x text on a 360px
                                screen, the places where a number must *not*
                                mirror, and the update card in both languages
-test/app/           34 tests — the start-up failure path and the update
+test/app/           35 tests — the start-up failure path and the update
                                controller's state machine
 test/platform/      27 tests — the Android declarations that no Dart test can
                                see, and the file gateway
@@ -424,7 +426,7 @@ test/tool/          16 tests — the seed and statement generators and the
                                renderer that only runs when asked, below)
 ```
 
-817 tests. Several exist to hold a decision in place rather than to check a
+888 tests. Several exist to hold a decision in place rather than to check a
 behaviour: the contrast test, the design invariants (one focus figure and one
 primary action per screen, the person page's single balance), and the two journeys
 driven the way a person drives them — open someone, record a payment, watch the
@@ -710,6 +712,63 @@ regression test:
     the same from one day to the next, so re-wording in place never re-schedules
     the whole set daily. The first launch after the update corrects the
     reminders an older build left behind, under the same ids.
+
+Found in a review of the whole app, and fixed with a regression test each:
+
+45. **Editing a payment recorded a second one.** "Edit" opened the sheet for a
+    new payment, so a correction was saved beside the original, and "pay in
+    full" saved the balance while the field still showed the typed amount. The
+    sheet now edits the payment it was given and writes what it saves into the
+    field. A correction that pays a debt off closes it exactly as a payment does.
+46. **A month-end summary that was never armed, about the wrong money.** It only
+    ever arrived as a catch-up on the next launch; its "paid" added lifetime
+    totals; and a catch-up recorded the day it arrived, so the next month's
+    summary was skipped. It is now armed in the last three days before its
+    moment, "paid" is that month's payments, and the month it summarises is what
+    is recorded. A month's report no longer changes when a later payment arrives,
+    and skipped periods are not money due.
+47. **Notification taps that went nowhere, or twice.** The backup alert matched
+    no route, a month-end summary opened the current month, a second tap stacked
+    a second copy of the page, and an unknown location printed the router's
+    exception in English. Each now opens its own page once, and a missing record
+    says so in the app's language.
+48. **Commitment periods nobody scheduled.** Changing monthly to weekly filled
+    in a late week for each of the last two months; undoing a payment left its
+    paid date behind; paying the last period archived a commitment with earlier
+    periods unpaid; a 31st started in February stayed on the 28th; and
+    31 December was keyed like 1 January. A schedule is now only extended after
+    its last period, and "next due" is decided in one place.
+49. **A ledger drawn unlocked for its first frames.** The lock read settings that
+    had not arrived yet, and locking tore the navigator down, losing a half-typed
+    form and any answer from a system picker. It now reads the settings seeded
+    before the first frame, and the app stays mounted, unpainted, beneath it.
+50. **A safety copy that did not hold the newest records.** Deleting everything
+    skipped the safety copy whenever one was under ten minutes old, even with
+    records added since. A recent copy now stands in only when nothing has
+    changed; a ledger of reminders alone is no longer "empty"; and a CSV cell
+    that starts like a formula opens as text.
+51. **"Late" that added up six debts.** The attention figures were summed from the
+    dashboard's display lists, which stop at six debts and four periods, and a
+    commitment counted only its oldest period. They now count everything late or
+    due, and a ledger of commitments alone is no longer shown as empty.
+52. **«احمد» could not find «أحمد».** Search and the people picker compared raw
+    text. Both now fold the hamza forms, ى and ي, ة and ه, vowel marks, the
+    tatweel and Arabic-Indic digits.
+53. **"Deleted" before anything was deleted.** A reminder's delete was fired
+    without waiting and announced at once, so a failed one was reported as done;
+    a failed delete or undo of a debt was an error nothing caught; and saving an
+    edited reminder said "created". Each now says what actually happened.
+54. **An undo that rewrote history.** Undoing a debt's deletion replaced its feed
+    with one new "created" entry, and failed outright if a person on the record
+    had been deleted in between. The feed comes back as it was, and a missing
+    person is left out.
+55. **Yesterday's deadline still "due today".** The day moved only when the app
+    came back from the background, so a ledger left open overnight kept the old
+    one. It now turns over at midnight.
+56. **Three small ones.** A second tap on the start-up retry opened a second
+    database connection; editing a repeating debt erased the end of its series;
+    and `184467440737095517` parsed as 0.84, because the multiplication wrapped
+    round before the limit was checked.
 
 ### On a device
 
