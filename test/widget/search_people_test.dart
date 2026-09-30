@@ -47,4 +47,41 @@ void main() {
         reason: 'the people group must exist in the results');
     expect(find.text('سارة الغامدي'), findsWidgets);
   });
+
+  group('a name is found however it is typed', () {
+    Future<void> search(WidgetTester tester, String query) async {
+      await pumpDhimmah(tester, db: db);
+      await settle(tester);
+      await tester.tap(find.byIcon(Icons.search_outlined));
+      await settle(tester);
+      await tester.enterText(find.byType(TextField).first, query);
+      await settle(tester);
+    }
+
+    testWidgets('without the hamza it was saved with',
+        (WidgetTester tester) async {
+      // Saved as «محمد أحمد عبدالرحمن»; typed the way most keyboards type it.
+      await search(tester, 'احمد');
+
+      expect(find.text('الأشخاص · 1'), findsOneWidget);
+      expect(find.text('محمد أحمد عبدالرحمن'), findsWidgets);
+    });
+
+    testWidgets('with heh for teh marbuta, and with vowel marks',
+        (WidgetTester tester) async {
+      await search(tester, 'سَاره');
+
+      expect(find.text('الأشخاص · 1'), findsOneWidget);
+      expect(find.text('سارة الغامدي'), findsWidgets);
+    });
+
+    testWidgets('a phone number typed in Arabic digits',
+        (WidgetTester tester) async {
+      // The number is stored as +967 771 234 567.
+      await search(tester, '٧٧١');
+
+      expect(find.text('الأشخاص · 1'), findsOneWidget);
+      expect(find.text('محمد أحمد عبدالرحمن'), findsWidgets);
+    });
+  });
 }

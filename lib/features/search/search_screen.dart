@@ -7,6 +7,7 @@ import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/search_text.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/person_avatar.dart';
@@ -66,7 +67,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         ref.watch(peopleDirectoryProvider).value ??
             const <PersonDirectoryEntry>[];
 
-    final String needle = _query.trim().toLowerCase();
+    // Folded, as every field it is compared with is: «احمد» finds «أحمد».
+    final String needle = foldForSearch(_query.trim());
     final bool searching = needle.isNotEmpty;
 
     // People first: the screen promises "names", and before this a person with
@@ -74,8 +76,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final List<PersonDirectoryEntry> peopleHits = searching
         ? <PersonDirectoryEntry>[
             for (final PersonDirectoryEntry entry in people)
-              if (entry.person.name.toLowerCase().contains(needle) ||
-                  (entry.person.phone ?? '').contains(needle))
+              if (searchMatches(entry.person.name, needle) ||
+                  searchMatches(entry.person.phone, needle))
                 entry,
           ]
         : const <PersonDirectoryEntry>[];
@@ -97,8 +99,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final List<Reminder> reminderHits = searching
         ? <Reminder>[
             for (final Reminder reminder in reminders)
-              if (reminder.title.toLowerCase().contains(needle) ||
-                  (reminder.note ?? '').toLowerCase().contains(needle))
+              if (searchMatches(reminder.title, needle) ||
+                  searchMatches(reminder.note, needle))
                 reminder,
           ]
         : const <Reminder>[];
@@ -270,26 +272,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     );
   }
 
+  /// [needle] is already folded with [foldForSearch].
   static bool _matchesDebt(DebtView view, String needle) {
-    if (view.displayName.toLowerCase().contains(needle)) return true;
-    if (view.debt.title.toLowerCase().contains(needle)) return true;
-    final String? note = view.debt.note;
-    if (note != null && note.toLowerCase().contains(needle)) return true;
+    if (searchMatches(view.displayName, needle)) return true;
+    if (searchMatches(view.debt.title, needle)) return true;
+    if (searchMatches(view.debt.note, needle)) return true;
     // Every participant, not just the first: a shared record has to be findable
     // by any of the people it is with, and by their numbers.
     for (final Person person in view.participants) {
-      if (person.name.toLowerCase().contains(needle)) return true;
-      final String? phone = person.phone;
-      if (phone != null && phone.toLowerCase().contains(needle)) return true;
+      if (searchMatches(person.name, needle)) return true;
+      if (searchMatches(person.phone, needle)) return true;
     }
     return false;
   }
 
+  /// [needle] is already folded with [foldForSearch].
   static bool _matchesObligation(ObligationInstance instance, String needle) {
-    if (instance.obligation.name.toLowerCase().contains(needle)) return true;
-    final String? note = instance.obligation.note;
-    if (note != null && note.toLowerCase().contains(needle)) return true;
-    return false;
+    return searchMatches(instance.obligation.name, needle) ||
+        searchMatches(instance.obligation.note, needle);
   }
 }
 

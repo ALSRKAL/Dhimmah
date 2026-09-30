@@ -340,6 +340,41 @@ void main() {
         <String>[ahmed.id, mohammed.id, ali.id],
       );
     });
+
+    testWidgets('the picker finds a name typed without its hamza',
+        (WidgetTester tester) async {
+      await addPerson('أحمد');
+      await addPerson('علي');
+      await pumpDhimmah(tester, db: db);
+      await openBlankForm(tester);
+
+      await tester.tap(find.text('اختر شخصًا أو أضف جديدًا'));
+      await settle(tester);
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(PeoplePickerSheet),
+          matching: find.byType(TextField),
+        ),
+        'احمد',
+      );
+      await settle(tester);
+
+      expect(
+        find.descendant(
+          of: find.byType(PeoplePickerSheet),
+          matching: find.text('أحمد'),
+        ),
+        findsOneWidget,
+        reason: 'it is the same name without the mark over its alef',
+      );
+      expect(
+        find.descendant(
+          of: find.byType(PeoplePickerSheet),
+          matching: find.text('علي'),
+        ),
+        findsNothing,
+      );
+    });
   });
 
   group('adding a debt from a person’s page', () {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/search_text.dart';
 import '../../core/widgets/bottom_sheet_shell.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/form_fields.dart';
@@ -81,15 +82,16 @@ class _PeoplePickerSheetState extends ConsumerState<PeoplePickerSheet> {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AsyncValue<List<PersonDirectoryEntry>> directory =
         ref.watch(peopleDirectoryProvider);
-    final String query = _search.text.trim().toLowerCase();
+    // Folded as the search screen folds it, so «احمد» finds «أحمد» here too.
+    final String query = foldForSearch(_search.text.trim());
 
     final List<PersonDirectoryEntry> entries = <PersonDirectoryEntry>[
       for (final PersonDirectoryEntry entry
           in directory.value ?? const <PersonDirectoryEntry>[])
         if (!entry.person.isArchived)
           if (query.isEmpty ||
-              entry.person.name.toLowerCase().contains(query) ||
-              (entry.person.phone ?? '').contains(query))
+              searchMatches(entry.person.name, query) ||
+              searchMatches(entry.person.phone, query))
             entry,
     ];
 
