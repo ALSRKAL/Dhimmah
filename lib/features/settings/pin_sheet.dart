@@ -29,17 +29,20 @@ Future<bool> createPin(BuildContext context, WidgetRef ref) async {
   return ok ?? false;
 }
 
-/// Changes the PIN, verifying the current one first.
+/// Changes the PIN, verifying the current one first. Returns true once the new
+/// one has been stored.
+///
+/// "PIN updated" is said only then. It used to be said whenever the sheet
+/// closed — after a wrong current PIN, or after the user simply backed out —
+/// so a user could leave believing their PIN had changed when it had not.
 Future<bool> changePin(BuildContext context, WidgetRef ref) async {
-  final AppLocalizations localizations = AppLocalizations.of(context);
-  await showAppSheet<void>(
+  final bool? changed = await showAppSheet<bool>(
     context,
     isScrollControlled: false,
     child: const PinSheet(mode: PinSheetMode.change),
   );
-  if (!context.mounted) return false;
+  if (changed != true || !context.mounted) return false;
   AppFeedback.info(context, AppLocalizations.of(context).lockPinUpdated);
-  assert(localizations.appName.isNotEmpty);
   return true;
 }
 

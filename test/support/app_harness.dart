@@ -9,6 +9,7 @@ import 'package:dhimmah/core/formatting/app_formatting.dart';
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/notifications/notification_composer.dart';
 import 'package:dhimmah/core/notifications/notification_service.dart';
+import 'package:dhimmah/core/security/biometric_service.dart';
 import 'package:dhimmah/core/security/pin_service.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/data/database/app_database.dart';
@@ -215,8 +216,10 @@ Future<ProviderContainer> pumpDhimmah(
   Directory? backupDirectory,
   BackupLocationRepository? backupFolders,
   PinService? pinService,
+  BiometricService? biometricService,
   Future<bool> Function(Uri)? urlOpener,
   NotificationService? notificationService,
+  bool firstFrameOnly = false,
 }) async {
   if (settings != null) {
     await db.settingsDao.replace(
@@ -264,6 +267,8 @@ Future<ProviderContainer> pumpDhimmah(
       if (backupFolders != null)
         backupLocationRepositoryProvider.overrideWithValue(backupFolders),
       if (pinService != null) pinServiceProvider.overrideWithValue(pinService),
+      if (biometricService != null)
+        biometricServiceProvider.overrideWithValue(biometricService),
       if (urlOpener != null) urlOpenerProvider.overrideWithValue(urlOpener),
       if (notificationService != null)
         notificationServiceProvider.overrideWithValue(notificationService),
@@ -281,6 +286,8 @@ Future<ProviderContainer> pumpDhimmah(
       child: DhimmahApp(onboardingCompleted: onboardingCompleted),
     ),
   );
+  // What a phone draws before anything asynchronous has answered.
+  if (firstFrameOnly) return container;
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
   return container;
