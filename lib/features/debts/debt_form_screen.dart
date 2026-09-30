@@ -91,6 +91,10 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
   List<ReminderLead> _leads = const <ReminderLead>[];
   RecurrenceFrequency _recurrence = RecurrenceFrequency.none;
   int _interval = 1;
+
+  /// The stored end of a repeating record's series. The form has no field for
+  /// it, but it writes the whole record, and an edit used to erase it.
+  DateTime? _recurrenceEndAt;
   bool _initialised = false;
   bool _busy = false;
 
@@ -160,6 +164,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     _leads = debt.reminderLeads;
     _recurrence = debt.recurrence;
     _interval = debt.effectiveInterval;
+    _recurrenceEndAt = debt.recurrenceEndAt;
     _title.text = debt.title;
     _note.text = debt.note ?? '';
     _personIds
@@ -606,6 +611,9 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
       reminderLeads: _leads,
       recurrence: _recurrence,
       recurrenceInterval: _interval,
+      // Kept while the record still repeats; a record that stops repeating
+      // has no series to end.
+      recurrenceEndAt: _recurrence.repeats ? _recurrenceEndAt : null,
     );
 
     try {
