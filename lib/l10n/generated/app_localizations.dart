@@ -2401,6 +2401,30 @@ abstract class AppLocalizations {
   /// **'لا توجد بيانات لهذا الشهر.'**
   String get reportEmptyTitle;
 
+  /// No description provided for @reportEntryIOwe.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين عليّ'**
+  String get reportEntryIOwe;
+
+  /// No description provided for @reportEntryOwedToMe.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين لي'**
+  String get reportEntryOwedToMe;
+
+  /// No description provided for @reportEntryPaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفعة مسدّدة'**
+  String get reportEntryPaid;
+
+  /// No description provided for @reportEntryReceived.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفعة مستلمة'**
+  String get reportEntryReceived;
+
   /// No description provided for @reportExportPdf.
   ///
   /// In ar, this message translates to:
@@ -2428,13 +2452,13 @@ abstract class AppLocalizations {
   /// No description provided for @reportInsightClosed.
   ///
   /// In ar, this message translates to:
-  /// **'{count, plural, =0{لم تُغلق أي ديون هذا الشهر.} =1{تم إغلاق دين واحد هذا الشهر.} =2{تم إغلاق ديان هذا الشهر.} few{تم إغلاق {count} ديون هذا الشهر.} other{تم إغلاق {count} دينًا هذا الشهر.}}'**
+  /// **'{count, plural, =0{لم تُغلق أي ديون هذا الشهر.} =1{تم إغلاق دين واحد هذا الشهر.} =2{تم إغلاق دينين هذا الشهر.} few{تم إغلاق {count} ديون هذا الشهر.} other{تم إغلاق {count} دينًا هذا الشهر.}}'**
   String reportInsightClosed(int count);
 
   /// No description provided for @reportInsightOverdue.
   ///
   /// In ar, this message translates to:
-  /// **'{count, plural, =0{لا ديون متأخرة.} =1{دين واحد متأخر يحتاج متابعة.} =2{ديان متأخران يحتاجان متابعة.} few{{count} ديون متأخرة تحتاج متابعة.} other{{count} دينًا متأخرًا يحتاج متابعة.}}'**
+  /// **'{count, plural, =0{لا ديون متأخرة.} =1{دين واحد متأخر يحتاج متابعة.} =2{دينان متأخران يحتاجان متابعة.} few{{count} ديون متأخرة تحتاج متابعة.} other{{count} دينًا متأخرًا يحتاج متابعة.}}'**
   String reportInsightOverdue(int count);
 
   /// No description provided for @reportInsightQuiet.
@@ -2472,6 +2496,18 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'لا شيء متأخر ولا مستحق اليوم.'**
   String get reportNeedsAttentionEmpty;
+
+  /// No description provided for @reportNetIOwe.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصافي عليّ'**
+  String get reportNetIOwe;
+
+  /// No description provided for @reportNetOwedToMe.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصافي لي'**
+  String get reportNetOwedToMe;
 
   /// No description provided for @reportNewDebts.
   ///
@@ -2563,6 +2599,18 @@ abstract class AppLocalizations {
   /// **'ما تم استلامه'**
   String get reportReceived;
 
+  /// No description provided for @reportRemainingIOwe.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتبقي عليّ'**
+  String get reportRemainingIOwe;
+
+  /// No description provided for @reportRemainingOwedToMe.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتبقي لي'**
+  String get reportRemainingOwedToMe;
+
   /// No description provided for @reportSavePdf.
   ///
   /// In ar, this message translates to:
@@ -2590,7 +2638,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportStatementFor.
   ///
   /// In ar, this message translates to:
-  /// **'كشف حساب'**
+  /// **'الحساب مع'**
   String get reportStatementFor;
 
   /// No description provided for @reportStatementReady.

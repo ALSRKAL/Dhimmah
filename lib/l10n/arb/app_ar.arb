@@ -660,11 +660,15 @@
   "reportDocumentNumber": "رقم المستند",
   "reportEmptyBody": "جرّب اختيار شهر آخر، أو أضف عملية جديدة.",
   "reportEmptyTitle": "لا توجد بيانات لهذا الشهر.",
+  "reportEntryIOwe": "دين عليّ",
+  "reportEntryOwedToMe": "دين لي",
+  "reportEntryPaid": "دفعة مسدّدة",
+  "reportEntryReceived": "دفعة مستلمة",
   "reportExportPdf": "تصدير PDF",
   "reportFutureMonth": "هذا الشهر لم يبدأ بعد.",
   "reportGeneratedBy": "تم إنشاء هذا المستند بواسطة تطبيق ذِمّة",
   "reportInsightAllClear": "لا توجد متأخرات، وكل شيء تحت السيطرة.",
-  "reportInsightClosed": "{count, plural, =0{لم تُغلق أي ديون هذا الشهر.} =1{تم إغلاق دين واحد هذا الشهر.} =2{تم إغلاق ديان هذا الشهر.} few{تم إغلاق {count} ديون هذا الشهر.} other{تم إغلاق {count} دينًا هذا الشهر.}}",
+  "reportInsightClosed": "{count, plural, =0{لم تُغلق أي ديون هذا الشهر.} =1{تم إغلاق دين واحد هذا الشهر.} =2{تم إغلاق دينين هذا الشهر.} few{تم إغلاق {count} ديون هذا الشهر.} other{تم إغلاق {count} دينًا هذا الشهر.}}",
   "@reportInsightClosed": {
     "placeholders": {
       "count": {
@@ -672,7 +676,7 @@
       }
     }
   },
-  "reportInsightOverdue": "{count, plural, =0{لا ديون متأخرة.} =1{دين واحد متأخر يحتاج متابعة.} =2{ديان متأخران يحتاجان متابعة.} few{{count} ديون متأخرة تحتاج متابعة.} other{{count} دينًا متأخرًا يحتاج متابعة.}}",
+  "reportInsightOverdue": "{count, plural, =0{لا ديون متأخرة.} =1{دين واحد متأخر يحتاج متابعة.} =2{دينان متأخران يحتاجان متابعة.} few{{count} ديون متأخرة تحتاج متابعة.} other{{count} دينًا متأخرًا يحتاج متابعة.}}",
   "@reportInsightOverdue": {
     "placeholders": {
       "count": {
@@ -693,6 +697,8 @@
   "reportMonthlyTitle": "التقرير الشهري",
   "reportNeedsAttention": "يحتاج انتباهك",
   "reportNeedsAttentionEmpty": "لا شيء متأخر ولا مستحق اليوم.",
+  "reportNetIOwe": "الصافي عليّ",
+  "reportNetOwedToMe": "الصافي لي",
   "reportNewDebts": "ديون جديدة",
   "reportObligations": "إجمالي الالتزامات",
   "reportOpenPdf": "فتح الملف",
@@ -718,11 +724,13 @@
   "reportPeopleCount": "عدد الأشخاص",
   "reportPickMonth": "اختر الشهر",
   "reportReceived": "ما تم استلامه",
+  "reportRemainingIOwe": "المتبقي عليّ",
+  "reportRemainingOwedToMe": "المتبقي لي",
   "reportSavePdf": "طباعة أو حفظ",
   "reportSettled": "إجمالي ما تم سداده",
   "reportSharePdf": "مشاركة PDF",
   "reportShareStatement": "مشاركة كشف",
-  "reportStatementFor": "كشف حساب",
+  "reportStatementFor": "الحساب مع",
   "reportStatementReady": "تم إنشاء كشف الحساب",
   "reportStatementReadyBody": "يمكنك مراجعته قبل الإرسال.",
   "reportStatementTitle": "كشف حساب",

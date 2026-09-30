@@ -58,21 +58,41 @@ class StatementEntry {
   const StatementEntry({
     required this.date,
     required this.kind,
+    required this.direction,
     required this.amountMinor,
     required this.balanceAfterMinor,
     required this.currency,
+    this.balanceDirection,
+    this.debtTitle,
     this.note,
   });
 
   final DateTime date;
   final StatementEntryKind kind;
+
+  /// The side of the debt this line belongs to: money lent or borrowed, and a
+  /// payment received or made.
+  final DebtDirection direction;
+
   final int amountMinor;
 
-  /// The running balance immediately after this entry — the column that makes a
+  /// The balance immediately after this entry — the column that makes a
   /// statement legible, because it shows the total shrinking.
+  ///
+  /// Always a size: which way it points is [balanceDirection]. A statement can
+  /// hold money owed both ways, and adding the two sides together, as this
+  /// column used to, gave a figure that was neither.
   final int balanceAfterMinor;
 
+  /// Who the balance favours after this entry, or null when it is even.
+  final DebtDirection? balanceDirection;
+
   final AppCurrency currency;
+
+  /// The debt this line belongs to, for a statement that covers several.
+  final String? debtTitle;
+
+  /// The payment's own note.
   final String? note;
 
   Money get amount => Money(amountMinor, currency);
@@ -124,7 +144,6 @@ class StatementDebtLine {
 class StatementData {
   const StatementData({
     required this.documentNumber,
-    required this.documentId,
     required this.generatedAt,
     required this.language,
     required this.personName,
@@ -143,9 +162,6 @@ class StatementData {
 
   /// Human-readable number, stable for a given person and day.
   final String documentNumber;
-
-  /// Short identifier repeated in the footer, for spotting a specific copy.
-  final String documentId;
 
   final DateTime generatedAt;
   final AppLanguage language;
@@ -175,6 +191,36 @@ class StatementData {
   Money get total => Money(totalMinor, currency);
   Money get paid => Money(paidMinor, currency);
   Money get remaining => Money(remainingMinor, currency);
+
+  /// Whether the statement holds money owed both ways.
+  ///
+  /// Its total, paid and remaining figures then add two sides together and
+  /// mean nothing on their own, so the document states each side and the
+  /// difference instead, as the person's page does.
+  bool get isMixed =>
+      debts.any((StatementDebtLine line) => line.direction.isIOwe) &&
+      debts.any((StatementDebtLine line) => !line.direction.isIOwe);
+
+  /// The one side every debt is on, or null when there are none or both.
+  DebtDirection? get direction =>
+      debts.isEmpty || isMixed ? null : debts.first.direction;
+
+  /// Still owed to the user, over the debts covered.
+  Money get owedToMe => Money(_remainingOn(owedToMe: true), currency);
+
+  /// Still owed by the user, over the debts covered.
+  Money get iOwe => Money(_remainingOn(owedToMe: false), currency);
+
+  /// The two sides set against each other: positive when the user is owed.
+  Money get net =>
+      Money(owedToMe.minorUnits - iOwe.minorUnits, currency);
+
+  int _remainingOn({required bool owedToMe}) => debts
+      .where((StatementDebtLine line) => line.direction.isIOwe != owedToMe)
+      .fold<int>(
+        0,
+        (int sum, StatementDebtLine line) => sum + line.remaining.minorUnits,
+      );
 
   /// The filename a shared copy gets.
   ///
@@ -233,60 +279,104 @@ class StatementData {
 
 /// Builds the statement's history from real records.
 ///
-/// Entries are produced oldest-first with a running balance, so the table reads
-/// as the story of the debt: it started at the principal, and each payment brought
-/// the balance down. No line is invented — every row corresponds to a stored
-/// record.
+/// One list, oldest first, with a running balance, so the table reads as the
+/// story of the account: each debt raises the balance on its own side and each
+/// payment brings its debt down. No line is invented — every row corresponds to
+/// a stored record.
+///
+/// Two things this used to get wrong. It listed every debt first and every
+/// payment after, whatever their dates, so a debt recorded in August sat above
+/// a payment made in June and the balance column passed through figures the
+/// account never had. And it added money owed to the user and money the user
+/// owes into one total. The balance is now the two sides set against each
+/// other, and each debt stops at zero, as it does on the debt's own page.
 List<StatementEntry> buildStatementEntries({
   required List<Debt> debts,
   required List<Payment> payments,
   required AppCurrency currency,
 }) {
-  final List<Debt> relevant = <Debt>[
+  final Map<String, Debt> byId = <String, Debt>{
     for (final Debt debt in debts)
-      if (debt.currency == currency) debt,
-  ]..sort((Debt a, Debt b) => a.issuedAt.compareTo(b.issuedAt));
+      if (debt.currency == currency) debt.id: debt,
+  };
+
+  // Every event, then one ordering: by date, a debt before a payment on the
+  // same day, and otherwise the order the records came in.
+  final List<_HistoryEvent> events = <_HistoryEvent>[
+    for (final Debt debt in byId.values) _HistoryEvent(debt, null),
+    for (final Payment payment in payments)
+      if (payment.debtId != null && byId.containsKey(payment.debtId))
+        _HistoryEvent(byId[payment.debtId]!, payment),
+  ];
+  final Map<_HistoryEvent, int> arrival = <_HistoryEvent, int>{
+    for (int i = 0; i < events.length; i++) events[i]: i,
+  };
+  events.sort((_HistoryEvent a, _HistoryEvent b) {
+    final int byDate = a.date.compareTo(b.date);
+    if (byDate != 0) return byDate;
+    final int byKind = a.rank.compareTo(b.rank);
+    if (byKind != 0) return byKind;
+    return arrival[a]!.compareTo(arrival[b]!);
+  });
+
+  final Map<String, int> remaining = <String, int>{};
+  int position() {
+    int owedToMe = 0;
+    int iOwe = 0;
+    for (final MapEntry<String, int> entry in remaining.entries) {
+      if (byId[entry.key]!.direction.isIOwe) {
+        iOwe += entry.value;
+      } else {
+        owedToMe += entry.value;
+      }
+    }
+    return owedToMe - iOwe;
+  }
 
   final List<StatementEntry> entries = <StatementEntry>[];
-  int running = 0;
-
-  for (final Debt debt in relevant) {
-    running += debt.principalMinor;
+  for (final _HistoryEvent event in events) {
+    final Debt debt = event.debt;
+    final Payment? payment = event.payment;
+    if (payment == null) {
+      remaining[debt.id] = debt.principalMinor;
+    } else {
+      final int left = (remaining[debt.id] ?? 0) - payment.amountMinor;
+      remaining[debt.id] = left < 0 ? 0 : left;
+    }
+    final int balance = position();
+    final String title = debt.title.trim();
     entries.add(
       StatementEntry(
-        date: debt.issuedAt,
-        kind: StatementEntryKind.debtCreated,
-        amountMinor: debt.principalMinor,
-        balanceAfterMinor: running,
+        date: event.date,
+        kind: payment == null
+            ? StatementEntryKind.debtCreated
+            : StatementEntryKind.payment,
+        direction: debt.direction,
+        amountMinor: payment?.amountMinor ?? debt.principalMinor,
+        balanceAfterMinor: balance.abs(),
+        balanceDirection: balance == 0
+            ? null
+            : (balance > 0 ? DebtDirection.owedToMe : DebtDirection.iOwe),
         currency: currency,
-        note: debt.title.trim().isEmpty ? null : debt.title.trim(),
+        debtTitle: title.isEmpty ? null : title,
+        note: payment?.note,
       ),
     );
   }
-
-  final Set<String> debtIds = <String>{
-    for (final Debt debt in relevant) debt.id,
-  };
-  final List<Payment> relevantPayments = <Payment>[
-    for (final Payment payment in payments)
-      if (payment.debtId != null && debtIds.contains(payment.debtId))
-        payment,
-  ]..sort((Payment a, Payment b) => a.paidAt.compareTo(b.paidAt));
-
-  for (final Payment payment in relevantPayments) {
-    running -= payment.amountMinor;
-    if (running < 0) running = 0;
-    entries.add(
-      StatementEntry(
-        date: payment.paidAt,
-        kind: StatementEntryKind.payment,
-        amountMinor: payment.amountMinor,
-        balanceAfterMinor: running,
-        currency: currency,
-        note: payment.note,
-      ),
-    );
-  }
-
   return entries;
+}
+
+/// A debt being recorded, or a payment on it: one row of the history.
+class _HistoryEvent {
+  _HistoryEvent(this.debt, this.payment);
+
+  final Debt debt;
+
+  /// Null for the debt's own opening row.
+  final Payment? payment;
+
+  DateTime get date => payment?.paidAt ?? debt.issuedAt;
+
+  /// A debt comes before a payment made on the same day.
+  int get rank => payment == null ? 0 : 1;
 }

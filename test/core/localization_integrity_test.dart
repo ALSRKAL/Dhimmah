@@ -135,14 +135,16 @@ void main() {
       // One, two, few and many are four different words in Arabic.
       expect(ar.reportInsightOverdue(1), isNot(contains('1')));
       expect(ar.reportInsightOverdue(1), contains('دين واحد'));
-      expect(ar.reportInsightOverdue(2), contains('ديان'));
+      // The dual of «دَين» is «دينان», and «دينين» after a preposition or a
+      // construct. «ديان» is not a form of the word.
+      expect(ar.reportInsightOverdue(2), contains('دينان'));
       expect(ar.reportInsightOverdue(5), contains('ديون'));
       // Zero is a real sentence in Arabic, and «لا ديون متأخرة» is the right one.
       expect(ar.reportInsightOverdue(0), startsWith('لا'));
       expect(RegExp(r'[0-9]').hasMatch(ar.reportInsightOverdue(0)), isFalse);
 
       expect(ar.reportInsightClosed(1), contains('دين واحد'));
-      expect(ar.reportInsightClosed(2), contains('ديان'));
+      expect(ar.reportInsightClosed(2), contains('دينين'));
 
       expect(ar.reportInsightUpcoming(1), contains('التزام واحد'));
       expect(ar.reportInsightUpcoming(2), contains('التزامان'));

@@ -10,7 +10,6 @@ import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
 import '../../core/pdf/statement_document.dart';
 import '../../core/pdf/statement_models.dart';
-import '../../core/utils/dates.dart';
 import '../../domain/entities/debt.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/payment.dart';
@@ -92,10 +91,6 @@ class StatementService {
 
     return StatementData(
       documentNumber: _documentNumber(ledger.person.id, now),
-      documentId: StatementData.stableCode(
-        '${ledger.person.id}-$currency-${toIsoDate(now)}',
-        length: 6,
-      ),
       generatedAt: now,
       language: formatting.language,
       personName: ledger.person.name,

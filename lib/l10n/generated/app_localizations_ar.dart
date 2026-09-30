@@ -1308,6 +1308,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportEmptyTitle => 'لا توجد بيانات لهذا الشهر.';
 
   @override
+  String get reportEntryIOwe => 'دين عليّ';
+
+  @override
+  String get reportEntryOwedToMe => 'دين لي';
+
+  @override
+  String get reportEntryPaid => 'دفعة مسدّدة';
+
+  @override
+  String get reportEntryReceived => 'دفعة مستلمة';
+
+  @override
   String get reportExportPdf => 'تصدير PDF';
 
   @override
@@ -1326,7 +1338,7 @@ class AppLocalizationsAr extends AppLocalizations {
       locale: localeName,
       other: 'تم إغلاق $count دينًا هذا الشهر.',
       few: 'تم إغلاق $count ديون هذا الشهر.',
-      two: 'تم إغلاق ديان هذا الشهر.',
+      two: 'تم إغلاق دينين هذا الشهر.',
       one: 'تم إغلاق دين واحد هذا الشهر.',
       zero: 'لم تُغلق أي ديون هذا الشهر.',
     );
@@ -1340,7 +1352,7 @@ class AppLocalizationsAr extends AppLocalizations {
       locale: localeName,
       other: '$count دينًا متأخرًا يحتاج متابعة.',
       few: '$count ديون متأخرة تحتاج متابعة.',
-      two: 'ديان متأخران يحتاجان متابعة.',
+      two: 'دينان متأخران يحتاجان متابعة.',
       one: 'دين واحد متأخر يحتاج متابعة.',
       zero: 'لا ديون متأخرة.',
     );
@@ -1375,6 +1387,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportNeedsAttentionEmpty => 'لا شيء متأخر ولا مستحق اليوم.';
+
+  @override
+  String get reportNetIOwe => 'الصافي عليّ';
+
+  @override
+  String get reportNetOwedToMe => 'الصافي لي';
 
   @override
   String get reportNewDebts => 'ديون جديدة';
@@ -1424,6 +1442,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportReceived => 'ما تم استلامه';
 
   @override
+  String get reportRemainingIOwe => 'المتبقي عليّ';
+
+  @override
+  String get reportRemainingOwedToMe => 'المتبقي لي';
+
+  @override
   String get reportSavePdf => 'طباعة أو حفظ';
 
   @override
@@ -1436,7 +1460,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportShareStatement => 'مشاركة كشف';
 
   @override
-  String get reportStatementFor => 'كشف حساب';
+  String get reportStatementFor => 'الحساب مع';
 
   @override
   String get reportStatementReady => 'تم إنشاء كشف الحساب';

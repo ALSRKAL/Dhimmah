@@ -1306,6 +1306,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportEmptyTitle => 'Nothing recorded for this month.';
 
   @override
+  String get reportEntryIOwe => 'I owe';
+
+  @override
+  String get reportEntryOwedToMe => 'Owed to me';
+
+  @override
+  String get reportEntryPaid => 'Payment made';
+
+  @override
+  String get reportEntryReceived => 'Payment received';
+
+  @override
   String get reportExportPdf => 'Export PDF';
 
   @override
@@ -1370,6 +1382,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportNeedsAttentionEmpty => 'Nothing is late or due today.';
 
   @override
+  String get reportNetIOwe => 'Net, I owe';
+
+  @override
+  String get reportNetOwedToMe => 'Net, owed to me';
+
+  @override
   String get reportNewDebts => 'New debts';
 
   @override
@@ -1415,6 +1433,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportReceived => 'Received';
+
+  @override
+  String get reportRemainingIOwe => 'I still owe';
+
+  @override
+  String get reportRemainingOwedToMe => 'Still owed to me';
 
   @override
   String get reportSavePdf => 'Print or save';
