@@ -8,6 +8,7 @@ import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/links.dart';
 import '../../core/money/currency.dart';
+import '../../core/money/region_currency.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/security/biometric_service.dart';
 import '../../core/theme/app_palette.dart';
@@ -89,7 +90,7 @@ class SettingsScreen extends ConsumerWidget {
                 title: localizations.settingsCurrency,
                 icon: Icons.payments_outlined,
                 valueText: settings.defaultCurrency.codeAndSymbol,
-                onTap: () => _pickCurrency(context, controller, settings),
+                onTap: () => _pickCurrency(context, ref, controller, settings),
               ),
               SettingsTile(
                 title: localizations.settingsDueSoonWindow,
@@ -365,23 +366,36 @@ class SettingsScreen extends ConsumerWidget {
     if (picked != null) await controller.setNumerals(picked);
   }
 
+  /// The default currency. The one of the place the phone is in comes first,
+  /// and says so; the stored default stays what the user chose.
   Future<void> _pickCurrency(
     BuildContext context,
+    WidgetRef ref,
     SettingsController controller,
     AppSettings settings,
   ) async {
     final AppLocalizations localizations = AppLocalizations.of(context);
+    final AppCurrency? suggested = ref.read(regionCurrencyProvider);
     final AppCurrency? picked = await showModalBottomSheet<AppCurrency>(
       context: context,
       builder: (BuildContext sheetContext) => OptionSheet<AppCurrency>(
         title: localizations.settingsCurrency,
         value: settings.defaultCurrency,
-        options: AppCurrency.values,
+        options: currenciesWithFirst(suggested),
         labelOf: (AppCurrency value) => value.label(localizations),
-        subtitleOf: (AppCurrency value) => value.codeAndSymbol,
+        subtitleOf: (AppCurrency value) => value == suggested
+            ? '${value.codeAndSymbol} · '
+                '${localizations.currencySuggestedForRegion}'
+            : value.codeAndSymbol,
       ),
     );
-    if (picked != null) await controller.setDefaultCurrency(picked);
+    if (picked == null) return;
+    try {
+      await controller.setDefaultCurrency(picked);
+    } on Object {
+      if (!context.mounted) return;
+      AppFeedback.error(context, localizations.somethingWentWrong);
+    }
   }
 
   Future<void> _pickDueSoonWindow(

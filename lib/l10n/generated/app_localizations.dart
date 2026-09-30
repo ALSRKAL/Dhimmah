@@ -4351,6 +4351,12 @@ abstract class AppLocalizations {
   /// **'ريال يمني'**
   String get currencyNameYer;
 
+  /// Marks the currency of the place the phone is in, worked out from its time zone and region settings, in every currency picker.
+  ///
+  /// In ar, this message translates to:
+  /// **'مقترحة حسب منطقتك'**
+  String get currencySuggestedForRegion;
+
   /// No description provided for @languageDevice.
   ///
   /// In ar, this message translates to:

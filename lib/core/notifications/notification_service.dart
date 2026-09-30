@@ -155,6 +155,14 @@ class NotificationService {
 
   NotificationPermission get permission => _permission;
 
+  /// The phone's time zone as an IANA name (`Asia/Aden`), as last read: at
+  /// start-up and on every return to the foreground. Null before start-up,
+  /// where reminders are not supported, or when the phone does not say.
+  ///
+  /// Read here because this service is where the time-zone plugin is used; the
+  /// suggested currency is the other reader.
+  String? get timeZone => _timezone;
+
   /// The permission, then every change to it.
   Stream<NotificationPermission> get permissionChanges async* {
     yield _permission;

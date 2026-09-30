@@ -1249,6 +1249,10 @@
   "currencyNameSar": "Saudi riyal",
   "currencyNameUsd": "US dollar",
   "currencyNameYer": "Yemeni rial",
+  "currencySuggestedForRegion": "Suggested for your region",
+  "@currencySuggestedForRegion": {
+    "description": "Marks the currency of the place the phone is in, worked out from its time zone and region settings, in every currency picker."
+  },
   "languageDevice": "Device language",
   "languageDeviceCurrently": "Currently {language}",
   "@languageDeviceCurrently": {

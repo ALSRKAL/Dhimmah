@@ -2577,6 +2577,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get currencyNameYer => 'ريال يمني';
 
   @override
+  String get currencySuggestedForRegion => 'مقترحة حسب منطقتك';
+
+  @override
   String get languageDevice => 'لغة الجهاز';
 
   @override

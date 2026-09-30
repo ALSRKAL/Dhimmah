@@ -1249,6 +1249,10 @@
   "currencyNameSar": "ريال سعودي",
   "currencyNameUsd": "دولار أمريكي",
   "currencyNameYer": "ريال يمني",
+  "currencySuggestedForRegion": "مقترحة حسب منطقتك",
+  "@currencySuggestedForRegion": {
+    "description": "Marks the currency of the place the phone is in, worked out from its time zone and region settings, in every currency picker."
+  },
   "languageDevice": "لغة الجهاز",
   "languageDeviceCurrently": "حاليًا: {language}",
   "@languageDeviceCurrently": {

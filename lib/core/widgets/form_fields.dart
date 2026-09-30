@@ -6,6 +6,7 @@ import '../../l10n/enum_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../formatting/app_formatting.dart';
 import '../money/currency.dart';
+import '../money/region_currency.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 import '../utils/money_input.dart';
@@ -366,6 +367,7 @@ class OptionField<T> extends StatelessWidget {
     required this.labelOf,
     required this.onChanged,
     this.iconOf,
+    this.subtitleOf,
     this.title,
     this.icon = Icons.tune,
     this.errorText,
@@ -377,6 +379,9 @@ class OptionField<T> extends StatelessWidget {
   final List<T> options;
   final String Function(T option) labelOf;
   final IconData Function(T option)? iconOf;
+
+  /// A second line for an option in the sheet, or null for one that needs none.
+  final String? Function(T option)? subtitleOf;
   final ValueChanged<T> onChanged;
   final String? title;
   final IconData icon;
@@ -415,9 +420,46 @@ class OptionField<T> extends StatelessWidget {
         options: options,
         labelOf: labelOf,
         iconOf: iconOf,
+        subtitleOf: subtitleOf,
       ),
     );
     if (picked != null && picked != value) onChanged(picked);
+  }
+}
+
+/// The currency of a record.
+///
+/// [suggested] — the currency of the place the phone is in, when there is one
+/// — comes first in the list and says so, as it does wherever a currency is
+/// picked. It is only offered: [value] is what the record has.
+class CurrencyField extends StatelessWidget {
+  const CurrencyField({
+    required this.value,
+    required this.onChanged,
+    this.suggested,
+    super.key,
+  });
+
+  final AppCurrency value;
+  final AppCurrency? suggested;
+  final ValueChanged<AppCurrency> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    return OptionField<AppCurrency>(
+      label: localizations.fieldCurrency,
+      value: value,
+      options: currenciesWithFirst(suggested),
+      labelOf: (AppCurrency currency) => currency.codeAndSymbol,
+      subtitleOf: (AppCurrency currency) => currency == suggested
+          ? localizations.currencySuggestedForRegion
+          : null,
+      iconOf: (AppCurrency _) => Icons.payments_outlined,
+      title: localizations.fieldCurrency,
+      icon: Icons.payments_outlined,
+      onChanged: onChanged,
+    );
   }
 }
 

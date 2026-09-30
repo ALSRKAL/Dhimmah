@@ -294,15 +294,9 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                 },
               ),
               const SizedBox(height: AppSpacing.md),
-              OptionField<AppCurrency>(
-                label: localizations.fieldCurrency,
+              CurrencyField(
                 value: _currency ?? AppCurrency.inr,
-                options: AppCurrency.values,
-                labelOf: (AppCurrency currency) =>
-                    '${currency.code} · ${currency.symbol}',
-                iconOf: (AppCurrency _) => Icons.payments_outlined,
-                title: localizations.fieldCurrency,
-                icon: Icons.payments_outlined,
+                suggested: ref.watch(regionCurrencyProvider),
                 onChanged: (AppCurrency currency) => setState(() {
                   _dirty = true;
                   _currency = currency;

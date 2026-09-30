@@ -2525,6 +2525,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currencyNameYer => 'Yemeni rial';
 
   @override
+  String get currencySuggestedForRegion => 'Suggested for your region';
+
+  @override
   String get languageDevice => 'Device language';
 
   @override

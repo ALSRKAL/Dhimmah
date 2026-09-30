@@ -8,6 +8,7 @@ import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
+import '../../core/money/region_currency.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
@@ -53,9 +54,12 @@ enum _Reminders {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pages = PageController();
   int _index = 0;
-  late AppCurrency _currency = ref
-      .read(effectiveSettingsProvider)
-      .defaultCurrency;
+
+  /// The currency of the place the phone is in, already chosen when there is
+  /// one. Onboarding only runs on a fresh install, so the stored default it
+  /// replaces is the seed, never a choice the user made.
+  late AppCurrency _currency = ref.read(regionCurrencyProvider) ??
+      ref.read(effectiveSettingsProvider).defaultCurrency;
   bool _busy = false;
 
   static const int _stepCount = 3;
@@ -108,6 +112,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         _WelcomeStep(onContinue: () => _goTo(1)),
                         _CurrencyStep(
                           selected: _currency,
+                          suggested: ref.watch(regionCurrencyProvider),
                           onSelected: (AppCurrency currency) =>
                               setState(() => _currency = currency),
                           onContinue: () => _goTo(2),
@@ -592,15 +597,18 @@ class _WelcomeStep extends StatelessWidget {
   }
 }
 
-/// The currency new records start in.
+/// The currency new records start in, the one of the place the phone is in
+/// first.
 class _CurrencyStep extends StatelessWidget {
   const _CurrencyStep({
     required this.selected,
+    required this.suggested,
     required this.onSelected,
     required this.onContinue,
   });
 
   final AppCurrency selected;
+  final AppCurrency? suggested;
   final ValueChanged<AppCurrency> onSelected;
   final VoidCallback onContinue;
 
@@ -620,12 +628,13 @@ class _CurrencyStep extends StatelessWidget {
           body: localizations.onboardingCurrencyBody,
         ),
         const SizedBox(height: AppSpacing.xl),
-        for (final AppCurrency currency in AppCurrency.values)
+        for (final AppCurrency currency in currenciesWithFirst(suggested))
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
             child: _CurrencyOption(
               currency: currency,
               selected: currency == selected,
+              suggested: currency == suggested,
               onTap: () => onSelected(currency),
             ),
           ),
@@ -642,11 +651,15 @@ class _CurrencyOption extends StatelessWidget {
   const _CurrencyOption({
     required this.currency,
     required this.selected,
+    required this.suggested,
     required this.onTap,
   });
 
   final AppCurrency currency;
   final bool selected;
+
+  /// Whether this is the currency of the place the phone is in.
+  final bool suggested;
   final VoidCallback onTap;
 
   @override
@@ -707,6 +720,16 @@ class _CurrencyOption extends StatelessWidget {
                           : palette.textTertiary,
                     ),
                   ),
+                  if (suggested)
+                    Text(
+                      localizations.currencySuggestedForRegion,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: selected
+                            ? palette.onBrandContainer
+                            : palette.brand,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                 ],
               ),
             ),

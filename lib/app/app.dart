@@ -248,7 +248,10 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
     try {
       final NotificationEnvironment environment =
           await ref.read(notificationServiceProvider).refreshEnvironment();
-      if (!environment.changed) return;
+      if (!environment.changed || !mounted) return;
+      // The phone may be in another country now, and the suggested currency
+      // follows its time zone.
+      ref.invalidate(deviceTimeZoneProvider);
       if (environment.mustReschedule) {
         await ref.read(ledgerServiceProvider).refreshNotifications();
       }

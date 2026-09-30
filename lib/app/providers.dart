@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../core/formatting/app_formatting.dart';
 import '../core/money/currency.dart';
+import '../core/money/region_currency.dart';
 import '../core/notifications/notification_composer.dart';
 import '../core/notifications/notification_service.dart';
 import '../core/security/biometric_service.dart';
@@ -265,6 +266,29 @@ class DeviceLocales extends Notifier<List<Locale>> {
 
 final NotifierProvider<DeviceLocales, List<Locale>> deviceLocalesProvider =
     NotifierProvider<DeviceLocales, List<Locale>>(DeviceLocales.new);
+
+/// The phone's time zone as an IANA name, or null when it does not say.
+///
+/// Read through the notification service, which is where the time-zone plugin
+/// is used, at start-up and on every return to the foreground. The app root
+/// invalidates this when a return finds the zone changed.
+final Provider<String?> deviceTimeZoneProvider = Provider<String?>(
+  (Ref ref) => ref.watch(notificationServiceProvider).timeZone,
+);
+
+/// The currency of the place the phone is in, when it is one Dhimmah records
+/// in, or null. From the time zone and the phone's languages alone — no
+/// location permission; see [regionCurrency].
+///
+/// Offered first, and marked, wherever a currency is picked. On a fresh install
+/// it is also the one already chosen; a default the user has stored is never
+/// changed by it.
+final Provider<AppCurrency?> regionCurrencyProvider = Provider<AppCurrency?>(
+  (Ref ref) => regionCurrency(
+    timeZone: ref.watch(deviceTimeZoneProvider),
+    locales: ref.watch(deviceLocalesProvider),
+  ),
+);
 
 /// The language the phone asks for, among the two Dhimmah ships.
 final Provider<AppLanguage> deviceLanguageProvider =
