@@ -99,9 +99,18 @@ nothing else is persisted, and no raw temporary URL is assumed to keep working.
 
 **This file has not been compiled.** The machine this was written on has no
 Xcode, so it is code review only, and it is recorded as such rather than as
-proven. Registering it in `AppDelegate` follows the standard plugin-registration
-pattern; the method surface is identical to the Android channel's, so the Dart
-layer above is shared unchanged.
+proven. `AppDelegate` creates the channel in `didInitializeImplicitFlutterEngine`
+with the engine's messenger, as Flutter's UIScene migration guide describes for
+method channels; the method surface is identical to the Android channel's, so
+the Dart layer above is shared unchanged.
+
+A review without a compiler found, and fixed, faults that would each have
+stopped it: the channel was registered as a plugin it did not declare itself
+to be, from a callback that runs before the scene's engine exists; one throwing
+call lacked `try` and another parsed as a member of `String`; the picker's
+delegate was held weakly and gone before the user chose; replies were sent off
+the main thread; and security-scoped access was opened on every call and never
+closed. Fixed by reading the APIs, still not by building them.
 
 ---
 
@@ -316,7 +325,7 @@ Only genuine ones:
    and is pinned by tests; the emulator's provider refuses folder grants, so the
    first real `OpenDocumentTree` → create → save → verify has not been watched.
    Until it is, this is `NOT PROVEN` on the device, whatever the tests say.
-2. **The iOS Swift is uncompiled.** It follows documented APIs and the standard
+2. **The iOS Swift is uncompiled.** It follows documented APIs and the UIScene
    registration pattern, but a compile on macOS is the only real check, and
    iOS behaviour is unproven.
 3. **A provider may refuse `createFolder`.** The product handles it by asking the

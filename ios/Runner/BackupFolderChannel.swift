@@ -35,67 +35,88 @@ import UIKit
   static let folderName = "Dhimmah Backups"
 
   private let queue = DispatchQueue(label: "dhimmah.backup-folder", qos: .userInitiated)
-  private weak var pickerDelegate: FolderPickerDelegate?
 
-  static func register(with registrar: FlutterPluginRegistrar) {
-    let channel = FlutterMethodChannel(name: methodName, binaryMessenger: registrar.messenger())
+  /// The open picker's delegate, held until it answers. The picker keeps only a
+  /// weak reference to its delegate, so one that nothing else held was gone
+  /// before the user chose, and the choice never reached Dart.
+  private var pickerDelegate: FolderPickerDelegate?
+
+  /// Answers the channel on [messenger].
+  ///
+  /// Takes the messenger rather than a plugin registrar: this is a method
+  /// channel, not a plugin, and under the scene lifecycle the app delegate
+  /// creates it in `didInitializeImplicitFlutterEngine` with the engine's
+  /// messenger, as Flutter's UIScene migration guide describes. The handler
+  /// closure holds the instance, and the messenger holds the handler.
+  static func register(with messenger: FlutterBinaryMessenger) {
+    let channel = FlutterMethodChannel(name: methodName, binaryMessenger: messenger)
     let instance = BackupFolderChannel()
-    registrar.addMethodCallDelegate(instance, channel: channel)
+    channel.setMethodCallHandler { call, result in
+      instance.handle(call, result: result)
+    }
   }
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    // The picker has to run on the main thread and answer later, so it is
+    // handled before the worker queue.
+    if call.method == "chooseFolder" {
+      DispatchQueue.main.async { self.presentFolderPicker(result) }
+      return
+    }
+    // The work runs off the main thread; its answer goes back on it, which is
+    // where a channel's replies belong.
+    let reply: FlutterResult = { value in
+      DispatchQueue.main.async { result(value) }
+    }
     queue.async {
       do {
+        let arguments = call.arguments as? [String: Any]
+        let uri = arguments?["uri"] as? String
         switch call.method {
-        case "chooseFolder":
-          // The picker has to run on the main thread and answer later, so this
-          // case is handled before the worker runs.
-          DispatchQueue.main.async { self.presentFolderPicker(result) }
         case "createFolder":
-          let arguments = call.arguments as? [String: Any]
-          let url = try self.resolveBookmark(arguments?["uri"] as? String)
           let name = arguments?["name"] as? String ?? Self.folderName
-          result(self.describe(try self.createFolder(in: url, named: name)))
+          reply(try self.withAccess(to: uri) { folder in
+            self.describe(try self.createFolder(in: folder, named: name))
+          })
         case "writeDocument":
-          let arguments = call.arguments as? [String: Any]
-          let url = try self.resolveBookmark(arguments?["uri"] as? String)
           let name = arguments?["name"] as? String ?? "backup.dhimmah"
           let bytes = arguments?["bytes"] as? FlutterStandardTypedData
-          result(try self.write(bytes?.data ?? Data(), into: url, named: name))
+          reply(try self.withAccess(to: uri) { folder in
+            try self.write(bytes?.data ?? Data(), into: folder, named: name)
+          })
         case "readDocument":
-          let arguments = call.arguments as? [String: Any]
-          let url = try self.resolveBookmark(arguments?["uri"] as? String)
-          let target = arguments?["document"] as? String
-            .flatMap { try? self.resolveBookmark($0) }
-          result(FlutterStandardTypedData(bytes: try Data(contentsOf: target ?? url)))
+          let data = try self.withAccess(to: uri) { document in
+            try Data(contentsOf: document)
+          }
+          reply(FlutterStandardTypedData(bytes: data))
         case "listDocuments":
-          let arguments = call.arguments as? [String: Any]
-          let url = try self.resolveBookmark(arguments?["uri"] as? String)
-          result(self.list(in: url))
+          reply(try self.withAccess(to: uri) { folder in
+            try self.list(in: folder)
+          })
         case "deleteDocument":
-          let arguments = call.arguments as? [String: Any]
-          let url = try self.resolveBookmark(arguments?["uri"] as? String)
-          try FileManager.default.removeItem(at: url)
-          result(["deleted": true])
+          try self.withAccess(to: uri) { document in
+            try FileManager.default.removeItem(at: document)
+          }
+          reply(["deleted": true])
         case "verifyWritable":
-          let arguments = call.arguments as? [String: Any]
-          let url = try self.resolveBookmark(arguments?["uri"] as? String)
-          try self.verifyWritable(url)
-          result(["writable": true])
+          try self.withAccess(to: uri) { folder in
+            try self.verifyWritable(folder)
+          }
+          reply(["writable": true])
         case "describeFolder":
-          let arguments = call.arguments as? [String: Any]
-          let url = try self.resolveBookmark(arguments?["uri"] as? String)
-          result(self.describe(url))
+          reply(try self.withAccess(to: uri) { folder in
+            self.describe(folder)
+          })
         case "releaseFolder":
           // A bookmark has nothing to hand back; forgetting it is enough.
-          result(["released": true])
+          reply(["released": true])
         default:
-          result(FlutterMethodNotImplemented)
+          reply(FlutterMethodNotImplemented)
         }
       } catch let error as FolderError {
-        result(FlutterError(code: error.code, message: error.message, details: nil))
+        reply(FlutterError(code: error.code, message: error.message, details: nil))
       } catch {
-        result(FlutterError(code: "io_error", message: error.localizedDescription, details: nil))
+        reply(FlutterError(code: "io_error", message: error.localizedDescription, details: nil))
       }
     }
   }
@@ -103,10 +124,27 @@ import UIKit
   // MARK: - Choosing
 
   private func presentFolderPicker(_ result: @escaping FlutterResult) {
+    // One choice at a time, as on Android: a second picker would take the
+    // first one's place, and the first caller would wait for ever.
+    if pickerDelegate != nil {
+      result(FlutterError(code: "io_error", message: "a folder choice is already open", details: nil))
+      return
+    }
+    let presenter = UIApplication.shared.connectedScenes
+      .compactMap({ $0 as? UIWindowScene })
+      .flatMap({ $0.windows })
+      .first(where: { $0.isKeyWindow })?
+      .rootViewController
+    guard let presenter else {
+      // Nothing on screen to present from: answered, rather than left waiting.
+      result(FlutterError(code: "io_error", message: "could not open the folder picker", details: nil))
+      return
+    }
     let types = [UTType.folder]
     let picker = UIDocumentPickerViewController(forOpeningContentTypes: types, asCopy: false)
     picker.allowsMultipleSelection = false
-    let delegate = FolderPickerDelegate { bookmark, name, persisted in
+    let delegate = FolderPickerDelegate { [weak self] bookmark, name, persisted in
+      self?.pickerDelegate = nil
       if let bookmark {
         result(["uri": bookmark, "displayName": name, "persisted": persisted])
       } else {
@@ -114,33 +152,39 @@ import UIKit
       }
     }
     picker.delegate = delegate
-    self.pickerDelegate = delegate
-    UIApplication.shared.connectedScenes
-      .compactMap { $0 as? UIWindowScene }
-      .flatMap { $0.windows }
-      .first { $0.isKeyWindow }?
-      .rootViewController?.present(picker, animated: true)
+    pickerDelegate = delegate
+    presenter.present(picker, animated: true)
   }
 
   // MARK: - Security-scoped access
 
-  /// Turns a bookmark back into a URL, and opens access to it.
+  /// Turns a bookmark back into a URL.
   private func resolveBookmark(_ raw: String?) throws -> URL {
     guard let raw, let data = Data(base64Encoded: raw) else {
       throw FolderError(code: "bad_uri", message: "no folder was named")
     }
     var stale = false
-    let url = try URL(
+    return try URL(
       resolvingBookmarkData: data,
       options: [],
       relativeTo: nil,
       bookmarkDataIsStale: &stale
     )
+  }
+
+  /// Resolves a bookmark and runs [body] with access to it open.
+  ///
+  /// Every `startAccessingSecurityScopedResource` is paired with its `stop`.
+  /// Access used to be started on every call and never stopped; the system
+  /// counts those, and access that is only ever opened is a leak.
+  private func withAccess<T>(to raw: String?, _ body: (URL) throws -> T) throws -> T {
+    let url = try resolveBookmark(raw)
     guard url.startAccessingSecurityScopedResource() else {
       // The user, or the provider, took the access back.
       throw FolderError(code: "forbidden", message: "access to the folder was revoked")
     }
-    return url
+    defer { url.stopAccessingSecurityScopedResource() }
+    return try body(url)
   }
 
   private func createFolder(in parent: URL, named name: String) throws -> URL {
@@ -164,13 +208,15 @@ import UIKit
       throw FolderError(code: "empty_bytes", message: "refusing to write an empty document")
     }
     let target = folder.appendingPathComponent(name)
+    // Asked before the write: asked after, it was always true.
+    let replacedExisting = FileManager.default.fileExists(atPath: target.path)
     try data.write(to: target, options: [.atomic])
     return [
       "uri": try bookmarkData(for: target),
       "displayName": target.lastPathComponent,
       "size": data.count,
       "bytes": data.count,
-      "replacedExisting": FileManager.default.fileExists(atPath: target.path),
+      "replacedExisting": replacedExisting,
     ]
   }
 
