@@ -795,6 +795,83 @@ void main() {
       expect(restored.paidMinor, 1000000);
       expect(restored.remainingMinor, 4000000);
     });
+
+    test('brings back the record’s own history, not a new one', () async {
+      final Person person = await addPerson('أحمد');
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          principalMinor: 5000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1000000, paidAt: clock),
+      );
+      Future<List<ActivityEntryRow>> feed() => db.activityDao
+          .watchForEntity(RelatedEntityType.debt, debt.id)
+          .first;
+      final List<ActivityEntryRow> before = await feed();
+      expect(before, isNotEmpty);
+
+      // Deleted and undone a day later, so an entry written by the undo would
+      // show itself by its time.
+      clock = addDays(clock, 1);
+      await service.restoreDeleted(
+        await service.deleteDebtWithSnapshot(debt.id),
+      );
+
+      final List<ActivityEntryRow> after = await feed();
+      expect(
+        after.map((ActivityEntryRow row) => row.id).toSet(),
+        before.map((ActivityEntryRow row) => row.id).toSet(),
+        reason: 'the same entries come back: no "deleted" is left and no '
+            'second "created" is added',
+      );
+      expect(
+        after.map((ActivityEntryRow row) => row.occurredAt).toSet(),
+        before.map((ActivityEntryRow row) => row.occurredAt).toSet(),
+      );
+    });
+
+    test('still works when a person on it was deleted in between', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[ahmed.id, ali.id],
+          principalMinor: 5000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      // Paid by the first person on the record, which is Ahmed.
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1000000, paidAt: clock),
+      );
+
+      final LedgerServiceSnapshot snapshot =
+          await service.deleteDebtWithSnapshot(debt.id);
+      await service.deletePerson(ahmed.id);
+      await service.restoreDeleted(snapshot);
+
+      final DebtView restored = (await views()).single;
+      expect(
+        restored.debt.personIds,
+        <String>[ali.id],
+        reason: 'as deleting Ahmed would have left it, had it been there',
+      );
+      expect(restored.paidMinor, 1000000,
+          reason: 'the payment is kept; only who made it is gone');
+      final List<Payment> kept =
+          await PaymentRepositoryImpl(db).forDebt(debt.id);
+      expect(kept.single.personId, isNull);
+    });
   });
 
   group('the monthly report', () {

@@ -151,18 +151,39 @@ class _OverflowMenu extends ConsumerWidget {
             final ScaffoldMessengerState messenger =
                 ScaffoldMessenger.of(context);
             final Color undoIcon = context.palette.textSecondary;
+            final Color errorIcon = context.palette.overdue;
+            void reportFailure() => AppFeedback.errorDetached(
+                  messenger: messenger,
+                  message: localizations.somethingWentWrong,
+                  iconColor: errorIcon,
+                );
             // The router object itself, not its Navigator: go_router keeps its
             // own page list, and a raw Navigator pop leaves the two disagreeing
             // — the device showed a blank screen after exactly that.
             final GoRouter router = GoRouter.of(context);
-            final LedgerServiceSnapshot snapshot =
-                await service.deleteDebtWithSnapshot(debtId);
+            final LedgerServiceSnapshot snapshot;
+            try {
+              snapshot = await service.deleteDebtWithSnapshot(debtId);
+            } on Object {
+              // Said, and the page is left where it is: a record that did go
+              // is noticed by the page itself, as any vanished record is.
+              reportFailure();
+              return;
+            }
             AppFeedback.undoableDetached(
               messenger: messenger,
               message: localizations.recordDeleted,
               undoLabel: localizations.actionUndo,
               iconColor: undoIcon,
-              onUndo: () => service.restoreDeleted(snapshot),
+              // A failed undo is said, instead of escaping as an error nothing
+              // catches.
+              onUndo: () async {
+                try {
+                  await service.restoreDeleted(snapshot);
+                } on Object {
+                  reportFailure();
+                }
+              },
             );
             router.pop();
         }

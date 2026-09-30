@@ -347,6 +347,11 @@ class LedgerService {
   Future<LedgerServiceSnapshot> deleteDebtWithSnapshot(String id) async {
     final Debt? existing = await debts.getById(id);
     final List<Payment> history = await payments.forDebt(id);
+    // The record's own feed — created, paid, edited — goes with it, so it is
+    // kept too: an undo that brought back the debt without it left a record
+    // whose history began at the moment it was undone.
+    final List<ActivityEntry> feed =
+        await activity.forEntity(RelatedEntityType.debt, id);
     final String title =
         existing == null ? '' : await _displayNameFor(existing);
 
@@ -363,32 +368,55 @@ class LedgerService {
     );
     await refreshNotifications();
 
-    return LedgerServiceSnapshot(debt: existing, payments: history);
+    return LedgerServiceSnapshot(
+      debt: existing,
+      payments: history,
+      activity: feed,
+    );
   }
 
-  /// Restores a debt and its payments exactly as they were.
+  /// Restores a debt, its payments and its history exactly as they were.
   ///
   /// Identifiers are preserved, so an undone delete leaves no trace behind: the
-  /// same ids, the same timestamps, the same balances.
+  /// same ids, the same timestamps, the same balances, the same feed.
+  ///
+  /// A person the record was with may have been deleted in the meantime. They
+  /// are left out, as [deletePerson] would have left them out had the record
+  /// been there: a link to nobody used to fail the whole undo.
   Future<void> restoreDeleted(LedgerServiceSnapshot snapshot) async {
     final Debt? debt = snapshot.debt;
     if (debt == null) return;
 
     await _db.transaction(() async {
-      await debts.save(debt);
-      for (final Payment payment in snapshot.payments) {
-        await payments.save(payment);
+      final Set<String> present = <String>{};
+      for (final String id in <String>{
+        ...debt.personIds,
+        for (final Payment payment in snapshot.payments)
+          if (payment.personId != null) payment.personId!,
+      }) {
+        if (await people.getById(id) != null) present.add(id);
       }
+
+      await debts.save(
+        debt.copyWith(
+          personIds: <String>[
+            for (final String id in debt.personIds)
+              if (present.contains(id)) id,
+          ],
+        ),
+      );
+      for (final Payment payment in snapshot.payments) {
+        final String? payer = payment.personId;
+        await payments.save(
+          payer == null || present.contains(payer)
+              ? payment
+              : payment.copyWith(personId: null),
+        );
+      }
+      // The entry the delete wrote goes; the record's own entries come back.
       await activity.deleteForEntity(RelatedEntityType.debt, debt.id);
+      await activity.addAll(snapshot.activity);
     });
-    await _log(
-      type: ActivityType.debtCreated,
-      entityType: RelatedEntityType.debt,
-      entityId: debt.id,
-      title: await _displayNameFor(debt),
-      amountMinor: debt.principalMinor,
-      currency: debt.currency,
-    );
     await ensureOccurrences();
     await refreshNotifications();
   }
@@ -1611,10 +1639,17 @@ class LedgerService {
 /// Everything needed to undo a delete.
 @immutable
 class LedgerServiceSnapshot {
-  const LedgerServiceSnapshot({required this.debt, required this.payments});
+  const LedgerServiceSnapshot({
+    required this.debt,
+    required this.payments,
+    required this.activity,
+  });
 
   /// Null when the record had already gone.
   final Debt? debt;
 
   final List<Payment> payments;
+
+  /// The record's feed entries, as they were before the delete.
+  final List<ActivityEntry> activity;
 }

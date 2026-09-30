@@ -378,15 +378,37 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
     );
     if (!confirmed || !context.mounted) return;
 
-    final LedgerServiceSnapshot snapshot = await ref
-        .read(ledgerServiceProvider)
-        .deleteDebtWithSnapshot(view.debt.id);
+    // Taken now: the undo can be pressed after this list has gone, when
+    // neither `ref` nor `context` may be used any more.
+    final LedgerService service = ref.read(ledgerServiceProvider);
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final Color errorIcon = context.palette.overdue;
+    void reportFailure() => AppFeedback.errorDetached(
+          messenger: messenger,
+          message: localizations.somethingWentWrong,
+          iconColor: errorIcon,
+        );
+
+    final LedgerServiceSnapshot snapshot;
+    try {
+      snapshot = await service.deleteDebtWithSnapshot(view.debt.id);
+    } on Object {
+      reportFailure();
+      return;
+    }
     if (!context.mounted) return;
 
     AppFeedback.undoable(
       context,
       message: localizations.recordDeleted,
-      onUndo: () => ref.read(ledgerServiceProvider).restoreDeleted(snapshot),
+      // A failed undo is said, instead of escaping as an error nothing catches.
+      onUndo: () async {
+        try {
+          await service.restoreDeleted(snapshot);
+        } on Object {
+          reportFailure();
+        }
+      },
     );
   }
 }
