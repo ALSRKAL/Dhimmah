@@ -203,8 +203,8 @@ bool _isArabicLetter(int code) =>
 /// The renderer's bidirectional pass throws when a paragraph opens with a
 /// letter that comes apart into several — «لا» and the other lam-alefs, or an
 /// «أ» or «ؤ» carrying a vowel — so a statement for «لانا», or with a debt
-/// called «لابتوب», could not be generated at all. Checked against every
-/// Arabic string the app has, 58 of them threw, and every one on its first
+/// called «لابتوب», could not be generated at all. Run over every Arabic
+/// string the app has and each of its words, 58 threw, every one on its first
 /// letter. A line that opens with an Arabic letter is therefore given a
 /// right-to-left mark to start with, and none of them throws. The mark is
 /// strong right-to-left, like the letter it goes before, so the line's

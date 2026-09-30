@@ -61,27 +61,44 @@ never a guess.
 ## The statement PDF
 
 Press **مشاركة كشف** on a person and Dhimmah builds a real financial document:
-header with the mark and a document number, the account summary, a payment history
-with a running balance, a status badge, and a footer with the file's own ID on
-every page. The recipient sees a statement, not a picture of an app.
+header with the mark and a document number, the account summary, the history in
+date order with a running balance, a status badge, and a footer with the
+document number and the page on every page. The recipient sees a statement, not
+a picture of an app.
 
-Arabic is the hard part, and it is handled in two halves that are deliberately
-in different places:
+What it states follows the person's page. With every debt on one side, the
+summary gives the total, what was paid and what is left, and names the side —
+«المتبقي عليّ» or «المتبقي لي» — because a figure alone does not say who owes
+whom. With debts both ways it gives each side and the difference («الصافي عليّ»
+/ «الصافي لي»), never a total adding the two, and the history's running balance
+is that same net, with its side beside it. Each history line says which side it
+is on and, when there is more than one debt, which debt. A statement of a single
+debt names the debt.
 
-* **Shaping is ours.** The PDF library lays text out glyph by glyph and applies no
-  OpenType features, so Arabic handed to it raw comes out as disconnected letters.
-  `core/pdf/arabic_shaper.dart` substitutes the contextual form each letter takes
-  — and the obligatory lam-alef ligatures — in the Unicode presentation forms,
-  which the bundled font covers. Shadda-and-vowel pairs the algorithm composes
-  into legacy ligatures the font does *not* have are expanded back, so no code
-  point can reach the page without a glyph.
-* **Ordering, wrapping and alignment are the renderer's.** The text is handed over
-  in logical order with a right-to-left direction, and the renderer applies the
-  Unicode bidirectional algorithm, arranges each line from the reading side, and
-  breaks lines in logical order. Doing the reordering here instead — which this
-  file used to do — meant the width that was measured belonged to one string and
-  the width that was drawn to another, and a long debt title was printed past the
-  margin and clipped.
+Arabic is the hard part. The PDF library draws glyph by glyph and applies no
+OpenType features, and its own right-to-left handling spaces words by their ink
+rather than their advance (which closed «30 سبتمبر 2026» into «سبتمبر2026»),
+re-shapes what it is handed, and throws on a paragraph that opens with «لا». So
+Arabic is set here, not by the renderer:
+
+* **Shaping.** `core/pdf/arabic_shaper.dart` substitutes the contextual form each
+  letter takes, and the obligatory lam-alef ligatures, in the Unicode
+  presentation forms the bundled font covers. Marks the page cannot draw are
+  dealt with first: a shadda keeps no vowel to be composed with (the pair would
+  become a ligature the font lacks, printed as a box), and a kasra is dropped
+  rather than printed above its letter, where it reads as a fatha.
+* **Lines, then words.** Text is broken into lines at its spaces, in logical
+  order, against the width it actually has. Each line's words are then put in
+  drawing order — the bidirectional algorithm at the level of whole words, a
+  number or a Latin name keeping its own order — and drawn one at a time, left
+  to right, a space apart. A word of Arabic letters is handed over already
+  reversed, so it is placed by its advance like any other word. The width that
+  is measured is the width that is drawn, and a test checks that no run leaves
+  the margins.
+* **The renderer's own pass, only where it must.** A word this file cannot order
+  (letters and digits together) or cannot fit on a line of its own is left to
+  the renderer, and such a line opens with a right-to-left mark: it changes
+  nothing that is drawn, and it stops the throw.
 * **Direction is decided per string, not per document.** A Latin or numeric string
   is drawn left-to-right even in an Arabic statement, because the renderer
   reorders every right-to-left paragraph by reversing its words and `₹ 45,500`
@@ -96,9 +113,13 @@ in different places:
 The document is checked two ways: rasterised and looked at, and — for the
 regression — read back. `test/core/pdf/statement_geometry_test.dart` parses the
 finished file's own drawing instructions, works out where every run of text
-lands, and asserts that nothing is drawn outside the margins and that a
-right-to-left line reads in the order a person reads it. One of its tests draws a
-deliberately overflowing line to prove the check can fail.
+lands, and asserts that nothing is drawn outside the margins, that a
+right-to-left line reads in the order a person reads it, that a date keeps the
+space before its year, and that every character on the page has a glyph in the
+font. One of its tests draws a deliberately overflowing line to prove the check
+can fail. `test/core/arabic_shaper_test.dart` draws every Arabic word the app
+writes the way the statement does and compares it with the renderer's own
+ordering, which is how the two places the renderer gets Arabic wrong were found.
 
 ---
 
@@ -255,6 +276,33 @@ left-to-right unit inside an Arabic paragraph. Digit shapes follow a separate
 setting (Western or Arabic-Indic) applied after formatting, because `intl`
 silently ignores a numbering-system request and returns Western digits either way.
 
+A text field takes its direction from what is in it — the first letter decides,
+digits alone run left to right, an empty field follows the app — while its text
+stays on the app's reading side (`core/widgets/directional_field.dart`). A tap
+on the empty part of a field beside a line puts the caret at the end of that
+line, and a tap on the text puts it where the finger landed. Left to the
+framework, a tap beside «1500» or «Ahmed» in an Arabic field put the caret
+before the first character, and the next keystroke landed there. Amounts are
+always left to right.
+
+### The currency of where the phone is
+
+Every currency picker — onboarding, Settings, the debt and commitment forms —
+offers the currency of the place the phone is in first, marked
+**مقترحة حسب منطقتك / Suggested for your region**. It is worked out from the
+phone's time zone (`Asia/Aden` → YER, `Asia/Kolkata` → INR), which the network
+usually sets and which moves with the phone, and, when there is no zone, from the
+region of the phone's languages (`ar_YE`). No location permission is asked for
+and nothing leaves the device (`core/money/region_currency.dart`).
+
+On a fresh install the suggestion is also already chosen, so onboarding's
+"Next" and "Skip" both store it. A default the user has stored is never changed
+by it: afterwards it is only offered, and it follows the phone to another
+country on the next return to the app. A place whose currency Dhimmah does not
+record in — Cairo, Kuwait, Muscat — gets no suggestion, not a neighbour's: the
+app has seven currencies, all with two decimals, and Kuwait's, Bahrain's,
+Oman's and Jordan's dinars have three.
+
 ---
 
 ## Security
@@ -380,22 +428,26 @@ it:
 ## Testing
 
 ```
-test/domain/       123 tests — balances, statuses, schedules, month arithmetic,
+test/domain/       128 tests — balances, statuses, schedules, month arithmetic,
                                the attention list, the monthly insight, what the
                                planner decides to schedule and when, what the
-                               service refuses to store, and which language a
-                               phone's language list resolves to
-test/core/         143 tests — the notification delivery policy against a fake
+                               service refuses to store, which language a
+                               phone's language list resolves to, and a
+                               statement's history and sides
+test/core/         190 tests — the notification delivery policy against a fake
                                platform (idempotent scheduling, reconciliation,
                                re-wording in place, the cap, permission and
                                timezone changes, the cold-start tap), plus Arabic
-                               shaping and bidi, Arabic search folding, amount
-                               parsing, currency formatting, numerals, date
-                               phrasing, the WCAG contrast of every colour pair
-                               in both themes, that English is really English
-                               and both ARB files hold the same keys, and the
-                               statement's own geometry read back out of the
-                               finished PDF
+                               shaping and bidi, every Arabic word the app
+                               writes against the PDF renderer's own ordering,
+                               Arabic search folding, amount parsing, currency
+                               formatting, the currency a time zone or region
+                               suggests, which way a typed field runs, numerals,
+                               date phrasing, the WCAG contrast of every colour
+                               pair in both themes, that English is really
+                               English and both ARB files hold the same keys,
+                               and the statement's own geometry read back out
+                               of the finished PDF
 test/data/         292 tests — schema, converters, constraints, the link table's
                                own rules, clearing fields, opening a database
                                written by every earlier version, several people
@@ -406,7 +458,7 @@ test/integration/   39 tests — the service against a real SQLite database,
                                including a record edited, closed and reopened from
                                the file it was written to, and a deleted record
                                undone with its history
-test/widget/       206 tests — the real UI driven end to end: onboarding in the
+test/widget/       223 tests — the real UI driven end to end: onboarding in the
                                phone's language from the first frame, the
                                language switch, following a phone that changes
                                language, recording, RTL, dark mode, the statement
@@ -414,7 +466,9 @@ test/widget/       206 tests — the real UI driven end to end: onboarding in th
                                fields and their errors, one record linked to three
                                people, layout at 1.0x/1.3x/1.5x text on a 360px
                                screen, the places where a number must *not*
-                               mirror, and the update card in both languages
+                               mirror, the caret staying where a tap puts it, the
+                               region's currency offered first in every picker,
+                               and the update card in both languages
 test/app/           35 tests — the start-up failure path and the update
                                controller's state machine
 test/platform/      27 tests — the Android declarations that no Dart test can
@@ -426,7 +480,7 @@ test/tool/          16 tests — the seed and statement generators and the
                                renderer that only runs when asked, below)
 ```
 
-888 tests. Several exist to hold a decision in place rather than to check a
+957 tests. Several exist to hold a decision in place rather than to check a
 behaviour: the contrast test, the design invariants (one focus figure and one
 primary action per screen, the person page's single balance), and the two journeys
 driven the way a person drives them — open someone, record a payment, watch the
@@ -450,7 +504,9 @@ regression test:
    through a companion with every value present.
 4. **Boxes in the middle of Arabic words.** The bidirectional algorithm composes
    shadda-and-vowel pairs into ligatures the chosen font does not contain. The
-   shaping pipeline now expands them, and a font-coverage test guards the rest.
+   pipeline first expanded them again, which only handed the renderer the pair
+   to compose once more (61, below); a shadda now keeps no vowel, and a test
+   fails if any character on the page has no glyph in the font.
 5. **A PIN keypad that read 3 2 1.** The keypad was laid out with the app's own
    direction, so the top row printed backwards and the dots filled from the wrong
    end — a four-digit code read backwards to the person unlocking their own
@@ -471,10 +527,10 @@ regression test:
    string in its logical form and the page drew it in its shaped form, and on
    Arabic the two disagree by about a third: a 22-character title measured 122pt
    and drew at 92pt. The cell had room to spare and still pushed its last word
-   past the margin, where it was clipped. Wrapping is now the renderer's, so the
-   width that is measured and the width that is drawn are the same string; a test
-   reads every run back out of the finished file and fails if any leaves the
-   margins.
+   past the margin, where it was clipped. Lines are now broken against the
+   shaped words that are drawn, measured with the font's own advances, so the
+   width that is measured is the width that is drawn; a test reads every run
+   back out of the finished file and fails if any leaves the margins.
 6. **A statement ending in a blank page.** The closing note could spill onto a
    page of its own; it now lives in the footer, which repeats on every page.
 7. **Two add buttons stacked on top of each other.** A screen that became a
@@ -769,6 +825,49 @@ Found in a review of the whole app, and fixed with a regression test each:
     database connection; editing a repeating debt erased the end of its series;
     and `184467440737095517` parsed as 0.84, because the multiplication wrapped
     round before the limit was checked.
+
+Found on the phone, in the statement, and in first use:
+
+57. **The caret jumped to the start of the field.** In an Arabic field, a tap on
+    the empty stretch beside «1500» or «Ahmed» — where a thumb usually lands —
+    put the caret before the first character, because the framework puts it at
+    the character painted nearest the tap. The next keystroke went there and
+    scrambled the text. A tap beside a line now goes to that line's end, a tap
+    on the text stays where it landed, and a field takes its direction from what
+    is typed in it, in both languages.
+58. **A statement that added the two sides together.** With debts both ways the
+    summary's total, paid and remaining were sums of what the user owed and what
+    they were owed, and described nobody's position. The history was one block
+    per debt instead of one account in date order, a payment did not say which
+    debt it paid, «كشف حساب» appeared twice, a one-debt statement never named
+    its debt, and the footer carried a second, unexplained code. Each is now
+    stated as the person's page states it.
+59. **«سبتمبر2026».** The renderer places the words of a right-to-left line by
+    their ink rather than their advance, so every gap moved by the difference
+    between two words' side margins, and beside a number it closed. Arabic is now
+    set word by word, and the date test compares the gaps on both sides of the
+    month.
+60. **Statements that could not be generated at all.** The renderer's
+    bidirectional pass throws on a paragraph that opens with «لا» or a vowelled
+    «أ», so there was no statement for «لانا», or with a debt called «لابتوب».
+    Run over every Arabic string in the app and each of its words, 58 threw,
+    every one on its first letter. Arabic no longer goes through that pass
+    unless it has to, and what does starts with a right-to-left mark; a
+    negative control keeps the crash on record.
+61. **A box where «دَّ» was, and a kasra that read as a fatha.** Fix 4 only handed
+    the renderer the pair to join again. The shadda now keeps no vowel, and the
+    kasra, which the font draws above its letter, is dropped.
+62. **An Arabic table with its column widths swapped.** The renderer keys a width
+    by where a cell is drawn, and an Arabic table draws its columns in reverse,
+    so the debt title was squeezed into the due date's narrow column.
+63. **Three words the shaper got wrong.** «شيء» had a medial ي reaching for a
+    hamza that joins nothing, «أولًا» and «سجلًا» lost their lam-alef to the
+    tanween on the lam, and the Arabic dual «ديان» is not a word: «دينان»,
+    «دينين».
+64. **A Yemeni phone started in rupees.** Every picker listed the currencies in
+    one fixed order and a fresh install defaulted to the first. The currency of
+    the place the phone is in now comes first, marked, and is already chosen on
+    a fresh install — with no location permission.
 
 ### On a device
 
