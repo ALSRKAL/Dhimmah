@@ -142,6 +142,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 SliverToBoxAdapter(
                   child: _NeedsAttention(
                     items: attention,
+                    asOf: asOf,
                     overdue: Money(attentionTotals.overdueMinor, currency),
                     dueSoon: Money(attentionTotals.dueSoonMinor, currency),
                     onViewAll: () =>
@@ -301,12 +302,18 @@ class _RecentActivity extends StatelessWidget {
 class _NeedsAttention extends StatelessWidget {
   const _NeedsAttention({
     required this.items,
+    required this.asOf,
     required this.overdue,
     required this.dueSoon,
     required this.onViewAll,
   });
 
   final List<AttentionItem> items;
+
+  /// The app's today, which the items were sorted against. The rows used to
+  /// read the wall clock instead, so a row could name a different day from
+  /// the figures above it.
+  final DateTime asOf;
 
   /// Summed over everything that needs attention — debts and obligations
   /// alike, every period of a commitment, and the records past the rows shown —
@@ -320,7 +327,6 @@ class _NeedsAttention extends StatelessWidget {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
-    final DateTime asOf = DateTime.now();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(

@@ -9,6 +9,7 @@ import '../core/formatting/app_formatting.dart';
 import '../core/notifications/notification_composer.dart';
 import '../core/notifications/notification_service.dart';
 import '../core/theme/app_theme.dart';
+import '../core/utils/dates.dart';
 import '../domain/entities/app_settings.dart';
 import '../domain/enums/preference_enums.dart';
 import '../l10n/enum_labels.dart';
@@ -175,11 +176,35 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
       if (!mounted) return;
       unawaited(_backupIfStale());
     });
+    _startMidnight();
   }
 
   void _stopTicker() {
     _ticker?.cancel();
     _ticker = null;
+    _midnight?.cancel();
+    _midnight = null;
+  }
+
+  /// Wakes at the next midnight while the app is on screen.
+  ///
+  /// "Today" used to move only when the app came back from the background, so
+  /// a ledger left open overnight still called yesterday's deadline "due
+  /// today". Paused with the ticker, because a resume refreshes the day anyway.
+  Timer? _midnight;
+
+  void _startMidnight() {
+    _midnight?.cancel();
+    final DateTime now = ref.read(clockProvider)();
+    // A second past midnight, so the timer never wakes a moment early and
+    // reads the day that is ending.
+    final Duration wait = addDays(dateOnly(now), 1).difference(now) +
+        const Duration(seconds: 1);
+    _midnight = Timer(wait, () {
+      if (!mounted) return;
+      ref.read(todayProvider.notifier).refresh();
+      _startMidnight();
+    });
   }
 
   /// Takes a snapshot as the app leaves the foreground, when one is due.

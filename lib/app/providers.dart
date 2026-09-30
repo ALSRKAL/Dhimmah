@@ -95,14 +95,15 @@ class AppVersion {
 /// Today, as a plain date.
 ///
 /// Everything that decides whether something is late reads this, so a single
-/// refresh at midnight or on resume moves the whole app forward together.
+/// refresh at midnight or on resume moves the whole app forward together. The
+/// app refreshes it on resume and at each midnight while it is on screen.
 class TodayNotifier extends Notifier<DateTime> {
   @override
-  DateTime build() => dateOnly(DateTime.now());
+  DateTime build() => dateOnly(ref.watch(clockProvider)());
 
   /// Re-reads the clock; only notifies when the calendar day actually changed.
   void refresh() {
-    final DateTime now = dateOnly(DateTime.now());
+    final DateTime now = dateOnly(ref.read(clockProvider)());
     if (now != state) state = now;
   }
 }

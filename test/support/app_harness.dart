@@ -203,6 +203,9 @@ class FakePinService implements PinService {
 
 /// Pumps the whole app against [db].
 ///
+/// [clock] stands in for the wall clock everywhere the app reads the time
+/// through `clockProvider`, so a test can move time instead of waiting for it.
+///
 /// Returns the container the app was built on, so a test that needs to wait for
 /// a real asynchronous step — a directory read, a file write — can watch the
 /// provider that holds its result instead of guessing how many frames to pump.
@@ -219,6 +222,7 @@ Future<ProviderContainer> pumpDhimmah(
   BiometricService? biometricService,
   Future<bool> Function(Uri)? urlOpener,
   NotificationService? notificationService,
+  DateTime Function()? clock,
   bool firstFrameOnly = false,
 }) async {
   if (settings != null) {
@@ -272,6 +276,7 @@ Future<ProviderContainer> pumpDhimmah(
       if (urlOpener != null) urlOpenerProvider.overrideWithValue(urlOpener),
       if (notificationService != null)
         notificationServiceProvider.overrideWithValue(notificationService),
+      if (clock != null) clockProvider.overrideWithValue(clock),
     ],
   );
   addTearDown(container.dispose);
