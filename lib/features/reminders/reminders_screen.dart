@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -229,17 +231,23 @@ class _ReminderRow extends ConsumerWidget {
               IconButton(
                 tooltip: localizations.reminderMarkDone,
                 icon: const Icon(Icons.check_circle_outline, size: 22),
-                onPressed: () => ref
-                    .read(ledgerServiceProvider)
-                    .setReminderDone(reminder.id, true),
+                onPressed: () => _write(
+                  context,
+                  () => ref
+                      .read(ledgerServiceProvider)
+                      .setReminderDone(reminder.id, true),
+                ),
               )
             else
               IconButton(
                 tooltip: localizations.reminderReopen,
                 icon: const Icon(Icons.refresh, size: 20),
-                onPressed: () => ref
-                    .read(ledgerServiceProvider)
-                    .setReminderDone(reminder.id, false),
+                onPressed: () => _write(
+                  context,
+                  () => ref
+                      .read(ledgerServiceProvider)
+                      .setReminderDone(reminder.id, false),
+                ),
               ),
           ],
         ),
@@ -299,9 +307,14 @@ class _ReminderRow extends ConsumerWidget {
               ),
               onTap: () {
                 Navigator.of(sheetContext).pop();
-                ref
-                    .read(ledgerServiceProvider)
-                    .setReminderDone(reminder.id, !reminder.isCompleted);
+                unawaited(
+                  _write(
+                    context,
+                    () => ref
+                        .read(ledgerServiceProvider)
+                        .setReminderDone(reminder.id, !reminder.isCompleted),
+                  ),
+                );
               },
             ),
             ListTile(
@@ -310,8 +323,18 @@ class _ReminderRow extends ConsumerWidget {
               title: Text(localizations.actionDelete),
               onTap: () {
                 Navigator.of(sheetContext).pop();
-                ref.read(ledgerServiceProvider).deleteReminder(reminder.id);
-                AppFeedback.info(context, localizations.recordDeleted);
+                // "Deleted" is said once the delete has happened, not before
+                // it: it used to be shown straight away, and a delete that
+                // failed was reported as done.
+                unawaited(
+                  _write(
+                    context,
+                    () => ref
+                        .read(ledgerServiceProvider)
+                        .deleteReminder(reminder.id),
+                    done: localizations.recordDeleted,
+                  ),
+                );
               },
             ),
             const SizedBox(height: AppSpacing.sm),
@@ -319,6 +342,36 @@ class _ReminderRow extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Runs a write started from this row and reports how it went.
+  ///
+  /// The write can remove the row or move it to another group, so the messenger
+  /// and the colours are taken before it rather than looked up after. A failure
+  /// is said, instead of escaping as an error nothing catches.
+  static Future<void> _write(
+    BuildContext context,
+    Future<void> Function() write, {
+    String? done,
+  }) async {
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final AppPalette palette = context.palette;
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    try {
+      await write();
+      if (done == null) return;
+      AppFeedback.infoDetached(
+        messenger: messenger,
+        message: done,
+        iconColor: palette.owedToMe,
+      );
+    } on Object {
+      AppFeedback.errorDetached(
+        messenger: messenger,
+        message: localizations.somethingWentWrong,
+        iconColor: palette.overdue,
+      );
+    }
   }
 }
 
@@ -482,7 +535,10 @@ class _ReminderFormScreenState extends ConsumerState<ReminderFormScreen> {
         await service.createReminder(draft);
       }
       if (!mounted) return;
-      AppFeedback.info(context, localizations.reminderCreated);
+      AppFeedback.info(
+        context,
+        _isEditing ? localizations.recordSaved : localizations.reminderCreated,
+      );
       context.pop();
     } on Object {
       if (!mounted) return;

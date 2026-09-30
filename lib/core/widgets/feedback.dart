@@ -94,6 +94,25 @@ abstract final class AppFeedback {
     );
   }
 
+  /// [error], for a write whose screen may have unmounted while it ran.
+  ///
+  /// Takes the messenger and the colour captured before the write, like
+  /// [infoDetached], so a failure is still reported after its row is gone.
+  static void errorDetached({
+    required ScaffoldMessengerState messenger,
+    required String message,
+    required Color iconColor,
+  }) {
+    _show(
+      null,
+      message: message,
+      icon: Icons.error_outline,
+      iconColor: iconColor,
+      duration: const Duration(seconds: 5),
+      messenger: messenger,
+    );
+  }
+
   /// Something failed. Says what the user can do, not what went wrong inside.
   static void error(BuildContext context, String message) {
     final AppPalette palette = context.palette;
