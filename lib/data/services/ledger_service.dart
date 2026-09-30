@@ -38,6 +38,24 @@ class _DebtPlan {
   final int recordsRead;
 }
 
+/// What a month-end summary states, and the currency it is stated in.
+@immutable
+class _SummaryFigures {
+  const _SummaryFigures({
+    required this.currency,
+    required this.iOweMinor,
+    required this.owedToMeMinor,
+    required this.paidMinor,
+    required this.overdueMinor,
+  });
+
+  final AppCurrency currency;
+  final int iOweMinor;
+  final int owedToMeMinor;
+  final int paidMinor;
+  final int overdueMinor;
+}
+
 /// Every write Dhimmah can perform.
 ///
 /// Screens call this and nothing else: the service owns the invariants that must
@@ -1045,14 +1063,90 @@ class LedgerService {
       ),
     ];
 
+    // The month-end summary, armed in the last days before its moment so it
+    // arrives when the user asked for it whether or not the app is open then.
+    final NotificationIntent? summary =
+        await _monthEndSummaryToArm(current, now, asOf);
+    if (summary != null) intents.add(summary);
+
     final NotificationComposer activeComposer = composer();
+    final List<ComposedNotification> composed =
+        activeComposer.composeAll(intents);
     final NotificationSyncResult result = await notifications.sync(
-      activeComposer.composeAll(intents),
+      composed,
       recordsRead: plan.recordsRead,
     );
 
+    if (summary != null) {
+      await _recordArmedSummary(summary, composed, result, current);
+    }
     await _deliverPendingSummary(current, now, asOf, activeComposer);
     return result;
+  }
+
+  /// The month-end summary to arm in this pass, or null.
+  ///
+  /// Only inside [NotificationPlanner.monthEndArmWindow]: the figures read the
+  /// whole ledger, and outside that window no save pays for them.
+  Future<NotificationIntent?> _monthEndSummaryToArm(
+    AppSettings current,
+    DateTime now,
+    DateTime asOf,
+  ) async {
+    final DateTime? moment =
+        NotificationPlanner.monthEndToArm(settings: current, now: now);
+    if (moment == null) return null;
+    final List<DebtView> views = await _summaryViews(current, asOf);
+    // The same rule as the catch-up: a ledger with nothing in it is not told
+    // that its totals are zero.
+    if (views.isEmpty) return null;
+    final _SummaryFigures figures =
+        await _summaryFigures(views, current, asOf, month: moment);
+    return NotificationPlanner.monthEndSummary(
+      settings: current,
+      now: now,
+      iOweMinor: figures.iOweMinor,
+      owedToMeMinor: figures.owedToMeMinor,
+      paidMinor: figures.paidMinor,
+      overdueMinor: figures.overdueMinor,
+      currency: figures.currency,
+    );
+  }
+
+  /// Records the summary's month as handed over, once the phone is holding it.
+  ///
+  /// Without this the catch-up could not tell a summary that was delivered on
+  /// time from one that never was, and would show it a second time on the first
+  /// launch after its moment.
+  Future<void> _recordArmedSummary(
+    NotificationIntent summary,
+    List<ComposedNotification> composed,
+    NotificationSyncResult result,
+    AppSettings current,
+  ) async {
+    final ComposedNotification? armed =
+        composed.where((ComposedNotification n) => n.isSummary).firstOrNull;
+    if (armed == null || !result.armedIds.contains(armed.id)) return;
+    final MonthEndFigures? figures = summary.summary;
+    if (figures == null) return;
+    final DateTime month = DateTime(figures.year, figures.month);
+    final DateTime record = NotificationPlanner.summaryRecordFor(month, current);
+    final DateTime? last = current.lastSummarySentOn;
+    // Every pass in the window arms the same summary; only the first writes.
+    if (last != null && !last.isBefore(record)) return;
+    await _recordSummaryHandedOver(month);
+  }
+
+  /// Notes that [month]'s summary has reached the phone, never moving the
+  /// record backwards: a late catch-up for an older month must not undo the
+  /// record of a newer one that is already armed.
+  Future<void> _recordSummaryHandedOver(DateTime month) async {
+    await settings.update((AppSettings s) {
+      final DateTime record = NotificationPlanner.summaryRecordFor(month, s);
+      final DateTime? last = s.lastSummarySentOn;
+      if (last != null && !last.isBefore(record)) return s;
+      return s.copyWith(lastSummarySentOn: record);
+    });
   }
 
   /// The debt reminders the nearest notifications are made of.
@@ -1171,12 +1265,19 @@ class LedgerService {
   }
 
   /// The commitment periods a reminder can still be planned from.
+  ///
+  /// The window starts a little in the past, exactly as the debts' does: a
+  /// period that fell due yesterday still has its overdue nudge ahead of it.
+  /// Reading from today onwards left that period out of every plan made after
+  /// its due date — and a plan leaves out what it does not want, so the nudge
+  /// that was armed on the day was cancelled by the next save, and a commitment
+  /// passed its date in silence for anyone who used the app in between.
   Future<List<ObligationInstance>> _obligationInstancesInWindow(
     DateTime asOf,
   ) async {
     final List<ObligationOccurrenceRow> occurrences =
         await _db.obligationsDao.occurrencesBetween(
-      from: asOf,
+      from: addDays(asOf, -NotificationPlanner.overdueNudgeAfterDays),
       to: addDays(asOf, NotificationPlanner.horizon.inDays),
     );
     if (occurrences.isEmpty) return const <ObligationInstance>[];
@@ -1215,30 +1316,33 @@ class LedgerService {
     DateTime asOf,
     NotificationComposer composer,
   ) async {
-    if (!NotificationPlanner.isCatchUpSummaryDue(settings: current, now: now)) {
-      return;
-    }
+    final DateTime? month =
+        NotificationPlanner.catchUpSummaryMonth(settings: current, now: now);
+    if (month == null) return;
     final List<DebtView> views = await _summaryViews(current, asOf);
     // A ledger with nothing in it owes nobody a summary: an install that has not
     // recorded anything yet used to be greeted with a month-end notification
     // reporting three zeroes.
     if (views.isEmpty) return;
-    final totals = _primaryTotals(views, current, asOf);
+    final _SummaryFigures figures =
+        await _summaryFigures(views, current, asOf, month: month);
 
     final NotificationIntent? catchUp = NotificationPlanner.pendingCatchUpSummary(
       settings: current,
       now: now,
-      iOweMinor: totals.$1,
-      owedToMeMinor: totals.$2,
-      paidMinor: totals.$3,
-      overdueMinor: totals.$4,
+      iOweMinor: figures.iOweMinor,
+      owedToMeMinor: figures.owedToMeMinor,
+      paidMinor: figures.paidMinor,
+      overdueMinor: figures.overdueMinor,
+      currency: figures.currency,
     );
     if (catchUp == null) return;
 
-    // The id comes from the same identity rule as every other notification: a
-    // summary that is delivered twice replaces itself instead of stacking up.
+    // The id comes from the same identity rule as every other notification, and
+    // the catch-up's moment is its month's: a summary that is delivered twice
+    // replaces itself instead of stacking up.
     await notifications.showNow(composer.compose(catchUp, _summaryId(catchUp)));
-    await settings.update((AppSettings s) => s.copyWith(lastSummarySentOn: asOf));
+    await _recordSummaryHandedOver(month);
     await _log(
       type: ActivityType.monthSummaryGenerated,
       entityType: RelatedEntityType.none,
@@ -1249,12 +1353,17 @@ class LedgerService {
   static int _summaryId(NotificationIntent intent) =>
       NotificationComposer.idFor(intent);
 
-  /// iOwe, owedToMe, paid-this-month and overdue for the user's main currency.
-  (int, int, int, int) _primaryTotals(
+  /// The figures a month-end summary states, in the ledger's main currency.
+  ///
+  /// The balances are the ledger as it stands; "paid" is what was paid against
+  /// debts during [month] itself — read from the payments, not inferred from
+  /// each debt's lifetime total.
+  Future<_SummaryFigures> _summaryFigures(
     List<DebtView> views,
     AppSettings current,
-    DateTime asOf,
-  ) {
+    DateTime asOf, {
+    required DateTime month,
+  }) async {
     final List<CurrencyTotals> totals = DebtCalculator.totalsByCurrency(
       views,
       asOf: asOf,
@@ -1265,20 +1374,17 @@ class LedgerService {
     final CurrencyTotals? pick = totals
         .where((CurrencyTotals t) => t.currency == primary)
         .firstOrNull;
-    final DateTime monthStart = startOfMonth(asOf);
-    int paidThisMonth = 0;
-    for (final DebtView view in views) {
-      if (view.currency != primary) continue;
-      final DateTime? last = view.lastPaymentAt;
-      if (last != null && isWithin(last, monthStart, asOf)) {
-        paidThisMonth += view.paidMinor;
-      }
-    }
-    return (
-      pick?.iOweMinor ?? 0,
-      pick?.owedToMeMinor ?? 0,
-      paidThisMonth,
-      pick?.overdueMinor ?? 0,
+    final int paid = await _db.debtsDao.debtPaymentsTotalBetween(
+      currencyCode: primary.code,
+      from: startOfMonth(month),
+      to: endOfMonth(month),
+    );
+    return _SummaryFigures(
+      currency: primary,
+      iOweMinor: pick?.iOweMinor ?? 0,
+      owedToMeMinor: pick?.owedToMeMinor ?? 0,
+      paidMinor: paid,
+      overdueMinor: pick?.overdueMinor ?? 0,
     );
   }
 

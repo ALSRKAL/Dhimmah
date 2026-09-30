@@ -542,7 +542,9 @@ void main() {
     await restores.apply(backup: written.backup, mode: RestoreMode.replace);
 
     expect(
-      platform.armedPayloads,
+      // The month-end summary is armed in the last days of every month, and it
+      // is the ledger's, not a record's.
+      platform.armedPayloads.where((String p) => !p.startsWith('report:')),
       hasLength(1),
       reason: 'one record with a reminder, so one payload — the old schedule '
           'is never consulted',

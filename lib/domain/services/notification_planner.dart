@@ -345,13 +345,7 @@ abstract final class NotificationPlanner {
     }
   }
 
-  /// The next month-end summary.
-  ///
-  /// Only one is scheduled: the summary of the month that is about to end, with
-  /// the figures as they stand now. Because the app rebuilds this set on every
-  /// launch, the number it reports is refreshed long before it is delivered. An
-  /// app that is never opened is handled separately by
-  /// [pendingCatchUpSummary].
+  /// The next month-end summary, for [plan].
   static Iterable<NotificationIntent> _planMonthEnd({
     required AppSettings settings,
     required DateTime now,
@@ -360,24 +354,75 @@ abstract final class NotificationPlanner {
     required int paidMinor,
     required int overdueMinor,
   }) sync* {
+    final NotificationIntent? summary = monthEndSummary(
+      settings: settings,
+      now: now,
+      iOweMinor: iOweMinor,
+      owedToMeMinor: owedToMeMinor,
+      paidMinor: paidMinor,
+      overdueMinor: overdueMinor,
+    );
+    if (summary != null) yield summary;
+  }
+
+  /// How long before its moment the month-end summary is armed.
+  ///
+  /// The summary carries the ledger's figures, and working them out reads the
+  /// whole ledger — so a save pays for that only in the last days before the
+  /// summary is due, and the figures it arrives with are at most that old. A
+  /// phone the app is not opened on in those days is covered by
+  /// [pendingCatchUpSummary], which delivers it on the next launch.
+  static const Duration monthEndArmWindow = Duration(days: 3);
+
+  /// The moment of the month-end summary that should be armed now, or null.
+  ///
+  /// This month's moment, while it is still ahead and inside
+  /// [monthEndArmWindow]. The cheap half of the decision: the delivery path
+  /// asks this before it reads a single record.
+  ///
+  /// Nothing used to arm the summary at all — the service planned debts,
+  /// commitments and reminders, and the summary only ever arrived late, as a
+  /// catch-up on the first launch after its moment.
+  static DateTime? monthEndToArm({
+    required AppSettings settings,
+    required DateTime now,
+  }) {
+    if (!settings.notificationsEnabled || !settings.monthEndSummaryEnabled) {
+      return null;
+    }
     final DateTime sendAt = monthEndMoment(now.year, now.month, settings);
-    // Once this month's moment has passed, the catch-up path owns delivery and
-    // the next launch will schedule the following month. Scheduling it here with
-    // this month's numbers would report the wrong month's figures.
-    if (!sendAt.isAfter(now)) return;
-    yield NotificationIntent(
-      kind: NotificationKind.monthEndSummary,
+    if (!sendAt.isAfter(now)) return null;
+    if (sendAt.difference(now) > monthEndArmWindow) return null;
+    return sendAt;
+  }
+
+  /// The summary of the month that is about to end, to be delivered at its
+  /// moment with the figures as they stand now.
+  ///
+  /// Null once this month's moment has passed: from then on the catch-up path
+  /// owns delivery, and scheduling it here would report this month's figures
+  /// under next month's name. [currency] is the one the figures are in, which
+  /// is the ledger's main currency and not necessarily the default for new
+  /// records.
+  static NotificationIntent? monthEndSummary({
+    required AppSettings settings,
+    required DateTime now,
+    required int iOweMinor,
+    required int owedToMeMinor,
+    required int paidMinor,
+    required int overdueMinor,
+    AppCurrency? currency,
+  }) {
+    final DateTime sendAt = monthEndMoment(now.year, now.month, settings);
+    if (!sendAt.isAfter(now)) return null;
+    return _summaryIntent(
+      month: DateTime(now.year, now.month),
       when: sendAt,
-      payload: 'report:${monthKey(now)}',
-      summary: MonthEndFigures(
-        year: now.year,
-        month: now.month,
-        iOweMinor: iOweMinor,
-        owedToMeMinor: owedToMeMinor,
-        paidMinor: paidMinor,
-        overdueMinor: overdueMinor,
-        currency: settings.defaultCurrency,
-      ),
+      iOweMinor: iOweMinor,
+      owedToMeMinor: owedToMeMinor,
+      paidMinor: paidMinor,
+      overdueMinor: overdueMinor,
+      currency: currency ?? settings.defaultCurrency,
     );
   }
 
@@ -386,6 +431,11 @@ abstract final class NotificationPlanner {
   /// If the app was closed when the month-end moment passed, the notification
   /// never fired. Showing it the next time the app opens is what makes the
   /// feature dependable rather than lucky.
+  ///
+  /// Its moment is the one the summarised month was due at, not the moment it is
+  /// shown: a notification's identity includes its moment, and "now" made every
+  /// catch-up a different notification, so two deliveries stacked instead of
+  /// the second replacing the first.
   static NotificationIntent? pendingCatchUpSummary({
     required AppSettings settings,
     required DateTime now,
@@ -393,22 +443,44 @@ abstract final class NotificationPlanner {
     required int owedToMeMinor,
     required int paidMinor,
     required int overdueMinor,
+    AppCurrency? currency,
   }) {
-    if (!isCatchUpSummaryDue(settings: settings, now: now)) return null;
-    final DateTime candidateMonth = _lastElapsedSummaryMonth(settings, now)!;
+    final DateTime? candidateMonth =
+        catchUpSummaryMonth(settings: settings, now: now);
+    if (candidateMonth == null) return null;
 
+    return _summaryIntent(
+      month: candidateMonth,
+      when: monthEndMoment(candidateMonth.year, candidateMonth.month, settings),
+      iOweMinor: iOweMinor,
+      owedToMeMinor: owedToMeMinor,
+      paidMinor: paidMinor,
+      overdueMinor: overdueMinor,
+      currency: currency ?? settings.defaultCurrency,
+    );
+  }
+
+  static NotificationIntent _summaryIntent({
+    required DateTime month,
+    required DateTime when,
+    required int iOweMinor,
+    required int owedToMeMinor,
+    required int paidMinor,
+    required int overdueMinor,
+    required AppCurrency currency,
+  }) {
     return NotificationIntent(
       kind: NotificationKind.monthEndSummary,
-      when: now,
-      payload: 'report:${monthKey(candidateMonth)}',
+      when: when,
+      payload: 'report:${monthKey(month)}',
       summary: MonthEndFigures(
-        year: candidateMonth.year,
-        month: candidateMonth.month,
+        year: month.year,
+        month: month.month,
         iOweMinor: iOweMinor,
         owedToMeMinor: owedToMeMinor,
         paidMinor: paidMinor,
         overdueMinor: overdueMinor,
-        currency: settings.defaultCurrency,
+        currency: currency,
       ),
     );
   }
@@ -418,6 +490,10 @@ abstract final class NotificationPlanner {
   /// The figures need the whole ledger; this needs two settings and a date. The
   /// delivery path asks this first, so a save on a large ledger does not read
   /// every record to discover that no summary is due.
+  ///
+  /// `lastSummarySentOn` holds a day inside the last month whose summary was
+  /// handed to the phone — armed ahead of its moment, or shown late — so the
+  /// comparison is against the start of the month in question.
   static bool isCatchUpSummaryDue({
     required AppSettings settings,
     required DateTime now,
@@ -431,6 +507,24 @@ abstract final class NotificationPlanner {
     final DateTime? lastSent = settings.lastSummarySentOn;
     return lastSent == null || lastSent.isBefore(startOfMonth(candidateMonth));
   }
+
+  /// The month a catch-up summary would describe, or null when none is owed.
+  static DateTime? catchUpSummaryMonth({
+    required AppSettings settings,
+    required DateTime now,
+  }) {
+    if (!isCatchUpSummaryDue(settings: settings, now: now)) return null;
+    return _lastElapsedSummaryMonth(settings, now);
+  }
+
+  /// The day recorded once [month]'s summary has been handed to the phone.
+  ///
+  /// A day inside the month the summary is *about*. The delivery date used to be
+  /// recorded instead — and a catch-up is delivered in the following month, so
+  /// recording it said the following month was done too, and every other
+  /// month's summary was silently skipped.
+  static DateTime summaryRecordFor(DateTime month, AppSettings settings) =>
+      dateOnly(monthEndMoment(month.year, month.month, settings));
 
   /// The most recent month whose summary moment has already passed.
   static DateTime? _lastElapsedSummaryMonth(AppSettings settings, DateTime now) {

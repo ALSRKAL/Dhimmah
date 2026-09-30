@@ -117,6 +117,32 @@ class DebtsDao extends DatabaseAccessor<AppDatabase> with _$DebtsDaoMixin {
         .toList(growable: false);
   }
 
+  /// What was paid against debts in [currencyCode] between [from] and [to],
+  /// both inclusive, summed by SQLite.
+  ///
+  /// The month-end summary's "paid" figure. It used to add up the lifetime
+  /// total of every debt whose *last* payment fell in the month — and measured
+  /// the month the summary was delivered in, not the one it summarised.
+  Future<int> debtPaymentsTotalBetween({
+    required String currencyCode,
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    final $PaymentsTable p = payments;
+    final Expression<int> total = p.amountMinor.sum();
+    final TypedResult row = await (selectOnly(p)
+          ..addColumns(<Expression<Object>>[total])
+          ..where(
+            p.debtId.isNotNull() &
+                p.currencyCode.equals(currencyCode) &
+                // Stored as `yyyy-MM-dd`, so the range is inclusive and
+                // lexicographic, and served by `idx_payments_paid_at`.
+                p.paidAt.isBetweenValues(toIsoDate(from), toIsoDate(to)),
+          ))
+        .getSingle();
+    return row.read(total) ?? 0;
+  }
+
   Stream<DebtRow?> watchById(String id) =>
       (select(debts)..where((t) => t.id.equals(id))).watchSingleOrNull();
 

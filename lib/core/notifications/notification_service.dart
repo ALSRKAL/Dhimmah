@@ -29,6 +29,7 @@ class NotificationSyncResult {
     required this.blocked,
     this.reworded = 0,
     this.recordsRead = 0,
+    this.armedIds = const <int>{},
   });
 
   const NotificationSyncResult.blocked()
@@ -39,7 +40,17 @@ class NotificationSyncResult {
         reworded = 0,
         droppedByCap = 0,
         blocked = true,
-        recordsRead = 0;
+        recordsRead = 0,
+        armedIds = const <int>{};
+
+  /// The ids the platform is holding after this pass, of those that were
+  /// wanted: already there, or scheduled now.
+  ///
+  /// What a caller needs to know that one particular notification will arrive —
+  /// the month-end summary records its month as handed over only when it is in
+  /// here, so a summary the cap left out or the platform refused is still
+  /// delivered by the catch-up.
+  final Set<int> armedIds;
 
   /// How many notifications the records ask for.
   final int desired;
@@ -278,9 +289,16 @@ class NotificationService {
 
     int scheduled = 0;
     int reworded = 0;
+    final Set<int> armedIds = <int>{};
     for (final ComposedNotification notification in armed) {
       final PendingNotification? existing = held[notification.id];
-      if (existing != null && !_wordingChanged(existing, notification)) continue;
+      if (existing != null && !_wordingChanged(existing, notification)) {
+        armedIds.add(notification.id);
+        continue;
+      }
+      // A reminder the platform already holds is still armed if its re-wording
+      // fails: it arrives, in its old words.
+      if (existing != null) armedIds.add(notification.id);
       try {
         // An existing id is replaced in place, which is Android's own rule and
         // the one the whole id scheme leans on: the reminder keeps its identity
@@ -293,6 +311,7 @@ class NotificationService {
           payload: notification.payload,
           tier: _tierFor(notification.priority),
         );
+        armedIds.add(notification.id);
         if (existing == null) {
           scheduled++;
         } else {
@@ -324,6 +343,7 @@ class NotificationService {
       droppedByCap: desired.length - armed.length,
       blocked: false,
       recordsRead: recordsRead,
+      armedIds: armedIds,
     );
     if (result.changed || result.droppedByCap > 0) {
       _log('sync: desired=${result.desired} armed=${result.armed} '

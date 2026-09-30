@@ -448,6 +448,39 @@ void main() {
       expect(armed(), isEmpty, reason: 'a paid period is not reminded about');
     });
 
+    test('an unpaid period keeps its overdue nudge through the next save',
+        () async {
+      // Due yesterday and unpaid: its one nudge is tomorrow at 20:00. Every
+      // plan made after the due date used to read periods from today onwards,
+      // leave this one out, and cancel the nudge it had armed.
+      final DateTime due = addDays(today, -1);
+      await service.createObligation(
+        ObligationDraft(
+          name: 'الإيجار',
+          category: ObligationCategory.housing,
+          amountMinor: 200000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.yearly,
+          startAt: due,
+          reminderLeads: const <ReminderLead>[ReminderLead.oneDayBefore],
+        ),
+      );
+      await service.ensureOccurrences();
+      final Obligation obligation = (await service.obligations.getAll()).single;
+
+      // An unrelated save, the kind any use of the app makes.
+      await addPerson('أحمد');
+
+      expect(
+        momentsFor('obligation:${obligation.id}'),
+        <DateTime>[
+          atReminderTime(
+            addDays(due, NotificationPlanner.overdueNudgeAfterDays),
+          ),
+        ],
+      );
+    });
+
     test('a reminder the user made reminds once and then stops', () async {
       final Reminder reminder = await service.createReminder(
         ReminderDraft(title: 'اتصل بالمحاسب', dueAt: addDays(today, 1)),

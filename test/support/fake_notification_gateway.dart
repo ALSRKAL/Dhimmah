@@ -63,6 +63,10 @@ class FakeNotificationGateway implements NotificationGateway {
   /// Payloads shown immediately.
   final List<String> shown = <String>[];
 
+  /// The words of each notification shown immediately, in the same order as
+  /// [shown].
+  final List<String> shownBodies = <String>[];
+
   /// How many times the whole pending set was cancelled. The old service did
   /// this on every save, which also wiped the notification shade.
   int cancelAllPendingCalls = 0;
@@ -181,6 +185,7 @@ class FakeNotificationGateway implements NotificationGateway {
     required NotificationTier tier,
   }) async {
     shown.add(payload);
+    shownBodies.add(body);
     held.remove(id);
   }
 

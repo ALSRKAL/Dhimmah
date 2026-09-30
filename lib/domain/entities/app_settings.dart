@@ -86,8 +86,9 @@ class AppSettings {
   final int monthEndHour;
   final int monthEndMinute;
 
-  /// `yyyy-MM-dd` of the last summary that was actually delivered, so the app
-  /// never sends the same month twice after a restart.
+  /// A day inside the last month whose summary has been handed to the phone —
+  /// armed ahead of its moment, or shown late as a catch-up — so the app never
+  /// sends the same month twice after a restart, and never skips the next one.
   final DateTime? lastSummarySentOn;
 
   // --- Security ------------------------------------------------------------
