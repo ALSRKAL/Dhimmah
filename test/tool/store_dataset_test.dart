@@ -132,7 +132,7 @@ void main() {
 
     // --- The money the listing shows ---------------------------------------
     final AppSettings settings = await SettingsRepositoryImpl(db).get();
-    expect(settings.language, language);
+    expect(settings.languagePreference, LanguagePreference.of(language));
     expect(settings.defaultCurrency, currency);
 
     final List<String> rendered = <String>[

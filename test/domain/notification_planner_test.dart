@@ -181,6 +181,80 @@ void main() {
     });
   });
 
+  group('a reminder says what is true on the day it arrives', () {
+    final DateTime today = dateOnly(DateTime.now());
+    final AppLocalizations ar = lookupAppLocalizations(const Locale('ar'));
+
+    DateTime at8(DateTime day) => DateTime(day.year, day.month, day.day, 8);
+
+    Future<void> debtDueInSixDays() async {
+      final Person person = await service.createPerson(
+        const PersonDraft(name: 'أحمد'),
+      );
+      await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          principalMinor: 100000,
+          currency: AppCurrency.inr,
+          issuedAt: today,
+          dueAt: addDays(today, 6),
+          reminderLeads: const <ReminderLead>[ReminderLead.oneDayBefore],
+        ),
+      );
+    }
+
+    NotificationIntent only(List<NotificationIntent> all, NotificationKind kind) =>
+        all.singleWhere((NotificationIntent i) => i.kind == kind);
+
+    test('the count is from the day it is delivered, not the day it was planned',
+        () async {
+      await debtDueInSixDays();
+      final DateTime now = at8(today);
+      final List<NotificationIntent> intents =
+          planAt(now, debts: await views(now));
+
+      // Planned six days out, delivered the day before the due date: it has to
+      // say "in one day", which is what is true when it is read. It used to say
+      // "in six days" — counted from the day it was planned.
+      final NotificationIntent lead = only(intents, NotificationKind.debtDueSoon);
+      expect(lead.daysUntil, 1);
+      expect(composer.compose(lead, 1).body, contains(ar.dateInDays(1)));
+      expect(composer.compose(lead, 1).body, isNot(contains(ar.dateInDays(6))));
+
+      // And the nudge after the deadline says it is late — not "in six days".
+      final NotificationIntent nudge = only(intents, NotificationKind.debtOverdue);
+      expect(nudge.daysUntil, -NotificationPlanner.overdueNudgeAfterDays);
+      expect(
+        composer.compose(nudge, 2).body,
+        contains(ar.dateOverdueBy(NotificationPlanner.overdueNudgeAfterDays)),
+      );
+    });
+
+    test('planning on another day produces the same words', () async {
+      await debtDueInSixDays();
+
+      Future<List<String>> wordsPlannedOn(DateTime day) async {
+        final DateTime now = at8(day);
+        return <String>[
+          for (final ComposedNotification n
+              in composer.composeAll(planAt(now, debts: await views(now))))
+            // The month-end summary is a different notification each month.
+            if (n.kind != NotificationKind.monthEndSummary)
+              '${n.id} ${n.title} ${n.body}',
+        ];
+      }
+
+      expect(
+        await wordsPlannedOn(addDays(today, 1)),
+        await wordsPlannedOn(today),
+        reason: 'reconciliation re-words a reminder whose words changed, so '
+            'words that depend on the planning day would re-schedule every '
+            'reminder on the first pass of every day',
+      );
+    });
+  });
+
   group('obligations', () {
     final DateTime today = dateOnly(DateTime.now());
 

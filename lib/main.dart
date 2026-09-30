@@ -11,7 +11,6 @@ import 'app/startup_failure.dart';
 import 'data/services/ledger_service.dart';
 import 'data/services/play_app_update_service.dart';
 import 'domain/entities/app_settings.dart';
-import 'l10n/generated/app_localizations.dart';
 
 
 /// Starts Dhimmah.
@@ -58,7 +57,10 @@ Future<void> _boot() async {
 
   final AppSettings settings;
   try {
-    settings = await container.read(settingsRepositoryProvider).get();
+    // Seeded into the providers, not just read: the first frame is drawn before
+    // the live settings stream has answered, and it must already be in the
+    // user's language and theme rather than the defaults.
+    settings = await loadBootSettings(container);
   } on Object catch (error) {
     _reportBootstrapFailure('opening the database', error);
     container.dispose();
@@ -67,10 +69,10 @@ Future<void> _boot() async {
   }
 
   // Notification channels carry localised names, so the service is initialised
-  // with the strings for the language the user actually chose. A failure here is
-  // survivable: reminders are a convenience, and a broken one must never stop the
-  // ledger from opening.
-  await _initializeNotifications(container, settings);
+  // with the strings for the language the app is about to open in — the user's
+  // choice, or the phone's. A failure here is survivable: reminders are a
+  // convenience, and a broken one must never stop the ledger from opening.
+  await _initializeNotifications(container);
 
   final bool onboardingCompleted = settings.onboardingCompleted;
   if (onboardingCompleted) {
@@ -123,13 +125,10 @@ Future<void> _warmUp(ProviderContainer container) async {
 }
 
 /// Prepares the notification plugin, tolerating any failure.
-Future<void> _initializeNotifications(
-  ProviderContainer container,
-  AppSettings settings,
-) async {
+Future<void> _initializeNotifications(ProviderContainer container) async {
   try {
     await container.read(notificationServiceProvider).initialize(
-          localizations: lookupAppLocalizations(Locale(settings.language.code)),
+          localizations: container.read(localizationsProvider),
         );
   } on Object catch (error) {
     _reportBootstrapFailure('initialising notifications', error);

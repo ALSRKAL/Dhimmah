@@ -506,22 +506,13 @@
   "onboardingBack": "السابق",
   "onboardingCurrencyBody": "ستُستخدم في السجلات الجديدة. كل سجل يمكن أن يكون بعملة مختلفة.",
   "onboardingCurrencyTitle": "عملتك الافتراضية",
-  "onboardingEnableNotifications": "تفعيل التنبيهات",
-  "onboardingLanguageBody": "يمكنك تغييرها لاحقًا من الإعدادات.",
-  "onboardingLanguageTitle": "اختر لغتك",
-  "onboardingMaybeLater": "لاحقًا",
+  "onboardingEnableNotifications": "تفعيل التذكيرات",
+  "onboardingMaybeLater": "ليس الآن",
   "onboardingNext": "التالي",
-  "onboardingNotificationsBody": "نحتاج إذنك لإرسال تنبيهات الاستحقاق. الإشعارات محلية ولا تغادر جهازك.",
+  "onboardingNotificationsBody": "نذكّرك قبل كل موعد استحقاق، في الوقت الذي تختاره. التذكيرات تُجدول على جهازك ولا تحتاج إنترنت.",
   "onboardingNotificationsDenied": "لم يتم منح الإذن. يمكنك تفعيله من الإعدادات.",
-  "onboardingNotificationsTitle": "التذكيرات",
-  "onboardingReadyTitle": "كل شيء جاهز.",
+  "onboardingNotificationsTitle": "لا يفوتك أي موعد",
   "onboardingSkip": "تخطي",
-  "onboardingSlide1Body": "سجّل ما عليك وما لك، واعرف مركزك المالي فورًا عند فتح التطبيق.",
-  "onboardingSlide1Title": "ذمّتك المالية، منظمة في مكان واحد.",
-  "onboardingSlide2Body": "ديون، دفعات جزئية، والتزامات متكررة — ويُحسب المتبقي تلقائيًا.",
-  "onboardingSlide2Title": "سجّل ما عليك وما لك.",
-  "onboardingSlide3Body": "تذكيرات محلية تعمل بدون إنترنت، وملخص لذمتك في نهاية كل شهر.",
-  "onboardingSlide3Title": "لا تنسَ أي موعد.",
   "onboardingStart": "ابدأ الآن",
   "owedToMeEmptyBody": "سجّل ما لك عند الآخرين لتتابعه.",
   "owedToMeEmptyTitle": "لا توجد أموال مستحقة لك.",
@@ -1242,5 +1233,59 @@
   "backupFoundBody": "لا توجد بيانات على هذا الجهاز، وهناك نسخة محفوظة يمكن استعادتها.",
   "backupPrivacyTitle": "أين تُحفظ النسخ؟",
   "backupPrivacyBody": "النسخ التلقائية داخل التطبيق ولا يقرؤها غيره. وعند المشاركة تختار أنت المكان — الملفات أو Drive أو غيره — والملف غير مشفّر. حذف التطبيق يحذف النسخ التي داخله، فاحتفظ بنسخة خارج الجهاز إن كانت بياناتك تهمّك.",
-  "backupSeparateFromExport": "التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد."
+  "backupSeparateFromExport": "التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد.",
+  "currencyNameAed": "درهم إماراتي",
+  "currencyNameEur": "يورو",
+  "currencyNameGbp": "جنيه إسترليني",
+  "currencyNameInr": "روبية هندية",
+  "currencyNameSar": "ريال سعودي",
+  "currencyNameUsd": "دولار أمريكي",
+  "currencyNameYer": "ريال يمني",
+  "languageDevice": "لغة الجهاز",
+  "languageDeviceCurrently": "حاليًا: {language}",
+  "@languageDeviceCurrently": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "languageFollowsDevice": "تتبع لغة جهازك",
+  "onboardingChangeLanguage": "تغيير اللغة",
+  "onboardingChangeLater": "يمكنك تغيير ذلك في أي وقت من الإعدادات.",
+  "onboardingFeatureBooksBody": "سجّل الديون والدفعات الجزئية والالتزامات الشهرية، ويُحسب المتبقي تلقائيًا.",
+  "onboardingFeatureBooksTitle": "ما لك وما عليك في دفتر واحد",
+  "onboardingFeaturePrivateBody": "يعمل بدون إنترنت، ولا يُرفع شيء إلى أي خادم.",
+  "onboardingFeatureRemindersBody": "تنبيه قبل موعد الاستحقاق، وملخص لذمتك في آخر كل شهر.",
+  "onboardingFeatureRemindersTitle": "تذكير قبل كل موعد",
+  "onboardingMonthEndWhen": "{day}، الساعة {time}",
+  "@onboardingMonthEndWhen": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingReminderTime": "الساعة {time}",
+  "@onboardingReminderTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingStepOf": "الخطوة {step} من {total}",
+  "@onboardingStepOf": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }

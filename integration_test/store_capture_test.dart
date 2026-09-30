@@ -134,7 +134,7 @@ void main() {
 
     final AppSettings afterSeed =
         await container.read(settingsRepositoryProvider).get();
-    debugPrint('capture: after seed language=${afterSeed.language.code} '
+    debugPrint('capture: after seed language=${afterSeed.languagePreference.name} '
         'theme=${afterSeed.themeMode.name}');
 
     await tester.pumpWidget(
@@ -224,7 +224,7 @@ void main() {
     final AppSettings stored =
         await container.read(settingsRepositoryProvider).get();
     final Locale rendered = Localizations.localeOf(routerContext());
-    debugPrint('capture: stored language=${stored.language.code} '
+    debugPrint('capture: stored language=${stored.languagePreference.name} '
         'rendered locale=${rendered.languageCode}');
     if (rendered.languageCode != language.code) {
       fail('the app is rendering ${rendered.languageCode} but the capture is '

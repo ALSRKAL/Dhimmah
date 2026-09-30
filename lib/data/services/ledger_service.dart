@@ -937,7 +937,40 @@ class LedgerService {
   /// rather than patched — that is what guarantees a settled debt can never
   /// leave a reminder behind — and the service then makes the platform agree
   /// with it, so nothing is duplicated and nothing stale survives.
-  Future<NotificationSyncResult> refreshNotifications() async {
+  ///
+  /// One pass at a time. Two passes used to be able to run at once — a save and
+  /// a change of language arrive together, a resume lands in the middle of a
+  /// write — and the one that finished last won, whichever of them had read the
+  /// older state. Now a call made while a pass is running waits for one more
+  /// pass after it, which starts after the call and so sees whatever that caller
+  /// wrote; every caller arriving meanwhile shares that same pass, because it
+  /// reads what all of them wrote.
+  Future<NotificationSyncResult> refreshNotifications() {
+    final Future<NotificationSyncResult>? running = _refreshRunning;
+    if (running == null) return _startRefresh();
+    return _refreshQueued ??= running.then<void>(
+      (NotificationSyncResult _) {},
+      // The pass that failed has already reported it to its own caller; the
+      // next one is still owed to everyone waiting on it.
+      onError: (Object _) {},
+    ).then((void _) {
+      _refreshQueued = null;
+      return _startRefresh();
+    });
+  }
+
+  Future<NotificationSyncResult>? _refreshRunning;
+  Future<NotificationSyncResult>? _refreshQueued;
+
+  Future<NotificationSyncResult> _startRefresh() {
+    final Future<NotificationSyncResult> pass = _refreshPass();
+    _refreshRunning = pass;
+    return pass.whenComplete(() {
+      if (identical(_refreshRunning, pass)) _refreshRunning = null;
+    });
+  }
+
+  Future<NotificationSyncResult> _refreshPass() async {
     final AppSettings current = await settings.get();
     if (!current.notificationsEnabled) {
       // Nothing may fire, and nothing should be held: an armed set the user has

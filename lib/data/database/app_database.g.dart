@@ -6171,14 +6171,17 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     requiredDuringInsert: false,
   );
   @override
-  late final GeneratedColumnWithTypeConverter<AppLanguage, String> language =
+  late final GeneratedColumnWithTypeConverter<LanguagePreference, String>
+  languagePreference =
       GeneratedColumn<String>(
         'language',
         aliasedName,
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: true,
-      ).withConverter<AppLanguage>($SettingsTable.$converterlanguage);
+      ).withConverter<LanguagePreference>(
+        $SettingsTable.$converterlanguagePreference,
+      );
   @override
   late final GeneratedColumnWithTypeConverter<AppThemeMode, String> themeMode =
       GeneratedColumn<String>(
@@ -6402,7 +6405,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
   @override
   List<GeneratedColumn> get $columns => [
     id,
-    language,
+    languagePreference,
     themeMode,
     numerals,
     defaultCurrencyCode,
@@ -6560,7 +6563,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.int,
         data['${effectivePrefix}id'],
       )!,
-      language: $SettingsTable.$converterlanguage.fromSql(
+      languagePreference: $SettingsTable.$converterlanguagePreference.fromSql(
         attachedDatabase.typeMapping.read(
           DriftSqlType.string,
           data['${effectivePrefix}language'],
@@ -6659,8 +6662,10 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     return $SettingsTable(attachedDatabase, alias);
   }
 
-  static JsonTypeConverter2<AppLanguage, String, String> $converterlanguage =
-      const EnumNameConverter<AppLanguage>(AppLanguage.values);
+  static JsonTypeConverter2<LanguagePreference, String, String>
+  $converterlanguagePreference = const EnumNameConverter<LanguagePreference>(
+    LanguagePreference.values,
+  );
   static JsonTypeConverter2<AppThemeMode, String, String> $converterthemeMode =
       const EnumNameConverter<AppThemeMode>(AppThemeMode.values);
   static JsonTypeConverter2<NumeralsStyle, String, String> $converternumerals =
@@ -6677,7 +6682,13 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
 
 class Setting extends DataClass implements Insertable<Setting> {
   final int id;
-  final AppLanguage language;
+
+  /// `system`, `arabic` or `english`: a [LanguagePreference], not a language.
+  ///
+  /// The column keeps its name. Every row written before version 5 holds
+  /// `arabic` or `english`, which are already valid preferences, so the values
+  /// carry over untouched and only the new one, `system`, is added.
+  final LanguagePreference languagePreference;
   final AppThemeMode themeMode;
   final NumeralsStyle numerals;
   final String defaultCurrencyCode;
@@ -6703,7 +6714,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   final DateTime? lastExportedAt;
   const Setting({
     required this.id,
-    required this.language,
+    required this.languagePreference,
     required this.themeMode,
     required this.numerals,
     required this.defaultCurrencyCode,
@@ -6729,7 +6740,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     map['id'] = Variable<int>(id);
     {
       map['language'] = Variable<String>(
-        $SettingsTable.$converterlanguage.toSql(language),
+        $SettingsTable.$converterlanguagePreference.toSql(languagePreference),
       );
     }
     {
@@ -6782,7 +6793,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   SettingsCompanion toCompanion(bool nullToAbsent) {
     return SettingsCompanion(
       id: Value(id),
-      language: Value(language),
+      languagePreference: Value(languagePreference),
       themeMode: Value(themeMode),
       numerals: Value(numerals),
       defaultCurrencyCode: Value(defaultCurrencyCode),
@@ -6815,8 +6826,8 @@ class Setting extends DataClass implements Insertable<Setting> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return Setting(
       id: serializer.fromJson<int>(json['id']),
-      language: $SettingsTable.$converterlanguage.fromJson(
-        serializer.fromJson<String>(json['language']),
+      languagePreference: $SettingsTable.$converterlanguagePreference.fromJson(
+        serializer.fromJson<String>(json['languagePreference']),
       ),
       themeMode: $SettingsTable.$converterthemeMode.fromJson(
         serializer.fromJson<String>(json['themeMode']),
@@ -6861,8 +6872,8 @@ class Setting extends DataClass implements Insertable<Setting> {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<int>(id),
-      'language': serializer.toJson<String>(
-        $SettingsTable.$converterlanguage.toJson(language),
+      'languagePreference': serializer.toJson<String>(
+        $SettingsTable.$converterlanguagePreference.toJson(languagePreference),
       ),
       'themeMode': serializer.toJson<String>(
         $SettingsTable.$converterthemeMode.toJson(themeMode),
@@ -6895,7 +6906,7 @@ class Setting extends DataClass implements Insertable<Setting> {
 
   Setting copyWith({
     int? id,
-    AppLanguage? language,
+    LanguagePreference? languagePreference,
     AppThemeMode? themeMode,
     NumeralsStyle? numerals,
     String? defaultCurrencyCode,
@@ -6916,7 +6927,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     Value<DateTime?> lastExportedAt = const Value.absent(),
   }) => Setting(
     id: id ?? this.id,
-    language: language ?? this.language,
+    languagePreference: languagePreference ?? this.languagePreference,
     themeMode: themeMode ?? this.themeMode,
     numerals: numerals ?? this.numerals,
     defaultCurrencyCode: defaultCurrencyCode ?? this.defaultCurrencyCode,
@@ -6944,7 +6955,9 @@ class Setting extends DataClass implements Insertable<Setting> {
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
       id: data.id.present ? data.id.value : this.id,
-      language: data.language.present ? data.language.value : this.language,
+      languagePreference: data.languagePreference.present
+          ? data.languagePreference.value
+          : this.languagePreference,
       themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
       numerals: data.numerals.present ? data.numerals.value : this.numerals,
       defaultCurrencyCode: data.defaultCurrencyCode.present
@@ -7002,7 +7015,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   String toString() {
     return (StringBuffer('Setting(')
           ..write('id: $id, ')
-          ..write('language: $language, ')
+          ..write('languagePreference: $languagePreference, ')
           ..write('themeMode: $themeMode, ')
           ..write('numerals: $numerals, ')
           ..write('defaultCurrencyCode: $defaultCurrencyCode, ')
@@ -7028,7 +7041,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   @override
   int get hashCode => Object.hash(
     id,
-    language,
+    languagePreference,
     themeMode,
     numerals,
     defaultCurrencyCode,
@@ -7053,7 +7066,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       identical(this, other) ||
       (other is Setting &&
           other.id == this.id &&
-          other.language == this.language &&
+          other.languagePreference == this.languagePreference &&
           other.themeMode == this.themeMode &&
           other.numerals == this.numerals &&
           other.defaultCurrencyCode == this.defaultCurrencyCode &&
@@ -7076,7 +7089,7 @@ class Setting extends DataClass implements Insertable<Setting> {
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<int> id;
-  final Value<AppLanguage> language;
+  final Value<LanguagePreference> languagePreference;
   final Value<AppThemeMode> themeMode;
   final Value<NumeralsStyle> numerals;
   final Value<String> defaultCurrencyCode;
@@ -7097,7 +7110,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<DateTime?> lastExportedAt;
   const SettingsCompanion({
     this.id = const Value.absent(),
-    this.language = const Value.absent(),
+    this.languagePreference = const Value.absent(),
     this.themeMode = const Value.absent(),
     this.numerals = const Value.absent(),
     this.defaultCurrencyCode = const Value.absent(),
@@ -7119,7 +7132,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
-    required AppLanguage language,
+    required LanguagePreference languagePreference,
     required AppThemeMode themeMode,
     required NumeralsStyle numerals,
     required String defaultCurrencyCode,
@@ -7138,14 +7151,14 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.backupAutoEnabled = const Value.absent(),
     this.lastSummarySentOn = const Value.absent(),
     this.lastExportedAt = const Value.absent(),
-  }) : language = Value(language),
+  }) : languagePreference = Value(languagePreference),
        themeMode = Value(themeMode),
        numerals = Value(numerals),
        defaultCurrencyCode = Value(defaultCurrencyCode),
        monthEndDay = Value(monthEndDay);
   static Insertable<Setting> custom({
     Expression<int>? id,
-    Expression<String>? language,
+    Expression<String>? languagePreference,
     Expression<String>? themeMode,
     Expression<String>? numerals,
     Expression<String>? defaultCurrencyCode,
@@ -7167,7 +7180,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
-      if (language != null) 'language': language,
+      if (languagePreference != null) 'language': languagePreference,
       if (themeMode != null) 'theme_mode': themeMode,
       if (numerals != null) 'numerals': numerals,
       if (defaultCurrencyCode != null)
@@ -7196,7 +7209,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
 
   SettingsCompanion copyWith({
     Value<int>? id,
-    Value<AppLanguage>? language,
+    Value<LanguagePreference>? languagePreference,
     Value<AppThemeMode>? themeMode,
     Value<NumeralsStyle>? numerals,
     Value<String>? defaultCurrencyCode,
@@ -7218,7 +7231,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }) {
     return SettingsCompanion(
       id: id ?? this.id,
-      language: language ?? this.language,
+      languagePreference: languagePreference ?? this.languagePreference,
       themeMode: themeMode ?? this.themeMode,
       numerals: numerals ?? this.numerals,
       defaultCurrencyCode: defaultCurrencyCode ?? this.defaultCurrencyCode,
@@ -7247,9 +7260,11 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     if (id.present) {
       map['id'] = Variable<int>(id.value);
     }
-    if (language.present) {
+    if (languagePreference.present) {
       map['language'] = Variable<String>(
-        $SettingsTable.$converterlanguage.toSql(language.value),
+        $SettingsTable.$converterlanguagePreference.toSql(
+          languagePreference.value,
+        ),
       );
     }
     if (themeMode.present) {
@@ -7333,7 +7348,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   String toString() {
     return (StringBuffer('SettingsCompanion(')
           ..write('id: $id, ')
-          ..write('language: $language, ')
+          ..write('languagePreference: $languagePreference, ')
           ..write('themeMode: $themeMode, ')
           ..write('numerals: $numerals, ')
           ..write('defaultCurrencyCode: $defaultCurrencyCode, ')
@@ -11808,7 +11823,7 @@ typedef $$MonthlySummariesTableProcessedTableManager =
 typedef $$SettingsTableCreateCompanionBuilder =
     SettingsCompanion Function({
       Value<int> id,
-      required AppLanguage language,
+      required LanguagePreference languagePreference,
       required AppThemeMode themeMode,
       required NumeralsStyle numerals,
       required String defaultCurrencyCode,
@@ -11831,7 +11846,7 @@ typedef $$SettingsTableCreateCompanionBuilder =
 typedef $$SettingsTableUpdateCompanionBuilder =
     SettingsCompanion Function({
       Value<int> id,
-      Value<AppLanguage> language,
+      Value<LanguagePreference> languagePreference,
       Value<AppThemeMode> themeMode,
       Value<NumeralsStyle> numerals,
       Value<String> defaultCurrencyCode,
@@ -11866,9 +11881,9 @@ class $$SettingsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnWithTypeConverterFilters<AppLanguage, AppLanguage, String>
-  get language => $composableBuilder(
-    column: $table.language,
+  ColumnWithTypeConverterFilters<LanguagePreference, LanguagePreference, String>
+  get languagePreference => $composableBuilder(
+    column: $table.languagePreference,
     builder: (column) => ColumnWithTypeConverterFilters(column),
   );
 
@@ -11983,8 +11998,8 @@ class $$SettingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get language => $composableBuilder(
-    column: $table.language,
+  ColumnOrderings<String> get languagePreference => $composableBuilder(
+    column: $table.languagePreference,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -12091,8 +12106,11 @@ class $$SettingsTableAnnotationComposer
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
-  GeneratedColumnWithTypeConverter<AppLanguage, String> get language =>
-      $composableBuilder(column: $table.language, builder: (column) => column);
+  GeneratedColumnWithTypeConverter<LanguagePreference, String>
+  get languagePreference => $composableBuilder(
+    column: $table.languagePreference,
+    builder: (column) => column,
+  );
 
   GeneratedColumnWithTypeConverter<AppThemeMode, String> get themeMode =>
       $composableBuilder(column: $table.themeMode, builder: (column) => column);
@@ -12214,7 +12232,8 @@ class $$SettingsTableTableManager
           updateCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                Value<AppLanguage> language = const Value.absent(),
+                Value<LanguagePreference> languagePreference =
+                    const Value.absent(),
                 Value<AppThemeMode> themeMode = const Value.absent(),
                 Value<NumeralsStyle> numerals = const Value.absent(),
                 Value<String> defaultCurrencyCode = const Value.absent(),
@@ -12236,7 +12255,7 @@ class $$SettingsTableTableManager
                 Value<DateTime?> lastExportedAt = const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
-                language: language,
+                languagePreference: languagePreference,
                 themeMode: themeMode,
                 numerals: numerals,
                 defaultCurrencyCode: defaultCurrencyCode,
@@ -12259,7 +12278,7 @@ class $$SettingsTableTableManager
           createCompanionCallback:
               ({
                 Value<int> id = const Value.absent(),
-                required AppLanguage language,
+                required LanguagePreference languagePreference,
                 required AppThemeMode themeMode,
                 required NumeralsStyle numerals,
                 required String defaultCurrencyCode,
@@ -12281,7 +12300,7 @@ class $$SettingsTableTableManager
                 Value<DateTime?> lastExportedAt = const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
-                language: language,
+                languagePreference: languagePreference,
                 themeMode: themeMode,
                 numerals: numerals,
                 defaultCurrencyCode: defaultCurrencyCode,

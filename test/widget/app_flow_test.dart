@@ -51,6 +51,7 @@ void main() {
       overrides: [databaseProvider.overrideWithValue(db)],
     );
     addTearDown(container.dispose);
+    await loadBootSettings(container);
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -65,8 +66,10 @@ void main() {
     testWidgets('a fresh install opens on onboarding, not the dashboard',
         (WidgetTester tester) async {
       await pumpApp(tester);
-      // The first promise is on screen and there is no bottom navigation yet.
-      expect(find.text('ذمّتك المالية، منظمة في مكان واحد.'), findsOneWidget);
+      // The welcome is on screen, in the phone's language, and there is no
+      // bottom navigation yet.
+      expect(find.text('اعرف ما لك وما عليك'), findsOneWidget);
+      expect(find.text('ابدأ الآن'), findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
     });
 
@@ -247,7 +250,7 @@ void main() {
       await pumpApp(
         tester,
         onboardingCompleted: true,
-        settings: AppSettings.initial.copyWith(language: AppLanguage.english),
+        settings: AppSettings.initial.copyWith(languagePreference: LanguagePreference.english),
       );
       final BuildContext context = tester.element(find.byType(NavigationBar));
       expect(Directionality.of(context), TextDirection.ltr);
@@ -276,7 +279,7 @@ void main() {
       expect(Theme.of(context).brightness, Brightness.light);
     });
 
-    testWidgets('the device language preference is honoured', (WidgetTester tester) async {
+    testWidgets('a tall phone lays the dashboard out cleanly', (WidgetTester tester) async {
       await tester.binding.setSurfaceSize(const Size(400, 900));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await pumpApp(tester, onboardingCompleted: true);
@@ -336,7 +339,7 @@ Setting _settingsRow(AppSettings settings) {
   return Setting(
     id: Settings.singletonId,
     backupAutoEnabled: settings.backupAutoEnabled,
-    language: settings.language,
+    languagePreference: settings.languagePreference,
     themeMode: settings.themeMode,
     numerals: settings.numerals,
     defaultCurrencyCode: settings.defaultCurrency.code,

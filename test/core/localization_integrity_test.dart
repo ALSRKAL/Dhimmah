@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/utils/money_input.dart';
+import 'package:dhimmah/domain/enums/preference_enums.dart';
+import 'package:dhimmah/l10n/enum_labels.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -235,6 +240,87 @@ void main() {
           isNotNull,
           reason: 'the field admits "$digit" but it cannot be parsed',
         );
+      }
+    });
+  });
+
+  group('the two files agree', () {
+    Set<String> keysOf(String path) => <String>{
+          for (final String key
+              in (jsonDecode(File(path).readAsStringSync()) as Map<String, Object?>)
+                  .keys)
+            if (!key.startsWith('@')) key,
+        };
+
+    test('every message exists in both languages', () {
+      // Arabic is the template, so a key missing from English is silently
+      // back-filled with Arabic — which is how «خيارات إضافية» reached English
+      // readers. A missing key fails here instead of in a screenshot.
+      final Set<String> arabic = keysOf('lib/l10n/arb/app_ar.arb');
+      final Set<String> english = keysOf('lib/l10n/arb/app_en.arb');
+      expect(arabic.difference(english), isEmpty, reason: 'missing in English');
+      expect(english.difference(arabic), isEmpty, reason: 'missing in Arabic');
+    });
+  });
+
+  group('the first run and the language picker', () {
+    test('speak the reader’s language', () {
+      final List<String> english = <String>[
+        en.onboardingFeatureBooksTitle,
+        en.onboardingFeatureBooksBody,
+        en.onboardingFeatureRemindersTitle,
+        en.onboardingFeatureRemindersBody,
+        en.onboardingFeaturePrivateBody,
+        en.onboardingNotificationsTitle,
+        en.onboardingNotificationsBody,
+        en.onboardingEnableNotifications,
+        en.onboardingMaybeLater,
+        en.onboardingChangeLanguage,
+        en.onboardingChangeLater,
+        en.onboardingStepOf(1, 3),
+        en.onboardingReminderTime('8:00 PM'),
+        en.onboardingMonthEndWhen('Last day of the month', '8:00 PM'),
+        en.languageDevice,
+        en.languageFollowsDevice,
+        en.languageDeviceCurrently('English'),
+      ];
+      for (final String value in english) {
+        expect(RegExp(r'[\u0600-\u06FF]').hasMatch(value), isFalse,
+            reason: '"$value" should be English');
+      }
+      final List<String> arabic = <String>[
+        ar.onboardingFeatureBooksTitle,
+        ar.onboardingFeatureRemindersTitle,
+        ar.onboardingFeaturePrivateBody,
+        ar.onboardingNotificationsTitle,
+        ar.onboardingChangeLanguage,
+        ar.languageDevice,
+        ar.languageFollowsDevice,
+      ];
+      for (final String value in arabic) {
+        expect(RegExp(r'[\u0600-\u06FF]').hasMatch(value), isTrue,
+            reason: '"$value" should be Arabic');
+      }
+    });
+
+    test('a language is offered by its own name, whatever the interface says',
+        () {
+      expect(AppLanguage.arabic.endonym, 'العربية');
+      expect(AppLanguage.english.endonym, 'English');
+      // …while its name in the other language is the other language's word.
+      expect(AppLanguage.english.label(ar), isNot(AppLanguage.english.endonym));
+      expect(AppLanguage.arabic.label(en), isNot(AppLanguage.arabic.endonym));
+    });
+
+    test('the two riyals are told apart by name', () {
+      // They share ﷼, so the name is what a person reads the difference in.
+      for (final AppLocalizations l in <AppLocalizations>[ar, en]) {
+        expect(AppCurrency.sar.label(l), isNot(AppCurrency.yer.label(l)));
+        final Set<String> names = <String>{
+          for (final AppCurrency c in AppCurrency.values) c.label(l),
+        };
+        expect(names, hasLength(AppCurrency.values.length),
+            reason: 'every currency has its own name');
       }
     });
   });

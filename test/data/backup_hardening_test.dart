@@ -147,7 +147,7 @@ void main() {
     }
     final Setting? settings = await db.settingsDao.get();
     if (settings != null) {
-      parts.add('S ${settings.language} ${settings.defaultCurrencyCode} '
+      parts.add('S ${settings.languagePreference} ${settings.defaultCurrencyCode} '
           '${settings.themeMode} ${settings.notificationsEnabled} '
           '${settings.lockEnabled}');
     }
@@ -1158,7 +1158,6 @@ void main() {
           defaultCurrency: AppCurrency.inr,
           localizations: l10n,
         ),
-        settings: AppSettings.initial,
       ).buildData(
         ledger: ledger,
         payments: await service.payments.getAll(),
@@ -1514,7 +1513,7 @@ void main() {
   group('settings', () {
     test('every preference travels; the device keeps its own', () async {
       final AppSettings before = AppSettings.initial.copyWith(
-        language: AppLanguage.english,
+        languagePreference: LanguagePreference.english,
         themeMode: AppThemeMode.dark,
         numerals: NumeralsStyle.arabicIndic,
         defaultCurrency: AppCurrency.usd,
@@ -1533,7 +1532,7 @@ void main() {
       // Restored onto a device that had its own preferences and its lock off.
       await db.settingsDao.write(
         AppSettings.initial
-            .copyWith(language: AppLanguage.arabic, defaultCurrency: AppCurrency.inr)
+            .copyWith(languagePreference: LanguagePreference.arabic, defaultCurrency: AppCurrency.inr)
             .toCompanion(),
       );
 
@@ -1544,7 +1543,7 @@ void main() {
       );
 
       final Setting after = (await db.settingsDao.get())!;
-      expect(after.language, AppLanguage.english);
+      expect(after.languagePreference, LanguagePreference.english);
       expect(after.themeMode, AppThemeMode.dark);
       expect(after.numerals, NumeralsStyle.arabicIndic);
       expect(after.defaultCurrencyCode, 'USD');
@@ -1573,7 +1572,7 @@ void main() {
           await backups.create(kind: BackupKind.manual);
       await db.settingsDao.write(
         AppSettings.initial
-            .copyWith(language: AppLanguage.english, dueSoonWindowDays: 12)
+            .copyWith(languagePreference: LanguagePreference.english, dueSoonWindowDays: 12)
             .toCompanion(),
       );
 
@@ -1584,7 +1583,7 @@ void main() {
       );
 
       final Setting after = (await db.settingsDao.get())!;
-      expect(after.language, AppLanguage.english);
+      expect(after.languagePreference, LanguagePreference.english);
       expect(after.dueSoonWindowDays, 12);
       expect(
         report.warnings.map((BackupIssue i) => i.code),

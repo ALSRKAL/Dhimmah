@@ -21,6 +21,12 @@ import '../database/app_database.dart';
 abstract final class BackupCodec {
   const BackupCodec._();
 
+  /// The first schema in which `language` is a choice rather than the seed.
+  ///
+  /// Written down here rather than read from `AppDatabase`, because it is a fact
+  /// about files that already exist: it does not move when the schema does.
+  static const int languagePreferenceSchema = 5;
+
   // --- Encode ---------------------------------------------------------------
 
   static Map<String, Object?> person(PersonRow row) => <String, Object?>{
@@ -165,7 +171,11 @@ abstract final class BackupCodec {
   /// * `lastSummarySentOn`, which is a record of what *this* device has already
   ///   sent, not a preference.
   static Map<String, Object?> settings(Setting row) => <String, Object?>{
-        'language': row.language.name,
+        // The key predates the preference and keeps its name: a file written by
+        // an older build carries `arabic` or `english` here, which read back as
+        // the same preference, and an older build reading `system` keeps its
+        // own value rather than failing.
+        'language': row.languagePreference.name,
         'themeMode': row.themeMode.name,
         'numerals': row.numerals.name,
         'defaultCurrency': row.defaultCurrencyCode,
@@ -323,13 +333,24 @@ abstract final class BackupCodec {
   /// Every field that is missing or unreadable keeps the value the device
   /// already had, so a file written by an older app cannot silently reset a
   /// preference it never knew about.
+  ///
+  /// [schemaVersion] is the file's. The language is read the way the database
+  /// migration reads it: before version 5 a stored `arabic` was the seed every
+  /// install started with, not a choice, so an old file's `arabic` leaves this
+  /// device's preference alone rather than pinning Arabic over it.
   static AppSettings applySettings(
     Map<String, Object?> row,
-    AppSettings current,
-  ) {
+    AppSettings current, {
+    required int schemaVersion,
+  }) {
+    final LanguagePreference? stored =
+        _enumByName(LanguagePreference.values, row['language']);
+    final bool seeded = schemaVersion < languagePreferenceSchema &&
+        stored == LanguagePreference.arabic;
     return current.copyWith(
-      language: _enumByName(AppLanguage.values, row['language']) ??
-          current.language,
+      languagePreference: seeded
+          ? current.languagePreference
+          : stored ?? current.languagePreference,
       themeMode:
           _enumByName(AppThemeMode.values, row['themeMode']) ?? current.themeMode,
       numerals: _enumByName(NumeralsStyle.values, row['numerals']) ??

@@ -506,22 +506,13 @@
   "onboardingBack": "Back",
   "onboardingCurrencyBody": "Used for new records. Each record can still use its own currency.",
   "onboardingCurrencyTitle": "Your default currency",
-  "onboardingEnableNotifications": "Enable reminders",
-  "onboardingLanguageBody": "You can change this later in Settings.",
-  "onboardingLanguageTitle": "Choose your language",
-  "onboardingMaybeLater": "Maybe later",
+  "onboardingEnableNotifications": "Turn on reminders",
+  "onboardingMaybeLater": "Not now",
   "onboardingNext": "Next",
-  "onboardingNotificationsBody": "Dhimmah needs permission to send due-date reminders. They are scheduled locally and never leave your device.",
+  "onboardingNotificationsBody": "Dhimmah reminds you before each due date, at a time you choose. Reminders are scheduled on your phone and need no internet.",
   "onboardingNotificationsDenied": "Permission was not granted. You can enable it in Settings.",
-  "onboardingNotificationsTitle": "Reminders",
-  "onboardingReadyTitle": "You're all set.",
+  "onboardingNotificationsTitle": "Never miss a due date",
   "onboardingSkip": "Skip",
-  "onboardingSlide1Body": "Record what you owe and what you're owed, and see where you stand the moment you open the app.",
-  "onboardingSlide1Title": "Your financial ledger, in one place.",
-  "onboardingSlide2Body": "Debts, part payments and recurring commitments — with the balance worked out for you.",
-  "onboardingSlide2Title": "Record both sides.",
-  "onboardingSlide3Body": "Offline reminders, plus a summary of your ledger at the end of every month.",
-  "onboardingSlide3Title": "Never miss a due date.",
   "onboardingStart": "Get started",
   "owedToMeEmptyBody": "Record what others owe you and follow it here.",
   "owedToMeEmptyTitle": "Nothing owed to you yet.",
@@ -1242,5 +1233,59 @@
   "backupFoundBody": "There is no data on this device, and a saved copy can be restored.",
   "backupPrivacyTitle": "Where are backups kept?",
   "backupPrivacyBody": "Automatic copies live inside the app and nothing else can read them. When you share one, you choose the place — Files, Drive or another — and the file is not encrypted. Deleting the app deletes the copies inside it, so keep a copy off the device if the data matters.",
-  "backupSeparateFromExport": "Export (CSV and JSON) is for reading and analysis, and is not used for restoring. The backup is what comes back."
+  "backupSeparateFromExport": "Export (CSV and JSON) is for reading and analysis, and is not used for restoring. The backup is what comes back.",
+  "currencyNameAed": "UAE dirham",
+  "currencyNameEur": "Euro",
+  "currencyNameGbp": "British pound",
+  "currencyNameInr": "Indian rupee",
+  "currencyNameSar": "Saudi riyal",
+  "currencyNameUsd": "US dollar",
+  "currencyNameYer": "Yemeni rial",
+  "languageDevice": "Device language",
+  "languageDeviceCurrently": "Currently {language}",
+  "@languageDeviceCurrently": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "languageFollowsDevice": "Follows your phone",
+  "onboardingChangeLanguage": "Change language",
+  "onboardingChangeLater": "You can change this any time in Settings.",
+  "onboardingFeatureBooksBody": "Record debts, part payments and monthly commitments. The balance is worked out for you.",
+  "onboardingFeatureBooksTitle": "Both sides of the book, in one place",
+  "onboardingFeaturePrivateBody": "Works without internet. Nothing is uploaded anywhere.",
+  "onboardingFeatureRemindersBody": "A nudge before each due date, and a summary at the end of every month.",
+  "onboardingFeatureRemindersTitle": "A reminder before every due date",
+  "onboardingMonthEndWhen": "{day}, at {time}",
+  "@onboardingMonthEndWhen": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingReminderTime": "At {time}",
+  "@onboardingReminderTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingStepOf": "Step {step} of {total}",
+  "@onboardingStepOf": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }

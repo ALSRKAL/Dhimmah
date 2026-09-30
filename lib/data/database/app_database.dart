@@ -73,13 +73,18 @@ class AppDatabase extends _$AppDatabase {
   /// single-person debts keep their person: the upgrade copies every non-null
   /// `debts.person_id` into a link row, which is the only statement in the
   /// whole migration that touches data at all.
+  ///
+  /// 5 made the language a preference: `system` joined `arabic` and `english`.
+  /// No column changed, but the version had to: a build from before it would
+  /// read `system` as an unknown enum value and fail somewhere confusing, where
+  /// the version check refuses the file with a message that says why.
   @override
   int get schemaVersion => currentSchemaVersion;
 
   /// The schema this build writes. Named as a constant so a test can assert
   /// "a file from the future is refused" without repeating the number, and so a
   /// later version has exactly one place to change.
-  static const int currentSchemaVersion = 4;
+  static const int currentSchemaVersion = 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -115,6 +120,9 @@ class AppDatabase extends _$AppDatabase {
             // and the switch starts on — the state a new install gets.
             await m.addColumn(settings, settings.backupAutoEnabled);
           }
+          if (from < 5) {
+            await _followDeviceInsteadOfSeededArabic();
+          }
         },
         beforeOpen: (OpeningDetails details) async {
           // Required for the ON DELETE actions declared on the tables.
@@ -127,7 +135,7 @@ class AppDatabase extends _$AppDatabase {
     const AppSettings defaults = AppSettings.initial;
     return SettingsCompanion.insert(
       id: const Value<int>(Settings.singletonId),
-      language: defaults.language,
+      languagePreference: defaults.languagePreference,
       themeMode: defaults.themeMode,
       numerals: defaults.numerals,
       defaultCurrencyCode: defaults.defaultCurrency.code,
@@ -177,6 +185,30 @@ class AppDatabase extends _$AppDatabase {
       FROM debts
       WHERE person_id IS NOT NULL
     ''');
+  }
+
+  /// Hands the language back to the phone wherever nobody chose one.
+  ///
+  /// Before version 5 every install was seeded with Arabic and the phone was
+  /// never asked, so a stored `arabic` says what the app assumed rather than
+  /// what the person picked — and skipping onboarding stored it too. It becomes
+  /// "follow the phone", onboarded or not: an Arabic phone stays in Arabic, and
+  /// any other phone gets the language it is in, which is what the app would
+  /// have done had it been installed today. A stored `english` was always a
+  /// choice — nothing but a tap ever wrote it — and is kept.
+  ///
+  /// It changes this one column and nothing else.
+  Future<void> _followDeviceInsteadOfSeededArabic() async {
+    await (update(settings)
+          ..where(
+            ($SettingsTable t) =>
+                t.languagePreference.equalsValue(LanguagePreference.arabic),
+          ))
+        .write(
+      const SettingsCompanion(
+        languagePreference: Value<LanguagePreference>(LanguagePreference.system),
+      ),
+    );
   }
 
   /// Wipes every user row. Used by "delete all data" in Settings.

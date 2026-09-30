@@ -11,7 +11,6 @@ import '../../core/money/currency.dart';
 import '../../core/pdf/statement_document.dart';
 import '../../core/pdf/statement_models.dart';
 import '../../core/utils/dates.dart';
-import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/debt.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/payment.dart';
@@ -27,14 +26,13 @@ class StatementService {
   StatementService({
     required this.localizations,
     required this.formatting,
-    required this.settings,
   });
 
   final AppLocalizations localizations;
-  final AppFormatting formatting;
 
-  /// The stored settings, which decide the document's language.
-  final AppSettings settings;
+  /// The document's figures, dates and language — the resolved one, so a
+  /// statement is written in the language the screen that shared it is in.
+  final AppFormatting formatting;
 
   /// Cached so a second statement in the same session does not re-read the font.
   static ByteData? _regularFontCache;
@@ -99,7 +97,7 @@ class StatementService {
         length: 6,
       ),
       generatedAt: now,
-      language: settings.language,
+      language: formatting.language,
       personName: ledger.person.name,
       phone: ledger.person.phone,
       currency: currency,

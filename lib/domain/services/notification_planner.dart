@@ -58,6 +58,15 @@ class NotificationIntent {
   final String? recordTitle;
   final Money? amount;
   final DebtDirection? direction;
+
+  /// Days from the day this notification is *delivered* to the record's due
+  /// date — 1 for a reminder the day before, negative once it is late.
+  ///
+  /// Counted from delivery, not from planning: the sentence is read when it
+  /// arrives. Counting from the day the plan ran made a reminder planned six
+  /// days out arrive the day before the deadline saying «خلال 6 أيام», and made
+  /// the words change every day — which, now that a reminder whose words
+  /// changed is re-worded, would have re-scheduled every one of them daily.
   final int? daysUntil;
   final String? reminderTitle;
 
@@ -182,7 +191,7 @@ abstract final class NotificationPlanner {
     if (!settings.notificationsEnabled) return const <NotificationIntent>[];
     final DateTime current = dateOnly(now);
     final DateTime horizonEnd = addDays(current, horizon.inDays);
-    return _planDebts(debts, settings, current, now, horizonEnd).toList();
+    return _planDebts(debts, settings, now, horizonEnd).toList();
   }
 
   /// The notifications a set of commitment periods asks for.
@@ -194,7 +203,7 @@ abstract final class NotificationPlanner {
     if (!settings.notificationsEnabled) return const <NotificationIntent>[];
     final DateTime current = dateOnly(now);
     final DateTime horizonEnd = addDays(current, horizon.inDays);
-    return _planObligations(obligations, settings, current, now, horizonEnd)
+    return _planObligations(obligations, settings, now, horizonEnd)
         .toList();
   }
 
@@ -207,14 +216,13 @@ abstract final class NotificationPlanner {
     if (!settings.notificationsEnabled) return const <NotificationIntent>[];
     final DateTime current = dateOnly(now);
     final DateTime horizonEnd = addDays(current, horizon.inDays);
-    return _planReminders(reminders, settings, current, now, horizonEnd)
+    return _planReminders(reminders, settings, now, horizonEnd)
         .toList();
   }
 
   static Iterable<NotificationIntent> _planDebts(
     List<DebtView> debts,
     AppSettings settings,
-    DateTime current,
     DateTime now,
     DateTime horizonEnd,
   ) sync* {
@@ -240,7 +248,7 @@ abstract final class NotificationPlanner {
           recordTitle: view.debt.title,
           amount: view.remaining,
           direction: view.debt.direction,
-          daysUntil: daysBetween(current, due),
+          daysUntil: daysBetween(dateOnly(when), due),
         );
       }
 
@@ -259,7 +267,7 @@ abstract final class NotificationPlanner {
           recordTitle: view.debt.title,
           amount: view.remaining,
           direction: view.debt.direction,
-          daysUntil: daysBetween(current, due),
+          daysUntil: daysBetween(dateOnly(nudge), due),
         );
       }
     }
@@ -268,7 +276,6 @@ abstract final class NotificationPlanner {
   static Iterable<NotificationIntent> _planObligations(
     List<ObligationInstance> obligations,
     AppSettings settings,
-    DateTime current,
     DateTime now,
     DateTime horizonEnd,
   ) sync* {
@@ -294,7 +301,7 @@ abstract final class NotificationPlanner {
           payload: 'obligation:${instance.obligation.id}',
           recordTitle: instance.obligation.name,
           amount: instance.money,
-          daysUntil: daysBetween(current, due),
+          daysUntil: daysBetween(dateOnly(when), due),
         );
       }
 
@@ -312,7 +319,7 @@ abstract final class NotificationPlanner {
           payload: 'obligation:${instance.obligation.id}',
           recordTitle: instance.obligation.name,
           amount: instance.money,
-          daysUntil: daysBetween(current, due),
+          daysUntil: daysBetween(dateOnly(nudge), due),
         );
       }
     }
@@ -321,7 +328,6 @@ abstract final class NotificationPlanner {
   static Iterable<NotificationIntent> _planReminders(
     List<Reminder> reminders,
     AppSettings settings,
-    DateTime current,
     DateTime now,
     DateTime horizonEnd,
   ) sync* {
@@ -334,7 +340,7 @@ abstract final class NotificationPlanner {
         when: when,
         payload: 'reminder:${reminder.id}',
         reminderTitle: reminder.title,
-        daysUntil: daysBetween(current, reminder.dueAt),
+        daysUntil: daysBetween(dateOnly(when), reminder.dueAt),
       );
     }
   }

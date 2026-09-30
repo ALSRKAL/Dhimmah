@@ -8,8 +8,8 @@ visual; if a value here is wrong, change it here first and then in the code.
 ## The product, and what the interface owes it
 
 A personal ledger for the two sides of someone's money: what they owe, what they
-are owed, and the commitments that come back every month. Arabic is the default
-language, English is complete, and it works with no network at all.
+are owed, and the commitments that come back every month. It opens in the phone's
+language — Arabic or English, both complete — and it works with no network at all.
 
 Three consequences run through every decision below:
 
@@ -62,7 +62,7 @@ exactly where it is.
 |---|---|
 | `brand` | Interactive: selected states, primary buttons, links. Never decoration. |
 | `brandContainer` | The tint behind a selected or grouped element. |
-| `gold` / `goldContainer` | The brand accent, used twice in the whole app: the terminal on the mark, and a 22×2 rule under the wordmark. Never a status. |
+| `gold` / `goldContainer` | The brand accent, used twice in the whole app: the terminal on the mark, and a 22×2 rule under the wordmark (`DhimmahWordmark`, the only place it is drawn — the dashboard and onboarding use the same widget). Never a status. |
 | `surface` / `surfaceMuted` / `surfaceRaised` | Three levels: the page, a recessed well (input fills, grouped rows), and anything that floats above the page (sheets, dialogs). |
 | `background` | Warm paper in light mode; warm charcoal in dark. Cards are white in light mode so they lift **without** a shadow. |
 | `border` / `borderStrong` | Warm hairlines. A card is a surface plus a hairline, never a shadow. |
@@ -275,7 +275,9 @@ Motion explains a change; it never performs. `AppMotion` holds four durations
 * a bottom sheet sliding up (the platform's own),
 * a screen transition (the platform's own),
 * `AnimatedSize` + `AnimatedRotation` on the one disclosure in the debt form,
-* `AnimatedContainer` on the PIN dots.
+* `AnimatedContainer` on the PIN dots,
+* onboarding's step slide and its progress segments — and with the system's
+  "remove animations" on, the step changes without the slide.
 
 Nothing bounces, nothing loops, nothing animates on first paint.
 
@@ -370,6 +372,23 @@ the code.
     background. A reminder is also never exact: "look at this today" does not
     need a millisecond, and the permission that would buy one is denied by
     default on Android 14+ and reserved by Play for alarm and calendar apps.
+
+18. **The app is in the phone's language, and says which.** Nothing asks for a
+    language on first run: the first frame is already in the phone's, and the
+    other language is offered by its own name — «العربية», "English" — on every
+    onboarding step, because the person who needs that button is the one who
+    cannot read the screen it is on. Settings lists the phone first, with the
+    language it currently means beneath it, and names every language in its own
+    script. Coming back to the phone's own language stores "follow the phone",
+    not a pinned copy of it.
+19. **Onboarding is three steps with one action each.** What the app is, the
+    currency new records use, and reminders — stating the real defaults (the
+    lead, the hour, the month-end summary) so "turn on" is a decision about
+    something visible. The action is pinned below the content so it can never be
+    scrolled away at 1.5x text on a 360px phone, a hairline above it says when
+    there is more below, and the system back gesture walks back through the
+    steps. Skip never raises a permission dialog; "Not now" is an answer and is
+    stored as one.
 
 **Numbers do not mirror.** Every dialer puts 1 at the top left in Cairo exactly
 as in London, and a PIN is a sequence of digits read left to right. The keypad

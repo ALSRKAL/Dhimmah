@@ -63,9 +63,15 @@ class SettingsScreen extends ConsumerWidget {
             children: <Widget>[
               SettingsTile(
                 title: localizations.settingsLanguage,
+                // Whether the phone decides, said where the choice is read;
+                // the language itself in its own name, which is what someone
+                // who cannot read the current one looks for.
+                subtitle: settings.languagePreference.followsDevice
+                    ? localizations.languageFollowsDevice
+                    : null,
                 icon: Icons.translate,
-                valueText: settings.language.label(localizations),
-                onTap: () => _pickLanguage(context, controller, settings),
+                valueText: ref.watch(appLanguageProvider).endonym,
+                onTap: () => _pickLanguage(context, ref, controller, settings),
               ),
               SettingsTile(
                 title: localizations.settingsTheme,
@@ -82,8 +88,7 @@ class SettingsScreen extends ConsumerWidget {
               SettingsTile(
                 title: localizations.settingsCurrency,
                 icon: Icons.payments_outlined,
-                valueText:
-                    '${settings.defaultCurrency.code} · ${settings.defaultCurrency.symbol}',
+                valueText: settings.defaultCurrency.codeAndSymbol,
                 onTap: () => _pickCurrency(context, controller, settings),
               ),
               SettingsTile(
@@ -286,22 +291,41 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
+  /// The phone's language, or one language whatever the phone says.
+  ///
+  /// Each language is listed by its own name, with its name in the current
+  /// language beneath it when the two differ — "English", then «الإنجليزية» —
+  /// and the phone's option says which language that currently means, so the
+  /// choice is never a guess about what "device language" will turn out to be.
   Future<void> _pickLanguage(
     BuildContext context,
+    WidgetRef ref,
     SettingsController controller,
     AppSettings settings,
   ) async {
     final AppLocalizations localizations = AppLocalizations.of(context);
-    final AppLanguage? picked = await showModalBottomSheet<AppLanguage>(
+    final AppLanguage device = ref.read(deviceLanguageProvider);
+    final LanguagePreference? picked =
+        await showModalBottomSheet<LanguagePreference>(
       context: context,
-      builder: (BuildContext sheetContext) => OptionSheet<AppLanguage>(
+      builder: (BuildContext sheetContext) => OptionSheet<LanguagePreference>(
         title: localizations.settingsLanguage,
-        value: settings.language,
-        options: AppLanguage.values,
-        labelOf: (AppLanguage value) => value.label(localizations),
+        value: settings.languagePreference,
+        options: LanguagePreference.values,
+        labelOf: (LanguagePreference value) => value.label(localizations),
+        subtitleOf: (LanguagePreference value) {
+          final AppLanguage? language = value.language;
+          if (language == null) {
+            return localizations.languageDeviceCurrently(device.endonym);
+          }
+          final String local = language.label(localizations);
+          return local == language.endonym ? null : local;
+        },
       ),
     );
-    if (picked != null) await controller.setLanguage(picked);
+    if (picked != null && picked != settings.languagePreference) {
+      await controller.setLanguagePreference(picked);
+    }
   }
 
   Future<void> _pickTheme(
@@ -353,7 +377,8 @@ class SettingsScreen extends ConsumerWidget {
         title: localizations.settingsCurrency,
         value: settings.defaultCurrency,
         options: AppCurrency.values,
-        labelOf: (AppCurrency value) => '${value.code} · ${value.symbol}',
+        labelOf: (AppCurrency value) => value.label(localizations),
+        subtitleOf: (AppCurrency value) => value.codeAndSymbol,
       ),
     );
     if (picked != null) await controller.setDefaultCurrency(picked);

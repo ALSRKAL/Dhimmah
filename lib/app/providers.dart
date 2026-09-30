@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -33,6 +34,7 @@ import '../domain/entities/reminder.dart';
 import '../domain/enums/preference_enums.dart';
 import '../domain/enums/recurrence.dart';
 import '../domain/repositories/repositories.dart';
+import '../l10n/enum_labels.dart';
 import '../l10n/generated/app_localizations.dart';
 
 // ---------------------------------------------------------------------------
@@ -203,11 +205,87 @@ final StreamProvider<AppSettings> settingsProvider =
   return ref.watch(settingsRepositoryProvider).watch();
 });
 
-/// Settings with the defaults folded in, for widgets that must render before the
-/// first snapshot arrives.
+/// The settings as they stood before the first frame.
+///
+/// The stream above cannot answer synchronously: its first value arrives a query
+/// later, after the first frame has already been drawn. Until then the app used
+/// to draw [AppSettings.initial] — so someone who had chosen English, or the dark
+/// theme, watched the app open in Arabic, or in light, and then change under
+/// them. `main` reads the row once before `runApp` and seeds it here through
+/// [loadBootSettings], so the first frame is already the app the user left.
+class BootSettings extends Notifier<AppSettings> {
+  @override
+  AppSettings build() => AppSettings.initial;
+
+  void seed(AppSettings settings) => state = settings;
+}
+
+final NotifierProvider<BootSettings, AppSettings> bootSettingsProvider =
+    NotifierProvider<BootSettings, AppSettings>(BootSettings.new);
+
+/// Reads the stored settings and makes them the app's starting point.
+///
+/// Throws what the read throws: this is the first touch of the database, and
+/// the start-up path turns a failure here into a screen that names it.
+Future<AppSettings> loadBootSettings(ProviderContainer container) async {
+  final AppSettings settings =
+      await container.read(settingsRepositoryProvider).get();
+  container.read(bootSettingsProvider.notifier).seed(settings);
+  return settings;
+}
+
+/// Settings with the stored values folded in, for widgets that must render
+/// before the first snapshot arrives.
 final Provider<AppSettings> effectiveSettingsProvider =
     Provider<AppSettings>((Ref ref) {
-  return ref.watch(settingsProvider).value ?? AppSettings.initial;
+  return ref.watch(settingsProvider).value ?? ref.watch(bootSettingsProvider);
+});
+
+/// The phone's languages, most preferred first.
+///
+/// Read from the binding's dispatcher rather than `PlatformDispatcher.instance`:
+/// it is the same list on a phone, and the one a test can speak for. The app
+/// root refreshes it when the platform reports a change and whenever the app
+/// comes back to the foreground, so a phone switched to another language while
+/// Dhimmah sat in the background is noticed on return.
+class DeviceLocales extends Notifier<List<Locale>> {
+  @override
+  List<Locale> build() => _read();
+
+  /// Re-reads the phone. Only notifies when the list actually changed.
+  void refresh() {
+    final List<Locale> next = _read();
+    if (!listEquals(next, state)) state = next;
+  }
+
+  static List<Locale> _read() =>
+      List<Locale>.unmodifiable(WidgetsBinding.instance.platformDispatcher.locales);
+}
+
+final NotifierProvider<DeviceLocales, List<Locale>> deviceLocalesProvider =
+    NotifierProvider<DeviceLocales, List<Locale>>(DeviceLocales.new);
+
+/// The language the phone asks for, among the two Dhimmah ships.
+final Provider<AppLanguage> deviceLanguageProvider =
+    Provider<AppLanguage>((Ref ref) {
+  return AppLanguage.fromDevice(<String>[
+    for (final Locale locale in ref.watch(deviceLocalesProvider))
+      locale.languageCode,
+  ]);
+});
+
+/// The language the app is in: the user's choice, or the phone's when the user
+/// left it to the phone.
+///
+/// The one place a language is decided. The interface, the notifications, the
+/// dates, the numbers and the statement all read this, so they cannot disagree
+/// with each other — which they would if any of them resolved it separately.
+final Provider<AppLanguage> appLanguageProvider = Provider<AppLanguage>((Ref ref) {
+  final LanguagePreference preference = ref.watch(
+    effectiveSettingsProvider
+        .select((AppSettings settings) => settings.languagePreference),
+  );
+  return preference.resolve(ref.watch(deviceLanguageProvider));
 });
 
 class SettingsController {
@@ -232,8 +310,8 @@ class SettingsController {
     await _repository.update((AppSettings s) => s.copyWith(backupAutoEnabled: enabled));
   }
 
-  Future<void> setLanguage(AppLanguage language) =>
-      update((AppSettings s) => s.copyWith(language: language));
+  Future<void> setLanguagePreference(LanguagePreference preference) =>
+      update((AppSettings s) => s.copyWith(languagePreference: preference));
 
   Future<void> setThemeMode(AppThemeMode mode) =>
       update((AppSettings s) => s.copyWith(themeMode: mode));
@@ -276,14 +354,14 @@ class SettingsController {
   Future<void> setBiometricEnabled(bool enabled) =>
       update((AppSettings s) => s.copyWith(biometricEnabled: enabled));
 
+  /// Ends onboarding. The language is not part of it: it follows the phone, and
+  /// the switch on the onboarding screen stores a choice the moment it is made.
   Future<void> completeOnboarding({
-    required AppLanguage language,
     required AppCurrency currency,
     required bool notificationsEnabled,
   }) =>
       update(
         (AppSettings s) => s.copyWith(
-          language: language,
           defaultCurrency: currency,
           notificationsEnabled: notificationsEnabled,
           onboardingCompleted: true,
@@ -298,28 +376,42 @@ final Provider<SettingsController> settingsControllerProvider =
 // Localisation-aware helpers
 // ---------------------------------------------------------------------------
 
-/// The active [AppLocalizations], resolved from the effective settings.
+/// The active [AppLocalizations], in the resolved [appLanguageProvider].
 ///
 /// Services run outside the widget tree, so they cannot ask a `BuildContext` for
 /// their strings; this gives them the same instance the UI is using.
 final Provider<AppLocalizations> localizationsProvider =
     Provider<AppLocalizations>((Ref ref) {
-  final AppSettings settings = ref.watch(effectiveSettingsProvider);
-  return lookupAppLocalizations(Locale(settings.language.code));
+  return lookupAppLocalizations(ref.watch(appLanguageProvider).locale);
 });
 
+/// Formatting for the resolved language and the user's numerals and currency.
+///
+/// Watches only what formatting reads. It used to watch the whole settings row,
+/// so switching automatic backups off rebuilt every formatter — and the
+/// notification wording built from them.
 final Provider<AppFormatting> formattingProvider = Provider<AppFormatting>(
   (Ref ref) {
-    final AppSettings settings = ref.watch(effectiveSettingsProvider);
+    final ({NumeralsStyle numerals, AppCurrency currency}) style = ref.watch(
+      effectiveSettingsProvider.select(
+        (AppSettings s) => (numerals: s.numerals, currency: s.defaultCurrency),
+      ),
+    );
     return AppFormatting.of(
-      language: settings.language,
-      numerals: settings.numerals,
-      defaultCurrency: settings.defaultCurrency,
+      language: ref.watch(appLanguageProvider),
+      numerals: style.numerals,
+      defaultCurrency: style.currency,
       localizations: ref.watch(localizationsProvider),
     );
   },
 );
 
+/// Notification wording, rebuilt exactly when what it says could change: the
+/// language, the numerals or the default currency.
+///
+/// The app root listens to this and re-words the reminders already scheduled,
+/// which is the only way a phone that changes language while the app is open
+/// gets reminders in the new one.
 final Provider<NotificationComposer> notificationComposerProvider =
     Provider<NotificationComposer>(
   (Ref ref) => NotificationComposer(
@@ -355,7 +447,6 @@ final Provider<StatementService> statementServiceProvider =
   (Ref ref) => StatementService(
     localizations: ref.watch(localizationsProvider),
     formatting: ref.watch(formattingProvider),
-    settings: ref.watch(effectiveSettingsProvider),
   ),
 );
 

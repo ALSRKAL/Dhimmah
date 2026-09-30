@@ -12,13 +12,14 @@ void main() {
   test('the seed stores the language it was asked for', () async {
     final AppDatabase db = AppDatabase.memory();
     // ignore: avoid_print
-    print('AppSettings.initial.language = ${AppSettings.initial.language}');
+    print('AppSettings.initial.languagePreference = '
+        '${AppSettings.initial.languagePreference}');
     await seedStoreDemoData(db, language: AppLanguage.english);
     final AppSettings settings = await SettingsRepositoryImpl(db).get();
     // ignore: avoid_print
-    print('after english seed: language=${settings.language} '
+    print('after english seed: language=${settings.languagePreference} '
         'theme=${settings.themeMode} onboarding=${settings.onboardingCompleted}');
-    expect(settings.language, AppLanguage.english);
+    expect(settings.languagePreference, LanguagePreference.english);
     await db.close();
   });
 }

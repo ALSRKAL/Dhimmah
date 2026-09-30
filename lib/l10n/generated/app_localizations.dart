@@ -1792,25 +1792,13 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingEnableNotifications.
   ///
   /// In ar, this message translates to:
-  /// **'تفعيل التنبيهات'**
+  /// **'تفعيل التذكيرات'**
   String get onboardingEnableNotifications;
-
-  /// No description provided for @onboardingLanguageBody.
-  ///
-  /// In ar, this message translates to:
-  /// **'يمكنك تغييرها لاحقًا من الإعدادات.'**
-  String get onboardingLanguageBody;
-
-  /// No description provided for @onboardingLanguageTitle.
-  ///
-  /// In ar, this message translates to:
-  /// **'اختر لغتك'**
-  String get onboardingLanguageTitle;
 
   /// No description provided for @onboardingMaybeLater.
   ///
   /// In ar, this message translates to:
-  /// **'لاحقًا'**
+  /// **'ليس الآن'**
   String get onboardingMaybeLater;
 
   /// No description provided for @onboardingNext.
@@ -1822,7 +1810,7 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingNotificationsBody.
   ///
   /// In ar, this message translates to:
-  /// **'نحتاج إذنك لإرسال تنبيهات الاستحقاق. الإشعارات محلية ولا تغادر جهازك.'**
+  /// **'نذكّرك قبل كل موعد استحقاق، في الوقت الذي تختاره. التذكيرات تُجدول على جهازك ولا تحتاج إنترنت.'**
   String get onboardingNotificationsBody;
 
   /// No description provided for @onboardingNotificationsDenied.
@@ -1834,56 +1822,14 @@ abstract class AppLocalizations {
   /// No description provided for @onboardingNotificationsTitle.
   ///
   /// In ar, this message translates to:
-  /// **'التذكيرات'**
+  /// **'لا يفوتك أي موعد'**
   String get onboardingNotificationsTitle;
-
-  /// No description provided for @onboardingReadyTitle.
-  ///
-  /// In ar, this message translates to:
-  /// **'كل شيء جاهز.'**
-  String get onboardingReadyTitle;
 
   /// No description provided for @onboardingSkip.
   ///
   /// In ar, this message translates to:
   /// **'تخطي'**
   String get onboardingSkip;
-
-  /// No description provided for @onboardingSlide1Body.
-  ///
-  /// In ar, this message translates to:
-  /// **'سجّل ما عليك وما لك، واعرف مركزك المالي فورًا عند فتح التطبيق.'**
-  String get onboardingSlide1Body;
-
-  /// No description provided for @onboardingSlide1Title.
-  ///
-  /// In ar, this message translates to:
-  /// **'ذمّتك المالية، منظمة في مكان واحد.'**
-  String get onboardingSlide1Title;
-
-  /// No description provided for @onboardingSlide2Body.
-  ///
-  /// In ar, this message translates to:
-  /// **'ديون، دفعات جزئية، والتزامات متكررة — ويُحسب المتبقي تلقائيًا.'**
-  String get onboardingSlide2Body;
-
-  /// No description provided for @onboardingSlide2Title.
-  ///
-  /// In ar, this message translates to:
-  /// **'سجّل ما عليك وما لك.'**
-  String get onboardingSlide2Title;
-
-  /// No description provided for @onboardingSlide3Body.
-  ///
-  /// In ar, this message translates to:
-  /// **'تذكيرات محلية تعمل بدون إنترنت، وملخص لذمتك في نهاية كل شهر.'**
-  String get onboardingSlide3Body;
-
-  /// No description provided for @onboardingSlide3Title.
-  ///
-  /// In ar, this message translates to:
-  /// **'لا تنسَ أي موعد.'**
-  String get onboardingSlide3Title;
 
   /// No description provided for @onboardingStart.
   ///
@@ -4314,6 +4260,126 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد.'**
   String get backupSeparateFromExport;
+
+  /// No description provided for @currencyNameAed.
+  ///
+  /// In ar, this message translates to:
+  /// **'درهم إماراتي'**
+  String get currencyNameAed;
+
+  /// No description provided for @currencyNameEur.
+  ///
+  /// In ar, this message translates to:
+  /// **'يورو'**
+  String get currencyNameEur;
+
+  /// No description provided for @currencyNameGbp.
+  ///
+  /// In ar, this message translates to:
+  /// **'جنيه إسترليني'**
+  String get currencyNameGbp;
+
+  /// No description provided for @currencyNameInr.
+  ///
+  /// In ar, this message translates to:
+  /// **'روبية هندية'**
+  String get currencyNameInr;
+
+  /// No description provided for @currencyNameSar.
+  ///
+  /// In ar, this message translates to:
+  /// **'ريال سعودي'**
+  String get currencyNameSar;
+
+  /// No description provided for @currencyNameUsd.
+  ///
+  /// In ar, this message translates to:
+  /// **'دولار أمريكي'**
+  String get currencyNameUsd;
+
+  /// No description provided for @currencyNameYer.
+  ///
+  /// In ar, this message translates to:
+  /// **'ريال يمني'**
+  String get currencyNameYer;
+
+  /// No description provided for @languageDevice.
+  ///
+  /// In ar, this message translates to:
+  /// **'لغة الجهاز'**
+  String get languageDevice;
+
+  /// No description provided for @languageDeviceCurrently.
+  ///
+  /// In ar, this message translates to:
+  /// **'حاليًا: {language}'**
+  String languageDeviceCurrently(String language);
+
+  /// No description provided for @languageFollowsDevice.
+  ///
+  /// In ar, this message translates to:
+  /// **'تتبع لغة جهازك'**
+  String get languageFollowsDevice;
+
+  /// No description provided for @onboardingChangeLanguage.
+  ///
+  /// In ar, this message translates to:
+  /// **'تغيير اللغة'**
+  String get onboardingChangeLanguage;
+
+  /// No description provided for @onboardingChangeLater.
+  ///
+  /// In ar, this message translates to:
+  /// **'يمكنك تغيير ذلك في أي وقت من الإعدادات.'**
+  String get onboardingChangeLater;
+
+  /// No description provided for @onboardingFeatureBooksBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سجّل الديون والدفعات الجزئية والالتزامات الشهرية، ويُحسب المتبقي تلقائيًا.'**
+  String get onboardingFeatureBooksBody;
+
+  /// No description provided for @onboardingFeatureBooksTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ما لك وما عليك في دفتر واحد'**
+  String get onboardingFeatureBooksTitle;
+
+  /// No description provided for @onboardingFeaturePrivateBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'يعمل بدون إنترنت، ولا يُرفع شيء إلى أي خادم.'**
+  String get onboardingFeaturePrivateBody;
+
+  /// No description provided for @onboardingFeatureRemindersBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'تنبيه قبل موعد الاستحقاق، وملخص لذمتك في آخر كل شهر.'**
+  String get onboardingFeatureRemindersBody;
+
+  /// No description provided for @onboardingFeatureRemindersTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تذكير قبل كل موعد'**
+  String get onboardingFeatureRemindersTitle;
+
+  /// No description provided for @onboardingMonthEndWhen.
+  ///
+  /// In ar, this message translates to:
+  /// **'{day}، الساعة {time}'**
+  String onboardingMonthEndWhen(String day, String time);
+
+  /// No description provided for @onboardingReminderTime.
+  ///
+  /// In ar, this message translates to:
+  /// **'الساعة {time}'**
+  String onboardingReminderTime(String time);
+
+  /// No description provided for @onboardingStepOf.
+  ///
+  /// In ar, this message translates to:
+  /// **'الخطوة {step} من {total}'**
+  String onboardingStepOf(int step, int total);
 }
 
 class _AppLocalizationsDelegate

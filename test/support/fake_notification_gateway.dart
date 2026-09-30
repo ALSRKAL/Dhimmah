@@ -71,6 +71,14 @@ class FakeNotificationGateway implements NotificationGateway {
   int initializeCalls = 0;
   int permissionRequests = 0;
 
+  /// How many times the pending set was read — once per reconciliation pass,
+  /// which is how a test counts passes.
+  int pendingReads = 0;
+
+  /// The channel names last given, by tier.
+  Map<NotificationTier, NotificationChannelCopy> channels =
+      <NotificationTier, NotificationChannelCopy>{};
+
   void Function(String payload)? _onTap;
 
   /// A tap arriving while the app is running.
@@ -104,6 +112,7 @@ class FakeNotificationGateway implements NotificationGateway {
     Map<NotificationTier, NotificationChannelCopy> copy,
   ) async {
     channelCreates++;
+    channels = Map<NotificationTier, NotificationChannelCopy>.of(copy);
   }
 
   @override
@@ -114,11 +123,32 @@ class FakeNotificationGateway implements NotificationGateway {
     permissionRequests++;
   }
 
+  /// When false, the fake reports pending notifications without their words,
+  /// as a platform that does not expose them would.
+  bool reportsWording = true;
+
+  /// When set, the next read of the pending set throws it — once. A platform
+  /// that fails a whole reconciliation pass rather than a single alarm.
+  Object? pendingFailure;
+
   @override
-  Future<List<PendingNotification>> pending() async => <PendingNotification>[
-        for (final FakeScheduledNotification n in held.values)
-          PendingNotification(id: n.id, payload: n.payload),
-      ];
+  Future<List<PendingNotification>> pending() async {
+    pendingReads++;
+    final Object? failure = pendingFailure;
+    if (failure != null) {
+      pendingFailure = null;
+      throw failure;
+    }
+    return <PendingNotification>[
+      for (final FakeScheduledNotification n in held.values)
+        PendingNotification(
+          id: n.id,
+          payload: n.payload,
+          title: reportsWording ? n.title : null,
+          body: reportsWording ? n.body : null,
+        ),
+    ];
+  }
 
   @override
   Future<void> schedule({

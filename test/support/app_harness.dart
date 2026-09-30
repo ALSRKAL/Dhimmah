@@ -40,8 +40,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// navigation or to a shared widget shows up here instead of only on a device.
 /// [notifications] lets a test hand the service a fake platform, so the
 /// delivery policy can be driven without a phone.
-LedgerService buildService(AppDatabase db, {NotificationService? notifications}) {
-  final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
+/// [language] is the language the service writes notifications in — Arabic,
+/// like the phone the suite runs on, unless a test is about another one.
+LedgerService buildService(
+  AppDatabase db, {
+  NotificationService? notifications,
+  AppLanguage language = AppLanguage.arabic,
+}) {
+  final AppLocalizations l10n = lookupAppLocalizations(Locale(language.code));
   return LedgerService(
     database: db,
     people: PersonRepositoryImpl(db),
@@ -56,7 +62,7 @@ LedgerService buildService(AppDatabase db, {NotificationService? notifications})
     composer: () => NotificationComposer(
       localizations: l10n,
       formatting: AppFormatting(
-        language: AppLanguage.arabic,
+        language: language,
         numerals: NumeralsStyle.latin,
         defaultCurrency: AppCurrency.inr,
         localizations: l10n,
@@ -210,12 +216,13 @@ Future<ProviderContainer> pumpDhimmah(
   BackupLocationRepository? backupFolders,
   PinService? pinService,
   Future<bool> Function(Uri)? urlOpener,
+  NotificationService? notificationService,
 }) async {
   if (settings != null) {
     await db.settingsDao.replace(
       Setting(
         id: Settings.singletonId,
-        language: settings.language,
+        languagePreference: settings.languagePreference,
         themeMode: settings.themeMode,
         numerals: settings.numerals,
         defaultCurrencyCode: settings.defaultCurrency.code,
@@ -258,9 +265,15 @@ Future<ProviderContainer> pumpDhimmah(
         backupLocationRepositoryProvider.overrideWithValue(backupFolders),
       if (pinService != null) pinServiceProvider.overrideWithValue(pinService),
       if (urlOpener != null) urlOpenerProvider.overrideWithValue(urlOpener),
+      if (notificationService != null)
+        notificationServiceProvider.overrideWithValue(notificationService),
     ],
   );
   addTearDown(container.dispose);
+
+  // What `main` does before `runApp`, so the first frame a test sees is the one
+  // a phone would draw: already in the stored language and theme.
+  await loadBootSettings(container);
 
   await tester.pumpWidget(
     UncontrolledProviderScope(

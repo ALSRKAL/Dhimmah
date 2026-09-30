@@ -25,8 +25,8 @@ void main() {
   /// asserts the result is not equal to the original.
   final Map<String, AppSettings Function(AppSettings)> oneFieldChanged =
       <String, AppSettings Function(AppSettings)>{
-    'language': (AppSettings s) =>
-        s.copyWith(language: AppLanguage.english),
+    'languagePreference': (AppSettings s) =>
+        s.copyWith(languagePreference: LanguagePreference.english),
     'themeMode': (AppSettings s) => s.copyWith(themeMode: AppThemeMode.dark),
     'numerals': (AppSettings s) =>
         s.copyWith(numerals: NumeralsStyle.arabicIndic),

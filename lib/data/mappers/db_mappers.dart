@@ -380,7 +380,7 @@ extension MonthlySummaryRowMapper on MonthlySummaryRow {
 
 extension SettingRowMapper on Setting {
   AppSettings toEntity() => AppSettings(
-        language: language,
+        languagePreference: languagePreference,
         themeMode: themeMode,
         numerals: numerals,
         defaultCurrency: AppCurrency.parse(defaultCurrencyCode),
@@ -405,7 +405,7 @@ extension SettingRowMapper on Setting {
 extension AppSettingsMapper on AppSettings {
   SettingsCompanion toCompanion() => SettingsCompanion(
         id: const Value<int>(Settings.singletonId),
-        language: Value<AppLanguage>(language),
+        languagePreference: Value<LanguagePreference>(languagePreference),
         themeMode: Value<AppThemeMode>(themeMode),
         numerals: Value<NumeralsStyle>(numerals),
         defaultCurrencyCode: Value<String>(defaultCurrency.code),

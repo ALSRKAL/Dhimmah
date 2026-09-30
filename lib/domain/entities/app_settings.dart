@@ -9,7 +9,7 @@ import '../enums/recurrence.dart';
 @immutable
 class AppSettings {
   const AppSettings({
-    required this.language,
+    required this.languagePreference,
     required this.themeMode,
     required this.numerals,
     required this.defaultCurrency,
@@ -32,10 +32,11 @@ class AppSettings {
 
   /// The state a brand-new install starts from.
   ///
-  /// Arabic, light-following-system, and reminders on: the app should be useful
-  /// the moment it opens, with every one of these changeable in Settings.
+  /// The phone's language and the phone's theme, and reminders on: the app should
+  /// be useful the moment it opens, in the language the phone is already in, with
+  /// every one of these changeable in Settings.
   static const AppSettings initial = AppSettings(
-    language: AppLanguage.arabic,
+    languagePreference: LanguagePreference.system,
     themeMode: AppThemeMode.system,
     numerals: NumeralsStyle.latin,
     defaultCurrency: AppCurrency.inr,
@@ -53,7 +54,12 @@ class AppSettings {
     onboardingCompleted: false,
   );
 
-  final AppLanguage language;
+  /// Follow the phone, or one language regardless of it.
+  ///
+  /// Deliberately not the language itself: which language that is depends on
+  /// the phone, and is worked out where the phone can be asked — see
+  /// `appLanguageProvider`. Nothing may read this as if it were the answer.
+  final LanguagePreference languagePreference;
   final AppThemeMode themeMode;
   final NumeralsStyle numerals;
 
@@ -103,7 +109,7 @@ class AppSettings {
   bool get schedulingEnabled => notificationsEnabled;
 
   AppSettings copyWith({
-    AppLanguage? language,
+    LanguagePreference? languagePreference,
     AppThemeMode? themeMode,
     NumeralsStyle? numerals,
     AppCurrency? defaultCurrency,
@@ -124,7 +130,7 @@ class AppSettings {
     Object? lastExportedAt = _unset,
   }) {
     return AppSettings(
-      language: language ?? this.language,
+      languagePreference: languagePreference ?? this.languagePreference,
       themeMode: themeMode ?? this.themeMode,
       numerals: numerals ?? this.numerals,
       defaultCurrency: defaultCurrency ?? this.defaultCurrency,
@@ -167,7 +173,7 @@ class AppSettings {
   @override
   bool operator ==(Object other) =>
       other is AppSettings &&
-      other.language == language &&
+      other.languagePreference == languagePreference &&
       other.themeMode == themeMode &&
       other.numerals == numerals &&
       other.defaultCurrency == defaultCurrency &&
@@ -189,7 +195,7 @@ class AppSettings {
 
   @override
   int get hashCode => Object.hash(
-        language,
+        languagePreference,
         themeMode,
         numerals,
         defaultCurrency,

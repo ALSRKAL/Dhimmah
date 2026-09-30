@@ -126,16 +126,7 @@ class _IdentityRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: <Widget>[
-              Text(localizations.appName, style: theme.textTheme.titleMedium),
-              const SizedBox(height: 3),
-              Container(
-                width: 22,
-                height: 2,
-                decoration: BoxDecoration(
-                  color: palette.gold,
-                  borderRadius: BorderRadius.circular(1),
-                ),
-              ),
+              DhimmahWordmark(style: theme.textTheme.titleMedium),
               const SizedBox(height: 3),
               Text(
                 context.formatting.date(today),

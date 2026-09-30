@@ -112,7 +112,7 @@ void main() {
       await pumpDhimmah(
         tester,
         db: db,
-        settings: AppSettings.initial.copyWith(language: AppLanguage.english),
+        settings: AppSettings.initial.copyWith(languagePreference: LanguagePreference.english),
       );
       await tester.pump(const Duration(milliseconds: 400));
 

@@ -4,7 +4,8 @@
 
 A personal ledger for the two sides of your financial life: the money you owe
 people, the money people owe you, and the commitments that come back every month.
-Offline-first, Arabic-first, and designed to be understood in under a minute.
+Offline-first, in the phone's own language — Arabic or English — and designed
+to be understood in under a minute.
 
 ---
 
@@ -114,7 +115,7 @@ Requires Flutter 3.44+ / Dart 3.12+. SQLite is bundled through Dart's
 native-assets build hooks, so there is no extra database setup on any platform.
 
 ```bash
-flutter test                       # 333 tests
+flutter test                       # 817 tests
 flutter analyze                    # clean
 python3 tool/generate_icons.py     # rebuild every icon from the master artwork
 flutter build apk --release
@@ -122,6 +123,11 @@ flutter build apk --release
 # Inspect the statement as a document (writes build/qa/*.pdf)
 flutter test test/tool/generate_statement_samples_test.dart
 pdftoppm -r 110 -png build/qa/ar-multipage.pdf build/qa/page
+
+# Look at onboarding and the language picker: both languages, both themes,
+# 390×844 and 360×640 at 1.5x text (writes build/qa/onboarding/*.png)
+flutter test --update-goldens --dart-define=DHIMMAH_QA=true \
+  test/tool/render_onboarding_test.dart
 ```
 
 ---
@@ -215,11 +221,34 @@ so the app builds and ships without it.
 
 ## Language and direction
 
-Arabic is the default and English is complete. Direction is derived from the
-language rather than set anywhere, so RTL is real layout mirroring, not a text
-flip. No user-facing string is hardcoded — everything comes from `lib/l10n/arb/`,
-including the notifications, which are composed from the same ARB files as the
-screen they open.
+Arabic and English are both complete, and **the app is in the phone's
+language**: an Arabic phone opens in Arabic, an English one in English, and a phone
+in neither opens in English. The first language on the phone's own list that the
+app ships wins, so someone who reads French first and Arabic second gets Arabic.
+Change the phone's language while Dhimmah is open and the app changes with it —
+screens, dates, numbers, the statement and the reminders already scheduled.
+
+An install from before this version follows the phone too: every one of them was
+given Arabic without the phone being asked, so the upgrade hands a stored Arabic
+back to the phone, and keeps an English that someone chose.
+
+Settings → Language offers **لغة الجهاز / Device language** (the default) and each
+language by its own name. What is stored is the *preference* — `system`, `arabic`
+or `english` — never the resolved language, which is worked out in exactly one
+place (`appLanguageProvider`) from the preference and the phone. Android 13+ also
+lists both languages in the system's per-app language setting
+(`res/xml/locales_config.xml`).
+
+The first frame is already right. `main` reads the settings row before `runApp`
+and seeds it into the providers (`loadBootSettings`), because the live settings
+stream answers a frame late — which is how an English, or dark, user used to see
+the app open in Arabic, or light, and then change under them.
+
+Direction is derived from the language rather than set anywhere, so RTL is real
+layout mirroring, not a text flip. No user-facing string is hardcoded — everything
+comes from `lib/l10n/arb/`, including the notifications, which are composed from
+the same ARB files as the screen they open, and are re-worded in place when the
+language changes.
 
 Amounts are wrapped in Unicode bidi isolates so `₹ 50,000` stays one
 left-to-right unit inside an Arabic paragraph. Digit shapes follow a separate
@@ -351,66 +380,51 @@ it:
 ## Testing
 
 ```
-test/domain/        77 tests — balances, statuses, schedules, month arithmetic,
+test/domain/       112 tests — balances, statuses, schedules, month arithmetic,
                                the attention list, the monthly insight, what the
-                               planner decides to schedule and when, and what the
-                               service refuses to store
-test/core/         122 tests — the notification delivery policy against a fake
+                               planner decides to schedule and when, what the
+                               service refuses to store, and which language a
+                               phone's language list resolves to
+test/core/         131 tests — the notification delivery policy against a fake
                                platform (idempotent scheduling, reconciliation,
-                               the cap, permission and timezone changes, the
-                               cold-start tap), plus Arabic shaping and bidi,
-                               amount parsing, currency
+                               re-wording in place, the cap, permission and
+                               timezone changes, the cold-start tap), plus Arabic
+                               shaping and bidi, amount parsing, currency
                                formatting, numerals, date phrasing, the WCAG
                                contrast of every colour pair in both themes, that
-                               English is really English, and the statement's own
-                               geometry read back out of the finished PDF,
-                               including a record linked to several people
-test/data/          69 tests — schema, converters, constraints, the link table's
+                               English is really English and both ARB files hold
+                               the same keys, and the statement's own geometry
+                               read back out of the finished PDF
+test/data/         284 tests — schema, converters, constraints, the link table's
                                own rules, clearing fields, opening a database
-                               written by an earlier build (both upgrade paths),
-                               several people on one record, what an export
-                               contains, and the reminder lifecycle: every way a
-                               notification can be created, moved, cancelled,
-                               paid off or lost, plus the read the plan costs
+                               written by every earlier version, several people
+                               on one record, backups and restores, the language
+                               preference across a restart and a backup, and the
+                               reminder lifecycle — including one pass at a time
 test/integration/   27 tests — the service against a real SQLite database,
                                including a record edited, closed and reopened from
                                the file it was written to
-test/widget/        97 tests — the real UI driven end to end: onboarding, recording,
-                               RTL, dark mode, the statement screen, the
-                               open-a-person-pay-and-share journey, editing every
-                               field of a record without losing it, required
-                               fields and their errors, the refusal-and-retry
-                               walk-through, adding a debt from a person, one
-                               record linked to three people read on each of
-                               their pages with nobody else named, layout
-                               at 1.0x/1.3x/1.5x text scale on a
-                               360px screen, the places where a number must *not*
-                               mirror, the update card in both languages and both
-                               themes, and an About screen that prints the
-                               installed version rather than a hardcoded one
-test/app/           34 tests — the start-up failure path (a schema from the
-                               future is recognised, the screen names the cause
-                               in both languages, never shows the raw error, and
-                               survives 1.5x text scale), and the update
-                               controller's state machine: one flow per tap, the
-                               cooldown, the resume rules, and what a refusal
-                               from Play does
-test/platform/       9 tests — the Android declarations that no Dart test can see:
-                               the activity can host a biometric prompt, the
-                               permission is declared, a platform refusal is
-                               classified apart from a user cancel, the update
-                               channel names agree across the bridge, the Play
-                               library is the per-feature one, and the update
-                               path cannot reach the ledger
-test/performance/    7 tests — two scale measurements (500/2,500/10,000 and
-                               1,000/10,000/50,000, print only) and the proof that
-                               the SQL aggregate returns exactly what summing the
-                               rows in Dart returned, for multi-person records too
-test/tool/           6 tests — the seed and statement generators and the
-                               query-plan and write profiles
+test/widget/       179 tests — the real UI driven end to end: onboarding in the
+                               phone's language from the first frame, the
+                               language switch, following a phone that changes
+                               language, recording, RTL, dark mode, the statement
+                               screen, editing every field of a record, required
+                               fields and their errors, one record linked to three
+                               people, layout at 1.0x/1.3x/1.5x text on a 360px
+                               screen, the places where a number must *not*
+                               mirror, and the update card in both languages
+test/app/           34 tests — the start-up failure path and the update
+                               controller's state machine
+test/platform/      27 tests — the Android declarations that no Dart test can
+                               see, and the file gateway
+test/performance/    7 tests — two scale measurements (print only) and the proof
+                               that the SQL aggregate matches the Dart sum
+test/tool/          16 tests — the seed and statement generators and the
+                               query-plan and write profiles (plus a screenshot
+                               renderer that only runs when asked, below)
 ```
 
-448 tests. Several exist to hold a decision in place rather than to check a
+817 tests. Several exist to hold a decision in place rather than to check a
 behaviour: the contrast test, the design invariants (one focus figure and one
 primary action per screen, the person page's single balance), and the two journeys
 driven the way a person drives them — open someone, record a payment, watch the
@@ -660,6 +674,42 @@ regression test:
     two passes over the same records could choose different members of a tie and
     Android would cancel and re-schedule a reminder for no reason at all. Ties
     are now broken by id, which makes the choice a function of the records alone.
+
+40. **An app that never asked the phone which language it was in.** The
+    language was a stored setting seeded with Arabic, so an English phone opened
+    in Arabic and had to find the setting four screens into onboarding. The
+    stored value is now a preference whose default is the phone. Version 5 of the
+    schema hands every stored Arabic back to the phone — onboarded, skipped or
+    neither, it was the seed and not a choice — and keeps a stored English,
+    which only a tap could have written. A backup file from before version 5 is
+    read the same way, so restoring one does not pin Arabic again. Verified by
+    installing 1.0.1 over 1.0.0 on an English-language emulator: every row
+    identical, the one changed value `settings.language` (`arabic` → `system`),
+    the PIN still unlocking, and the app in English.
+41. **A first frame in somebody else's settings.** The providers drew the
+    defaults until the settings stream answered, one query later — so a user who
+    had chosen English, or dark, watched the app open in Arabic, or light, and
+    switch under them. The row read before `runApp` is now the app's starting
+    state.
+42. **Reminders in the language the user had left.** Reconciliation matched
+    pending notifications by id alone, and the id is the record, the kind and the
+    moment — not the words. After a change of language every reminder already
+    armed still arrived in the old one. It now compares the words the platform is
+    holding and re-schedules the ones that differ in place, under the same id,
+    and renames the channels the system settings list.
+43. **Two reminder passes racing.** A save and a change of language arriving
+    together ran two rebuilds at once, and whichever finished last won — even
+    when it had read the older records. Passes now run one at a time, and every
+    caller that arrives while one runs shares the single pass after it.
+
+44. **Reminders that stated the wrong number of days.** A reminder's "in N days"
+    was counted from the day the plan ran, not the day it arrives, so a reminder
+    planned six days out arrived the day before the deadline saying «خلال 6
+    أيام», and the nudge after the deadline said the debt was due in the future.
+    It is now counted from the moment of delivery — which also keeps the words
+    the same from one day to the next, so re-wording in place never re-schedules
+    the whole set daily. The first launch after the update corrects the
+    reminders an older build left behind, under the same ids.
 
 ### On a device
 

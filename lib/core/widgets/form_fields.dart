@@ -418,7 +418,8 @@ class OptionSheet<T> extends StatelessWidget {
   final List<T> options;
   final String Function(T option) labelOf;
   final IconData Function(T option)? iconOf;
-  final String Function(T option)? subtitleOf;
+  /// A second line for an option, or null for an option that needs none.
+  final String? Function(T option)? subtitleOf;
 
   @override
   Widget build(BuildContext context) {

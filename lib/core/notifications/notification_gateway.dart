@@ -34,22 +34,38 @@ enum NotificationTier {
 
 /// One notification the platform is holding for a future moment.
 ///
-/// What the platform reports back: an id and the payload that identifies the
-/// record. There is no scheduled time here — the identity already carries the
-/// moment it is for, which is what makes two schedules the same schedule.
+/// What the platform reports back: an id, the payload that identifies the
+/// record, and the words it will show. There is no scheduled time here — the
+/// identity already carries the moment it is for, which is what makes two
+/// schedules the same schedule. The words are what can still differ: the same
+/// reminder, re-planned after a change of language, is the same notification
+/// with different text.
 @immutable
 class PendingNotification {
-  const PendingNotification({required this.id, this.payload});
+  const PendingNotification({
+    required this.id,
+    this.payload,
+    this.title,
+    this.body,
+  });
 
   final int id;
   final String? payload;
 
-  @override
-  bool operator ==(Object other) =>
-      other is PendingNotification && other.id == id && other.payload == payload;
+  /// Null when the platform does not say.
+  final String? title;
+  final String? body;
 
   @override
-  int get hashCode => Object.hash(id, payload);
+  bool operator ==(Object other) =>
+      other is PendingNotification &&
+      other.id == id &&
+      other.payload == payload &&
+      other.title == title &&
+      other.body == body;
+
+  @override
+  int get hashCode => Object.hash(id, payload, title, body);
 
   @override
   String toString() => 'PendingNotification($id, $payload)';
@@ -283,7 +299,12 @@ class FlutterLocalNotificationsGateway implements NotificationGateway {
           await _plugin.pendingNotificationRequests();
       return <PendingNotification>[
         for (final PendingNotificationRequest request in requests)
-          PendingNotification(id: request.id, payload: request.payload),
+          PendingNotification(
+            id: request.id,
+            payload: request.payload,
+            title: request.title,
+            body: request.body,
+          ),
       ];
     } on Object {
       return const <PendingNotification>[];

@@ -601,7 +601,7 @@ void main() {
       await openScreen(
         tester,
         folders,
-        settings: AppSettings.initial.copyWith(language: AppLanguage.english),
+        settings: AppSettings.initial.copyWith(languagePreference: LanguagePreference.english),
       );
 
       final AppLocalizations english = lookupAppLocalizations(const Locale('en'));

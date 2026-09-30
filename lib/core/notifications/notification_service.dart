@@ -27,6 +27,7 @@ class NotificationSyncResult {
     required this.cancelled,
     required this.droppedByCap,
     required this.blocked,
+    this.reworded = 0,
     this.recordsRead = 0,
   });
 
@@ -35,6 +36,7 @@ class NotificationSyncResult {
         armed = 0,
         scheduled = 0,
         cancelled = 0,
+        reworded = 0,
         droppedByCap = 0,
         blocked = true,
         recordsRead = 0;
@@ -51,6 +53,11 @@ class NotificationSyncResult {
   /// Removed because they are no longer wanted.
   final int cancelled;
 
+  /// Already armed, but re-scheduled because their words changed — a new
+  /// language, a new numeral style, a renamed person — so the reminder that
+  /// arrives says what the app says today.
+  final int reworded;
+
   /// Wanted, but beyond [NotificationService.maxScheduled] and left for a later
   /// reconciliation.
   final int droppedByCap;
@@ -64,7 +71,7 @@ class NotificationSyncResult {
   /// reminder or to the size of the ledger.
   final int recordsRead;
 
-  bool get changed => scheduled > 0 || cancelled > 0;
+  bool get changed => scheduled > 0 || cancelled > 0 || reworded > 0;
 }
 
 /// Decides what the operating system should be holding, and keeps it in step
@@ -170,6 +177,18 @@ class NotificationService {
     _log('initialised: permission=${_permission.name} timezone=$_timezone');
   }
 
+  /// Renames the notification channels into [localizations]' language.
+  ///
+  /// The channels are named once, at start-up, and Android shows those names in
+  /// the system's notification settings — so after a change of language they
+  /// went on reading in the old one until the next launch. Android lets an app
+  /// rename a channel it already created; importance and sound are fixed at
+  /// creation and stay exactly as the user left them.
+  Future<void> relabelChannels(AppLocalizations localizations) async {
+    if (!_initialized || !supportsScheduling) return;
+    await _gateway.createChannels(_channelCopy(localizations));
+  }
+
   /// Re-reads the environment after the app comes back to the foreground.
   ///
   /// The user can grant or revoke notifications in the system settings while
@@ -246,8 +265,8 @@ class NotificationService {
       for (final ComposedNotification n in armed) n.id,
     };
     final List<PendingNotification> pending = await _gateway.pending();
-    final Set<int> held = <int>{
-      for (final PendingNotification n in pending) n.id,
+    final Map<int, PendingNotification> held = <int, PendingNotification>{
+      for (final PendingNotification n in pending) n.id: n,
     };
 
     int cancelled = 0;
@@ -258,9 +277,14 @@ class NotificationService {
     }
 
     int scheduled = 0;
+    int reworded = 0;
     for (final ComposedNotification notification in armed) {
-      if (held.contains(notification.id)) continue;
+      final PendingNotification? existing = held[notification.id];
+      if (existing != null && !_wordingChanged(existing, notification)) continue;
       try {
+        // An existing id is replaced in place, which is Android's own rule and
+        // the one the whole id scheme leans on: the reminder keeps its identity
+        // and its moment, and only its words change.
         await _gateway.schedule(
           id: notification.id,
           title: notification.title,
@@ -269,7 +293,11 @@ class NotificationService {
           payload: notification.payload,
           tier: _tierFor(notification.priority),
         );
-        scheduled++;
+        if (existing == null) {
+          scheduled++;
+        } else {
+          reworded++;
+        }
       } on Object catch (error, stack) {
         // One un-schedulable notification must not take the app down or stop the
         // rest: the ledger is already saved, and the next reconciliation tries
@@ -292,6 +320,7 @@ class NotificationService {
       armed: armed.length,
       scheduled: scheduled,
       cancelled: cancelled,
+      reworded: reworded,
       droppedByCap: desired.length - armed.length,
       blocked: false,
       recordsRead: recordsRead,
@@ -299,10 +328,24 @@ class NotificationService {
     if (result.changed || result.droppedByCap > 0) {
       _log('sync: desired=${result.desired} armed=${result.armed} '
           'scheduled=${result.scheduled} cancelled=${result.cancelled} '
-          'overCap=${result.droppedByCap}');
+          'reworded=${result.reworded} overCap=${result.droppedByCap}');
     }
     return result;
   }
+
+  /// Whether what the platform holds would say something other than [wanted].
+  ///
+  /// Identity alone used to decide, and identity is the record, the kind and
+  /// the moment — not the words. So a reminder planned in Arabic stayed Arabic
+  /// after the user switched to English, and one that named an amount kept the
+  /// old amount after a correction, until its moment passed. A platform that
+  /// does not report the words is trusted rather than rewritten every pass.
+  static bool _wordingChanged(
+    PendingNotification held,
+    ComposedNotification wanted,
+  ) =>
+      (held.title != null && held.title != wanted.title) ||
+      (held.body != null && held.body != wanted.body);
 
   /// The notifications a phone is asked to hold: the soonest, and no more than
   /// [maxScheduled].
