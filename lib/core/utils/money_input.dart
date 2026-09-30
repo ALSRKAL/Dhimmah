@@ -116,6 +116,10 @@ int? parseAmountToMinor(String input, AppCurrency currency) {
 
   final int? wholeValue = int.tryParse(whole);
   if (wholeValue == null) return null;
+  // Checked before scaling: 64-bit arithmetic wraps round, so a large enough
+  // whole part times the minor factor came back as a small, valid-looking
+  // amount — 184467440737095517 read as 0.84.
+  if (wholeValue > maxAmountMinor ~/ currency.minorFactor) return null;
 
   final int fractionValue;
   if (currency.decimals == 0) {
