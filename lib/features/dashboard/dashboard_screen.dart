@@ -66,9 +66,12 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           // Built once without a cap: the two figures above the list must sum
           // every item — including the obligations the debt-only totals used to
           // skip — while the list itself still shows only the most urgent few.
+          // Built from the full lists, not the display ones: those stop at six
+          // debts and four periods, and a seventh late debt was left out of
+          // "late".
           final List<AttentionItem> allAttention = AttentionList.build(
-            debts: data.upcoming,
-            obligations: data.upcomingObligations,
+            debts: data.attentionDebts,
+            obligations: data.attentionObligations,
             asOf: asOf,
             windowDays: dueSoonWindowDays,
             limit: null,
@@ -139,6 +142,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 SliverToBoxAdapter(
                   child: _NeedsAttention(
                     items: attention,
+                    asOf: asOf,
                     overdue: Money(attentionTotals.overdueMinor, currency),
                     dueSoon: Money(attentionTotals.dueSoonMinor, currency),
                     onViewAll: () =>
@@ -298,6 +302,7 @@ class _RecentActivity extends StatelessWidget {
 class _NeedsAttention extends StatelessWidget {
   const _NeedsAttention({
     required this.items,
+    required this.asOf,
     required this.overdue,
     required this.dueSoon,
     required this.onViewAll,
@@ -305,8 +310,14 @@ class _NeedsAttention extends StatelessWidget {
 
   final List<AttentionItem> items;
 
-  /// Summed from [items] themselves — debts and obligations alike — so the
-  /// figures always equal what the list below them shows.
+  /// The app's today, which the items were sorted against. The rows used to
+  /// read the wall clock instead, so a row could name a different day from
+  /// the figures above it.
+  final DateTime asOf;
+
+  /// Summed over everything that needs attention — debts and obligations
+  /// alike, every period of a commitment, and the records past the rows shown —
+  /// so the figures are what is really late and due, not what fits here.
   final Money overdue;
   final Money dueSoon;
   final VoidCallback onViewAll;
@@ -316,7 +327,6 @@ class _NeedsAttention extends StatelessWidget {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
-    final DateTime asOf = DateTime.now();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(

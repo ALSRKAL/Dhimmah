@@ -6,10 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/formatting/app_formatting.dart';
+import '../core/notifications/notification_composer.dart';
 import '../core/notifications/notification_service.dart';
 import '../core/theme/app_theme.dart';
+import '../core/utils/dates.dart';
 import '../domain/entities/app_settings.dart';
 import '../domain/enums/preference_enums.dart';
+import '../l10n/enum_labels.dart';
 import '../l10n/generated/app_localizations.dart';
 import 'app_update_controller.dart';
 import 'backup_providers.dart';
@@ -19,9 +22,10 @@ import 'router.dart';
 
 /// The application root.
 ///
-/// Language, theme and text direction all come from the stored settings, so
-/// changing any of them in Settings applies everywhere at once rather than
-/// needing a restart.
+/// Theme comes from the stored settings, and language from the stored
+/// preference and the phone together, so changing either — in Settings, or in
+/// the phone's own settings while the app is open — applies everywhere at once
+/// rather than needing a restart. Text direction follows the language.
 class DhimmahApp extends ConsumerStatefulWidget {
   const DhimmahApp({required this.onboardingCompleted, super.key});
 
@@ -40,11 +44,22 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
     navigatorKey: _navigatorKey,
   );
   StreamSubscription<String>? _notificationTaps;
+  ProviderSubscription<NotificationComposer>? _wording;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    // What a reminder says is decided when it is scheduled, so a change of
+    // language — chosen in Settings, or the phone's own — has to reach the ones
+    // already waiting. The composer is rebuilt exactly when its wording could
+    // change, and each rebuild re-words the pending set and renames the
+    // channels the system settings list.
+    _wording = ref.listenManual<NotificationComposer>(
+      notificationComposerProvider,
+      (NotificationComposer? previous, NotificationComposer next) =>
+          unawaited(_rewordNotifications()),
+    );
     // The app starts in the foreground, so the tick starts with it. Waiting for
     // a background-and-back cycle first would mean the tick never ran in a
     // session that did not have one — which is the session it was added for.
@@ -101,6 +116,9 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
       return;
     }
     if (state != AppLifecycleState.resumed) return;
+    // The phone's language can change while the app is in the background, and
+    // not every phone reports it to an app that is not on screen.
+    ref.read(deviceLocalesProvider.notifier).refresh();
     unawaited(_reconcileNotifications());
     unawaited(_backupIfStale());
     // Everything the app believes about protection is re-read, because the
@@ -109,6 +127,30 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
     // permission, or come back to an app they reinstalled.
     unawaited(ref.read(backupControllerProvider).reconcile());
     _startTicker();
+  }
+
+  /// The phone's language list changed while the app is on screen.
+  ///
+  /// With the preference left to the phone, this is the whole of "follow the
+  /// device": the resolved language moves, and everything built on it — the
+  /// interface, the formatting, the reminders' wording — moves with it.
+  @override
+  void didChangeLocales(List<Locale>? locales) {
+    ref.read(deviceLocalesProvider.notifier).refresh();
+  }
+
+  /// Re-words the pending reminders and renames the channels.
+  Future<void> _rewordNotifications() async {
+    if (!mounted) return;
+    try {
+      await ref
+          .read(notificationServiceProvider)
+          .relabelChannels(ref.read(localizationsProvider));
+      await ref.read(ledgerServiceProvider).refreshNotifications();
+    } on Object {
+      // A reminder in the old language is a cosmetic fault, not a lost one: the
+      // record is intact and the next pass re-words it.
+    }
   }
 
   /// How often the app asks itself whether a snapshot is due, while the user is
@@ -134,11 +176,35 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
       if (!mounted) return;
       unawaited(_backupIfStale());
     });
+    _startMidnight();
   }
 
   void _stopTicker() {
     _ticker?.cancel();
     _ticker = null;
+    _midnight?.cancel();
+    _midnight = null;
+  }
+
+  /// Wakes at the next midnight while the app is on screen.
+  ///
+  /// "Today" used to move only when the app came back from the background, so
+  /// a ledger left open overnight still called yesterday's deadline "due
+  /// today". Paused with the ticker, because a resume refreshes the day anyway.
+  Timer? _midnight;
+
+  void _startMidnight() {
+    _midnight?.cancel();
+    final DateTime now = ref.read(clockProvider)();
+    // A second past midnight, so the timer never wakes a moment early and
+    // reads the day that is ending.
+    final Duration wait = addDays(dateOnly(now), 1).difference(now) +
+        const Duration(seconds: 1);
+    _midnight = Timer(wait, () {
+      if (!mounted) return;
+      ref.read(todayProvider.notifier).refresh();
+      _startMidnight();
+    });
   }
 
   /// Takes a snapshot as the app leaves the foreground, when one is due.
@@ -182,7 +248,10 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
     try {
       final NotificationEnvironment environment =
           await ref.read(notificationServiceProvider).refreshEnvironment();
-      if (!environment.changed) return;
+      if (!environment.changed || !mounted) return;
+      // The phone may be in another country now, and the suggested currency
+      // follows its time zone.
+      ref.invalidate(deviceTimeZoneProvider);
       if (environment.mustReschedule) {
         await ref.read(ledgerServiceProvider).refreshNotifications();
       }
@@ -196,6 +265,7 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _stopTicker();
+    _wording?.close();
     _notificationTaps?.cancel();
     _router.dispose();
     super.dispose();
@@ -204,16 +274,34 @@ class _DhimmahAppState extends ConsumerState<DhimmahApp>
   void _openPayload(String payload) {
     final String? location = AppRoutes.forNotificationPayload(payload);
     if (location == null) return;
+    // Tapping the same reminder twice, or a reminder for the page already on
+    // screen, used to stack an identical page on top of it — one more back
+    // press for every tap.
+    if (_isShowing(location)) return;
     _router.push(location);
+  }
+
+  /// Whether [location] is the page the user is already looking at.
+  ///
+  /// The top of the stack, pushed pages included: the configuration's own
+  /// location is the page underneath them.
+  bool _isShowing(String location) {
+    if (_router.routerDelegate.currentConfiguration.isEmpty) return false;
+    return _router.state.uri.toString() == location;
   }
 
   @override
   Widget build(BuildContext context) {
-    final AppSettings settings = ref.watch(effectiveSettingsProvider);
+    final AppThemeMode theme = ref.watch(
+      effectiveSettingsProvider.select((AppSettings s) => s.themeMode),
+    );
     final AppLocalizations localizations = ref.watch(localizationsProvider);
     final AppFormatting formatting = ref.watch(formattingProvider);
-    final Locale locale = Locale(settings.language.code);
-    final ThemeMode themeMode = switch (settings.themeMode) {
+    // Resolved here rather than by MaterialApp, and passed down explicitly: the
+    // services that write notifications and statements read the same provider,
+    // so the screen and everything the app sends are always one language.
+    final Locale locale = ref.watch(appLanguageProvider).locale;
+    final ThemeMode themeMode = switch (theme) {
       AppThemeMode.system => ThemeMode.system,
       AppThemeMode.light => ThemeMode.light,
       AppThemeMode.dark => ThemeMode.dark,

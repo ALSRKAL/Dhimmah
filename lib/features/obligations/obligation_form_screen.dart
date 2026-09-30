@@ -159,14 +159,9 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
               }),
             ),
             const SizedBox(height: AppSpacing.md),
-            OptionField<AppCurrency>(
-              label: localizations.fieldCurrency,
+            CurrencyField(
               value: currency,
-              options: AppCurrency.values,
-              labelOf: (AppCurrency value) => '${value.code} · ${value.symbol}',
-              iconOf: (AppCurrency _) => Icons.payments_outlined,
-              title: localizations.fieldCurrency,
-              icon: Icons.payments_outlined,
+              suggested: ref.watch(regionCurrencyProvider),
               onChanged: (AppCurrency value) =>
                   setState(() => _currency = value),
             ),

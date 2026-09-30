@@ -37,10 +37,16 @@ class DateFormatter {
   /// `22/09/2026`
   String numeric(DateTime date) => DateFormat.yMd(_locale).format(date);
 
-  /// `8:00 PM`
+  /// `8:00 PM`, never broken across two lines.
+  ///
+  /// `TimeOfDay.format` joins the digits and the day period with an ordinary
+  /// space, so a narrow line or large text wrapped "8:00" onto one line and its
+  /// "PM" — or «م» — onto the next, where it no longer reads as part of a time.
+  /// A no-break space keeps them one unit, the way the amount formatter keeps a
+  /// currency symbol with its figure.
   String time(BuildContext context, int hour, int minute) {
     final TimeOfDay value = TimeOfDay(hour: hour, minute: minute);
-    return value.format(context);
+    return value.format(context).replaceAll(' ', '\u00A0');
   }
 
   /// The phrase shown next to anything with a due date.

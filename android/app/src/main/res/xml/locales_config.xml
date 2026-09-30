@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The languages Dhimmah ships, for Android 13+'s per-app language setting
+  (Settings → Apps → Dhimmah → Language).
+
+  The app follows the phone by default and has its own picker in Settings; this
+  declaration is what lets the system offer the same choice, and what stops it
+  offering a language the app does not have. Keep it in step with lib/l10n/arb/.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="ar"/>
+    <locale android:name="en"/>
+</locale-config>

@@ -229,7 +229,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get clearDataBody =>
-      'Every person, debt, payment, obligation and reminder will be permanently removed. This cannot be undone.';
+      'Every person, debt, payment, obligation and reminder will be removed from this phone. A safety copy is saved first and the backups on this phone are kept, so the ledger can be restored from Backup and restore.';
 
   @override
   String get clearDataTitle => 'Delete everything?';
@@ -964,57 +964,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get onboardingCurrencyTitle => 'Your default currency';
 
   @override
-  String get onboardingEnableNotifications => 'Enable reminders';
+  String get onboardingEnableNotifications => 'Turn on reminders';
 
   @override
-  String get onboardingLanguageBody => 'You can change this later in Settings.';
-
-  @override
-  String get onboardingLanguageTitle => 'Choose your language';
-
-  @override
-  String get onboardingMaybeLater => 'Maybe later';
+  String get onboardingMaybeLater => 'Not now';
 
   @override
   String get onboardingNext => 'Next';
 
   @override
   String get onboardingNotificationsBody =>
-      'Dhimmah needs permission to send due-date reminders. They are scheduled locally and never leave your device.';
+      'Dhimmah reminds you before each due date, at a time you choose. Reminders are scheduled on your phone and need no internet.';
 
   @override
   String get onboardingNotificationsDenied =>
       'Permission was not granted. You can enable it in Settings.';
 
   @override
-  String get onboardingNotificationsTitle => 'Reminders';
-
-  @override
-  String get onboardingReadyTitle => 'You\'re all set.';
+  String get onboardingNotificationsTitle => 'Never miss a due date';
 
   @override
   String get onboardingSkip => 'Skip';
-
-  @override
-  String get onboardingSlide1Body =>
-      'Record what you owe and what you\'re owed, and see where you stand the moment you open the app.';
-
-  @override
-  String get onboardingSlide1Title => 'Your financial ledger, in one place.';
-
-  @override
-  String get onboardingSlide2Body =>
-      'Debts, part payments and recurring commitments — with the balance worked out for you.';
-
-  @override
-  String get onboardingSlide2Title => 'Record both sides.';
-
-  @override
-  String get onboardingSlide3Body =>
-      'Offline reminders, plus a summary of your ledger at the end of every month.';
-
-  @override
-  String get onboardingSlide3Title => 'Never miss a due date.';
 
   @override
   String get onboardingStart => 'Get started';
@@ -1336,6 +1306,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportEmptyTitle => 'Nothing recorded for this month.';
 
   @override
+  String get reportEntryIOwe => 'I owe';
+
+  @override
+  String get reportEntryOwedToMe => 'Owed to me';
+
+  @override
+  String get reportEntryPaid => 'Payment made';
+
+  @override
+  String get reportEntryReceived => 'Payment received';
+
+  @override
   String get reportExportPdf => 'Export PDF';
 
   @override
@@ -1400,6 +1382,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportNeedsAttentionEmpty => 'Nothing is late or due today.';
 
   @override
+  String get reportNetIOwe => 'Net, I owe';
+
+  @override
+  String get reportNetOwedToMe => 'Net, owed to me';
+
+  @override
   String get reportNewDebts => 'New debts';
 
   @override
@@ -1445,6 +1433,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportReceived => 'Received';
+
+  @override
+  String get reportRemainingIOwe => 'I still owe';
+
+  @override
+  String get reportRemainingOwedToMe => 'Still owed to me';
 
   @override
   String get reportSavePdf => 'Print or save';
@@ -2508,4 +2502,81 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get backupSeparateFromExport =>
       'Export (CSV and JSON) is for reading and analysis, and is not used for restoring. The backup is what comes back.';
+
+  @override
+  String get currencyNameAed => 'UAE dirham';
+
+  @override
+  String get currencyNameEur => 'Euro';
+
+  @override
+  String get currencyNameGbp => 'British pound';
+
+  @override
+  String get currencyNameInr => 'Indian rupee';
+
+  @override
+  String get currencyNameSar => 'Saudi riyal';
+
+  @override
+  String get currencyNameUsd => 'US dollar';
+
+  @override
+  String get currencyNameYer => 'Yemeni rial';
+
+  @override
+  String get currencySuggestedForRegion => 'Suggested for your region';
+
+  @override
+  String get languageDevice => 'Device language';
+
+  @override
+  String languageDeviceCurrently(String language) {
+    return 'Currently $language';
+  }
+
+  @override
+  String get languageFollowsDevice => 'Follows your phone';
+
+  @override
+  String get onboardingChangeLanguage => 'Change language';
+
+  @override
+  String get onboardingChangeLater =>
+      'You can change this any time in Settings.';
+
+  @override
+  String get onboardingFeatureBooksBody =>
+      'Record debts, part payments and monthly commitments. The balance is worked out for you.';
+
+  @override
+  String get onboardingFeatureBooksTitle =>
+      'Both sides of the book, in one place';
+
+  @override
+  String get onboardingFeaturePrivateBody =>
+      'Works without internet. Nothing is uploaded anywhere.';
+
+  @override
+  String get onboardingFeatureRemindersBody =>
+      'A nudge before each due date, and a summary at the end of every month.';
+
+  @override
+  String get onboardingFeatureRemindersTitle =>
+      'A reminder before every due date';
+
+  @override
+  String onboardingMonthEndWhen(String day, String time) {
+    return '$day, at $time';
+  }
+
+  @override
+  String onboardingReminderTime(String time) {
+    return 'At $time';
+  }
+
+  @override
+  String onboardingStepOf(int step, int total) {
+    return 'Step $step of $total';
+  }
 }

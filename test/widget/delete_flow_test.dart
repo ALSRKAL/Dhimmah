@@ -74,6 +74,52 @@ void main() {
     expect(find.text('تراجع'), findsOneWidget);
   });
 
+  group('the undo', () {
+    Future<void> deleteFromTheDetail(WidgetTester tester) async {
+      await pumpDhimmah(tester, db: db);
+      await settle(tester);
+      await tester.tap(find.textContaining('خالد العلي').first);
+      await settle(tester);
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await settle(tester);
+      await tester.tap(find.text('حذف').last);
+      await settle(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'حذف'));
+      await settle(tester);
+      expect(await debtRows(), 1);
+    }
+
+    testWidgets('brings the record back', (WidgetTester tester) async {
+      await deleteFromTheDetail(tester);
+
+      await tester.tap(find.text('تراجع'));
+      await settle(tester);
+
+      expect(await debtRows(), 2);
+      expect(find.text('حدث خطأ غير متوقع.'), findsNothing);
+    });
+
+    testWidgets('that cannot be done says so', (WidgetTester tester) async {
+      await deleteFromTheDetail(tester);
+      // The database refuses the record back, the way a failing disk would.
+      await db.customStatement(
+        'CREATE TRIGGER refuse_restore BEFORE INSERT ON debts '
+        "BEGIN SELECT RAISE(ABORT, 'refused'); END",
+      );
+
+      await tester.tap(find.text('تراجع'));
+      await settle(tester);
+
+      expect(
+        find.text('حدث خطأ غير متوقع.'),
+        findsOneWidget,
+        reason: 'a failed undo used to be an error nothing caught, and the '
+            'user was left believing the record was back',
+      );
+      expect(await debtRows(), 1);
+    });
+  });
+
   testWidgets('a detail whose record is gone removes itself',
       (WidgetTester tester) async {
     // Reached however the id went stale — a stale second copy of the route, a

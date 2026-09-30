@@ -75,6 +75,46 @@ void main() {
       expect(ObligationSchedule.nthDueDate(rent, 1), DateTime(2026, 2, 28));
       expect(ObligationSchedule.nthDueDate(rent, 2), DateTime(2026, 3, 31));
     });
+
+    test('keep a chosen day when the first month is the short one', () {
+      // Started in February, due on the 31st. The first period is clamped to
+      // the 28th, and every later one used to stay on the 28th with it.
+      final Obligation rent = obligation(
+        frequency: RecurrenceFrequency.monthly,
+        startAt: DateTime(2026, 2, 10),
+        dayOfMonth: 31,
+      );
+      expect(ObligationSchedule.nthDueDate(rent, 0), DateTime(2026, 2, 28));
+      expect(ObligationSchedule.nthDueDate(rent, 1), DateTime(2026, 3, 31));
+      expect(ObligationSchedule.nthDueDate(rent, 2), DateTime(2026, 4, 30));
+      expect(ObligationSchedule.nthDueDate(rent, 3), DateTime(2026, 5, 31));
+      expect(
+        ObligationSchedule.dueDatesBetween(
+          rent,
+          DateTime(2026, 6),
+          DateTime(2026, 7, 31),
+        ),
+        <DateTime>[DateTime(2026, 6, 30), DateTime(2026, 7, 31)],
+      );
+    });
+
+    test('keep a chosen day across quarters and years', () {
+      final Obligation quarterly = obligation(
+        frequency: RecurrenceFrequency.quarterly,
+        startAt: DateTime(2026, 2, 3),
+        dayOfMonth: 30,
+      );
+      expect(ObligationSchedule.nthDueDate(quarterly, 0), DateTime(2026, 2, 28));
+      expect(ObligationSchedule.nthDueDate(quarterly, 1), DateTime(2026, 5, 30));
+
+      final Obligation yearly = obligation(
+        frequency: RecurrenceFrequency.yearly,
+        startAt: DateTime(2027, 2),
+        dayOfMonth: 29,
+      );
+      expect(ObligationSchedule.nthDueDate(yearly, 0), DateTime(2027, 2, 28));
+      expect(ObligationSchedule.nthDueDate(yearly, 1), DateTime(2028, 2, 29));
+    });
   });
 
   group('other frequencies', () {
@@ -218,6 +258,50 @@ void main() {
         ),
         '2026-W53',
       );
+    });
+
+    test('name the year an ISO week belongs to, not the calendar year', () {
+      // 31 December 2025 is in week 1 of 2026. Keyed with the calendar year it
+      // was `2025-W01` — 1 January 2025's key — and was never created.
+      expect(
+        ObligationSchedule.periodKeyFor(
+          RecurrenceFrequency.weekly,
+          DateTime(2025, 12, 31),
+        ),
+        '2026-W01',
+      );
+      expect(
+        ObligationSchedule.periodKeyFor(
+          RecurrenceFrequency.weekly,
+          DateTime(2025),
+        ),
+        '2025-W01',
+      );
+      // And the other edge: 1 January 2027 is still in week 53 of 2026.
+      expect(
+        ObligationSchedule.periodKeyFor(
+          RecurrenceFrequency.weekly,
+          DateTime(2027),
+        ),
+        '2026-W53',
+      );
+    });
+
+    test('give every week of a weekly schedule its own key', () {
+      final Obligation weekly = obligation(
+        frequency: RecurrenceFrequency.weekly,
+        startAt: DateTime(2024, 1, 3),
+      );
+      final List<DateTime> dates = ObligationSchedule.dueDatesBetween(
+        weekly,
+        DateTime(2024),
+        DateTime(2029, 12, 31),
+      );
+      final Set<String> keys = <String>{
+        for (final DateTime date in dates)
+          ObligationSchedule.periodKeyFor(RecurrenceFrequency.weekly, date),
+      };
+      expect(keys, hasLength(dates.length));
     });
   });
 

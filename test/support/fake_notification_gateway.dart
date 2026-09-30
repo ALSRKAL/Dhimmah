@@ -63,6 +63,10 @@ class FakeNotificationGateway implements NotificationGateway {
   /// Payloads shown immediately.
   final List<String> shown = <String>[];
 
+  /// The words of each notification shown immediately, in the same order as
+  /// [shown].
+  final List<String> shownBodies = <String>[];
+
   /// How many times the whole pending set was cancelled. The old service did
   /// this on every save, which also wiped the notification shade.
   int cancelAllPendingCalls = 0;
@@ -70,6 +74,14 @@ class FakeNotificationGateway implements NotificationGateway {
   int channelCreates = 0;
   int initializeCalls = 0;
   int permissionRequests = 0;
+
+  /// How many times the pending set was read — once per reconciliation pass,
+  /// which is how a test counts passes.
+  int pendingReads = 0;
+
+  /// The channel names last given, by tier.
+  Map<NotificationTier, NotificationChannelCopy> channels =
+      <NotificationTier, NotificationChannelCopy>{};
 
   void Function(String payload)? _onTap;
 
@@ -104,6 +116,7 @@ class FakeNotificationGateway implements NotificationGateway {
     Map<NotificationTier, NotificationChannelCopy> copy,
   ) async {
     channelCreates++;
+    channels = Map<NotificationTier, NotificationChannelCopy>.of(copy);
   }
 
   @override
@@ -114,11 +127,32 @@ class FakeNotificationGateway implements NotificationGateway {
     permissionRequests++;
   }
 
+  /// When false, the fake reports pending notifications without their words,
+  /// as a platform that does not expose them would.
+  bool reportsWording = true;
+
+  /// When set, the next read of the pending set throws it — once. A platform
+  /// that fails a whole reconciliation pass rather than a single alarm.
+  Object? pendingFailure;
+
   @override
-  Future<List<PendingNotification>> pending() async => <PendingNotification>[
-        for (final FakeScheduledNotification n in held.values)
-          PendingNotification(id: n.id, payload: n.payload),
-      ];
+  Future<List<PendingNotification>> pending() async {
+    pendingReads++;
+    final Object? failure = pendingFailure;
+    if (failure != null) {
+      pendingFailure = null;
+      throw failure;
+    }
+    return <PendingNotification>[
+      for (final FakeScheduledNotification n in held.values)
+        PendingNotification(
+          id: n.id,
+          payload: n.payload,
+          title: reportsWording ? n.title : null,
+          body: reportsWording ? n.body : null,
+        ),
+    ];
+  }
 
   @override
   Future<void> schedule({
@@ -151,6 +185,7 @@ class FakeNotificationGateway implements NotificationGateway {
     required NotificationTier tier,
   }) async {
     shown.add(payload);
+    shownBodies.add(body);
     held.remove(id);
   }
 

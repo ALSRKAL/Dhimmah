@@ -24,7 +24,7 @@ import '../l10n/generated/app_localizations.dart';
 ///   users reading a language they may not know.
 /// * **Never write.** Nothing here touches the file, so the message that the
 ///   records are untouched is a fact rather than reassurance.
-class DhimmahStartupFailureApp extends StatelessWidget {
+class DhimmahStartupFailureApp extends StatefulWidget {
   const DhimmahStartupFailureApp({
     required this.error,
     required this.onRetry,
@@ -60,10 +60,38 @@ class DhimmahStartupFailureApp extends StatelessWidget {
   final Future<void> Function() onRetry;
 
   @override
+  State<DhimmahStartupFailureApp> createState() =>
+      _DhimmahStartupFailureAppState();
+}
+
+class _DhimmahStartupFailureAppState extends State<DhimmahStartupFailureApp> {
+  /// True while a retry is running.
+  ///
+  /// Each retry opens the database in a fresh container, so a second tap while
+  /// the first was still opening used to start a second one: two connections to
+  /// one file, and two apps racing to replace this screen.
+  bool _retrying = false;
+
+  Future<void> _retry() async {
+    if (_retrying) return;
+    setState(() => _retrying = true);
+    try {
+      await widget.onRetry();
+    } on Object {
+      // The retry reports its own failure by showing this screen again; there
+      // is nothing more to say here, and the button must come back.
+    } finally {
+      // A retry that failed again replaces this screen with another of the
+      // same type, which keeps this state: the button has to be usable again.
+      if (mounted) setState(() => _retrying = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final AppLocalizations ar = lookupAppLocalizations(const Locale('ar'));
     final AppLocalizations en = lookupAppLocalizations(const Locale('en'));
-    final bool tooNew = isTooNew(error);
+    final bool tooNew = DhimmahStartupFailureApp.isTooNew(widget.error);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -159,7 +187,7 @@ class DhimmahStartupFailureApp extends StatelessWidget {
                     ),
                     const Spacer(),
                     FilledButton(
-                      onPressed: () => onRetry(),
+                      onPressed: _retrying ? null : _retry,
                       child: Text(ar.startupFailedRetry),
                     ),
                     const SizedBox(height: AppSpacing.lg),

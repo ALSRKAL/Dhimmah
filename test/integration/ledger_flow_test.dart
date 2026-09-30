@@ -295,6 +295,130 @@ void main() {
     });
   });
 
+  // A debt can be paid off by a new payment, by a corrected payment, or by
+  // lowering its amount to what was already paid. Only the first used to
+  // announce the closing and create a recurring debt's next period, and it did
+  // both again when a debt that was already closed received another payment.
+  group('closing a debt, whichever write does it', () {
+    Future<Debt> monthlyRent(Person person) => service.createDebt(
+          DebtDraft(
+            direction: DebtDirection.iOwe,
+            personIds: <String>[person.id],
+            title: 'إيجار',
+            principalMinor: 2000000,
+            currency: AppCurrency.inr,
+            issuedAt: DateTime(2026, 9),
+            dueAt: DateTime(2026, 9),
+            recurrence: RecurrenceFrequency.monthly,
+          ),
+        );
+
+    Future<int> closings() async => (await db.activityDao.getRecent(limit: 100))
+        .where((ActivityEntryRow row) => row.type.name == 'debtClosed')
+        .length;
+
+    test('a corrected payment that pays it off creates the next period',
+        () async {
+      final Debt debt = await monthlyRent(await addPerson('المالك'));
+      final Payment payment = await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1500000, paidAt: DateTime(2026, 9)),
+      );
+      expect(await views(), hasLength(1));
+
+      await service.updatePayment(
+        payment.id,
+        PaymentDraft(amountMinor: 2000000, paidAt: DateTime(2026, 9)),
+      );
+
+      final List<DebtView> all = await views();
+      expect(all, hasLength(2));
+      expect(
+        all.firstWhere((DebtView v) => v.isOpen).debt.dueAt,
+        DateTime(2026, 10),
+      );
+      expect(await closings(), 1);
+    });
+
+    test('lowering the amount to what was paid closes it the same way',
+        () async {
+      final Person person = await addPerson('المالك');
+      final Debt debt = await monthlyRent(person);
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1500000, paidAt: DateTime(2026, 9)),
+      );
+
+      await service.updateDebt(
+        debt.id,
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          title: 'إيجار',
+          principalMinor: 1500000,
+          currency: AppCurrency.inr,
+          issuedAt: DateTime(2026, 9),
+          dueAt: DateTime(2026, 9),
+          recurrence: RecurrenceFrequency.monthly,
+        ),
+      );
+
+      final List<DebtView> all = await views();
+      expect(all, hasLength(2));
+      expect(all.firstWhere((DebtView v) => v.debt.id == debt.id).isSettled,
+          isTrue);
+      expect(await closings(), 1);
+    });
+
+    test('paying a debt that is already closed does not announce it again',
+        () async {
+      final Person person = await addPerson('سالم');
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          principalMinor: 1000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1000000, paidAt: clock),
+      );
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 100000, paidAt: clock),
+      );
+
+      expect(await closings(), 1);
+      expect((await views()).single.isSettled, isTrue);
+    });
+
+    test('a refused payment leaves nothing behind', () async {
+      final Person person = await addPerson('سالم');
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          principalMinor: 1000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      await service.deleteDebt(debt.id);
+
+      await expectLater(
+        () => service.recordPayment(
+          debt.id,
+          PaymentDraft(amountMinor: 1000, paidAt: clock),
+        ),
+        throwsStateError,
+      );
+      expect(await db.debtsDao.getAllPayments(), isEmpty);
+    });
+  });
+
   group('obligations', () {
     test('materialise their periods and pay one forward', () async {
       final Obligation obligation = await service.createObligation(
@@ -332,6 +456,35 @@ void main() {
       expect(reloaded!.nextDueAt, DateTime(2026, 10));
     });
 
+    test('undoing a payment leaves no paid stamp behind', () async {
+      final Obligation obligation = await service.createObligation(
+        ObligationDraft(
+          name: 'إيجار',
+          category: ObligationCategory.housing,
+          amountMinor: 2000000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.monthly,
+          startAt: DateTime(2026, 9),
+          dayOfMonth: 1,
+        ),
+      );
+      final ObligationInstance september = (await _instances(queries, dateOnly(clock)))
+          .firstWhere((ObligationInstance i) => i.occurrence.dueAt == DateTime(2026, 9));
+      await service.markObligationPaid(september);
+
+      final ObligationInstance paid = (await _instances(queries, dateOnly(clock)))
+          .firstWhere((ObligationInstance i) => i.id == september.id);
+      await service.undoObligationPayment(paid);
+
+      final ObligationOccurrence reopened = (await service.obligations
+              .occurrencesFor(obligation.id))
+          .firstWhere((ObligationOccurrence o) => o.id == september.id);
+      expect(reopened.status, ObligationStatus.upcoming);
+      expect(reopened.paidAt, isNull,
+          reason: 'an open period that says "closed on" is a lie on screen');
+      expect(reopened.paymentId, isNull);
+    });
+
     test('a skipped period stops being payable', () async {
       await service.createObligation(
         ObligationDraft(
@@ -351,6 +504,167 @@ void main() {
               .firstWhere((ObligationInstance i) => i.id == due.id);
       expect(after.occurrence.status, ObligationStatus.skipped);
       expect(after.occurrence.isPayable, isFalse);
+    });
+  });
+
+  // Where a commitment points next, and which periods exist, after each thing
+  // the user can do to one period or to the schedule. The clock is 22 September.
+  group('a commitment, period by period', () {
+    Future<Obligation> monthlyFromAugust({DateTime? endAt}) =>
+        service.createObligation(
+          ObligationDraft(
+            name: 'إيجار',
+            category: ObligationCategory.housing,
+            amountMinor: 2000000,
+            currency: AppCurrency.inr,
+            frequency: RecurrenceFrequency.monthly,
+            startAt: DateTime(2026, 8),
+            dayOfMonth: 1,
+            endAt: endAt,
+          ),
+        );
+
+    Future<List<ObligationOccurrence>> periodsOf(Obligation o) async =>
+        (await service.obligations.occurrencesFor(o.id))
+          ..sort((ObligationOccurrence a, ObligationOccurrence b) =>
+              a.dueAt.compareTo(b.dueAt));
+
+    Future<Obligation> reloaded(Obligation o) async =>
+        (await service.obligations.getById(o.id))!;
+
+    Future<void> pay(Obligation o, DateTime due) async {
+      final ObligationOccurrence period = (await periodsOf(o))
+          .firstWhere((ObligationOccurrence p) => p.dueAt == due);
+      await service.markObligationPaid(
+        ObligationInstance(obligation: await reloaded(o), occurrence: period),
+      );
+    }
+
+    test('paying the last period keeps it open while earlier ones are unpaid',
+        () async {
+      // August, September and October; the schedule ends with October.
+      final Obligation rent =
+          await monthlyFromAugust(endAt: DateTime(2026, 10, 31));
+      expect((await periodsOf(rent)).map((ObligationOccurrence p) => p.dueAt),
+          <DateTime>[DateTime(2026, 8), DateTime(2026, 9), DateTime(2026, 10)]);
+
+      await pay(rent, DateTime(2026, 10));
+
+      Obligation after = await reloaded(rent);
+      expect(after.isArchived, isFalse,
+          reason: 'August and September are still owed, and an archived '
+              'commitment is hidden from every list that would say so');
+      expect(after.nextDueAt, DateTime(2026, 8));
+
+      await pay(rent, DateTime(2026, 8));
+      await pay(rent, DateTime(2026, 9));
+      after = await reloaded(rent);
+      expect(after.isArchived, isTrue, reason: 'every period is paid now');
+    });
+
+    test('paying out of order points at the earliest period still open',
+        () async {
+      final Obligation rent = await monthlyFromAugust();
+
+      await pay(rent, DateTime(2026, 9));
+      expect((await reloaded(rent)).nextDueAt, DateTime(2026, 8),
+          reason: 'August is still unpaid');
+
+      await pay(rent, DateTime(2026, 8));
+      expect((await reloaded(rent)).nextDueAt, DateTime(2026, 10),
+          reason: 'not September, which is already paid');
+    });
+
+    test('skipping the next period moves "next due" on', () async {
+      final Obligation rent = await monthlyFromAugust();
+      await pay(rent, DateTime(2026, 8));
+      expect((await reloaded(rent)).nextDueAt, DateTime(2026, 9));
+
+      final ObligationOccurrence september = (await periodsOf(rent))
+          .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 9));
+      await service.skipObligationPeriod(
+        ObligationInstance(obligation: await reloaded(rent), occurrence: september),
+      );
+      expect((await reloaded(rent)).nextDueAt, DateTime(2026, 10));
+    });
+
+    test('a new rhythm starts today, without late periods it never had',
+        () async {
+      final Obligation rent = await monthlyFromAugust();
+
+      // Monthly rent becomes weekly on 22 September.
+      await service.updateObligation(
+        rent.id,
+        ObligationDraft(
+          name: 'إيجار',
+          category: ObligationCategory.housing,
+          amountMinor: 500000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.weekly,
+          startAt: DateTime(2026, 8),
+        ),
+      );
+      // And the app is opened again the next day.
+      await service.ensureOccurrences();
+
+      final List<ObligationOccurrence> periods = await periodsOf(rent);
+      final List<ObligationOccurrence> weekly = periods
+          .where((ObligationOccurrence p) => p.periodKey.contains('-W'))
+          .toList();
+      expect(weekly, isNotEmpty);
+      expect(
+        weekly.every((ObligationOccurrence p) => !p.dueAt.isBefore(dateOnly(clock))),
+        isTrue,
+        reason: 'no weekly period before the day the schedule became weekly: '
+            '${weekly.map((ObligationOccurrence p) => p.dueAt).toList()}',
+      );
+      // The monthly periods that really were due stay exactly as they were.
+      expect(
+        periods.where((ObligationOccurrence p) => !p.periodKey.contains('-W'))
+            .map((ObligationOccurrence p) => p.dueAt),
+        <DateTime>[DateTime(2026, 8), DateTime(2026, 9)],
+      );
+    });
+
+    test('a new amount keeps a skipped month skipped', () async {
+      final Obligation rent = await monthlyFromAugust();
+      final ObligationOccurrence november = (await periodsOf(rent))
+          .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 11));
+      await service.skipObligationPeriod(
+        ObligationInstance(obligation: await reloaded(rent), occurrence: november),
+      );
+
+      await service.updateObligation(
+        rent.id,
+        ObligationDraft(
+          name: 'إيجار',
+          category: ObligationCategory.housing,
+          amountMinor: 2500000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.monthly,
+          startAt: DateTime(2026, 8),
+          dayOfMonth: 1,
+        ),
+      );
+
+      final List<ObligationOccurrence> periods = await periodsOf(rent);
+      final ObligationOccurrence stillSkipped = periods
+          .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 11));
+      expect(stillSkipped.status, ObligationStatus.skipped);
+      expect(
+        periods
+            .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 10))
+            .amountMinor,
+        2500000,
+        reason: 'the months still to come are due at the new amount',
+      );
+      expect(
+        periods
+            .firstWhere((ObligationOccurrence p) => p.dueAt == DateTime(2026, 8))
+            .amountMinor,
+        2000000,
+        reason: 'what August cost does not change',
+      );
     });
   });
 
@@ -480,6 +794,83 @@ void main() {
       expect(restored.debt.id, debt.id);
       expect(restored.paidMinor, 1000000);
       expect(restored.remainingMinor, 4000000);
+    });
+
+    test('brings back the record’s own history, not a new one', () async {
+      final Person person = await addPerson('أحمد');
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          principalMinor: 5000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1000000, paidAt: clock),
+      );
+      Future<List<ActivityEntryRow>> feed() => db.activityDao
+          .watchForEntity(RelatedEntityType.debt, debt.id)
+          .first;
+      final List<ActivityEntryRow> before = await feed();
+      expect(before, isNotEmpty);
+
+      // Deleted and undone a day later, so an entry written by the undo would
+      // show itself by its time.
+      clock = addDays(clock, 1);
+      await service.restoreDeleted(
+        await service.deleteDebtWithSnapshot(debt.id),
+      );
+
+      final List<ActivityEntryRow> after = await feed();
+      expect(
+        after.map((ActivityEntryRow row) => row.id).toSet(),
+        before.map((ActivityEntryRow row) => row.id).toSet(),
+        reason: 'the same entries come back: no "deleted" is left and no '
+            'second "created" is added',
+      );
+      expect(
+        after.map((ActivityEntryRow row) => row.occurredAt).toSet(),
+        before.map((ActivityEntryRow row) => row.occurredAt).toSet(),
+      );
+    });
+
+    test('still works when a person on it was deleted in between', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[ahmed.id, ali.id],
+          principalMinor: 5000000,
+          currency: AppCurrency.inr,
+          issuedAt: clock,
+        ),
+      );
+      // Paid by the first person on the record, which is Ahmed.
+      await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 1000000, paidAt: clock),
+      );
+
+      final LedgerServiceSnapshot snapshot =
+          await service.deleteDebtWithSnapshot(debt.id);
+      await service.deletePerson(ahmed.id);
+      await service.restoreDeleted(snapshot);
+
+      final DebtView restored = (await views()).single;
+      expect(
+        restored.debt.personIds,
+        <String>[ali.id],
+        reason: 'as deleting Ahmed would have left it, had it been there',
+      );
+      expect(restored.paidMinor, 1000000,
+          reason: 'the payment is kept; only who made it is gone');
+      final List<Payment> kept =
+          await PaymentRepositoryImpl(db).forDebt(debt.id);
+      expect(kept.single.personId, isNull);
     });
   });
 

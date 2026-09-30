@@ -226,7 +226,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get clearDataBody =>
-      'سيتم حذف جميع الأشخاص والديون والدفعات والالتزامات والتذكيرات نهائيًا. لا يمكن التراجع.';
+      'سيُحذف كل الأشخاص والديون والدفعات والالتزامات والتذكيرات من هذا الجهاز. تُحفظ نسخة أمان أولًا وتبقى النسخ الاحتياطية على الجهاز، فيمكن استعادة الدفتر من «النسخ الاحتياطي والاستعادة».';
 
   @override
   String get clearDataTitle => 'حذف كل البيانات؟';
@@ -966,57 +966,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String get onboardingCurrencyTitle => 'عملتك الافتراضية';
 
   @override
-  String get onboardingEnableNotifications => 'تفعيل التنبيهات';
+  String get onboardingEnableNotifications => 'تفعيل التذكيرات';
 
   @override
-  String get onboardingLanguageBody => 'يمكنك تغييرها لاحقًا من الإعدادات.';
-
-  @override
-  String get onboardingLanguageTitle => 'اختر لغتك';
-
-  @override
-  String get onboardingMaybeLater => 'لاحقًا';
+  String get onboardingMaybeLater => 'ليس الآن';
 
   @override
   String get onboardingNext => 'التالي';
 
   @override
   String get onboardingNotificationsBody =>
-      'نحتاج إذنك لإرسال تنبيهات الاستحقاق. الإشعارات محلية ولا تغادر جهازك.';
+      'نذكّرك قبل كل موعد استحقاق، في الوقت الذي تختاره. التذكيرات تُجدول على جهازك ولا تحتاج إنترنت.';
 
   @override
   String get onboardingNotificationsDenied =>
       'لم يتم منح الإذن. يمكنك تفعيله من الإعدادات.';
 
   @override
-  String get onboardingNotificationsTitle => 'التذكيرات';
-
-  @override
-  String get onboardingReadyTitle => 'كل شيء جاهز.';
+  String get onboardingNotificationsTitle => 'لا يفوتك أي موعد';
 
   @override
   String get onboardingSkip => 'تخطي';
-
-  @override
-  String get onboardingSlide1Body =>
-      'سجّل ما عليك وما لك، واعرف مركزك المالي فورًا عند فتح التطبيق.';
-
-  @override
-  String get onboardingSlide1Title => 'ذمّتك المالية، منظمة في مكان واحد.';
-
-  @override
-  String get onboardingSlide2Body =>
-      'ديون، دفعات جزئية، والتزامات متكررة — ويُحسب المتبقي تلقائيًا.';
-
-  @override
-  String get onboardingSlide2Title => 'سجّل ما عليك وما لك.';
-
-  @override
-  String get onboardingSlide3Body =>
-      'تذكيرات محلية تعمل بدون إنترنت، وملخص لذمتك في نهاية كل شهر.';
-
-  @override
-  String get onboardingSlide3Title => 'لا تنسَ أي موعد.';
 
   @override
   String get onboardingStart => 'ابدأ الآن';
@@ -1338,6 +1308,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportEmptyTitle => 'لا توجد بيانات لهذا الشهر.';
 
   @override
+  String get reportEntryIOwe => 'دين عليّ';
+
+  @override
+  String get reportEntryOwedToMe => 'دين لي';
+
+  @override
+  String get reportEntryPaid => 'دفعة مسدّدة';
+
+  @override
+  String get reportEntryReceived => 'دفعة مستلمة';
+
+  @override
   String get reportExportPdf => 'تصدير PDF';
 
   @override
@@ -1356,7 +1338,7 @@ class AppLocalizationsAr extends AppLocalizations {
       locale: localeName,
       other: 'تم إغلاق $count دينًا هذا الشهر.',
       few: 'تم إغلاق $count ديون هذا الشهر.',
-      two: 'تم إغلاق ديان هذا الشهر.',
+      two: 'تم إغلاق دينين هذا الشهر.',
       one: 'تم إغلاق دين واحد هذا الشهر.',
       zero: 'لم تُغلق أي ديون هذا الشهر.',
     );
@@ -1370,7 +1352,7 @@ class AppLocalizationsAr extends AppLocalizations {
       locale: localeName,
       other: '$count دينًا متأخرًا يحتاج متابعة.',
       few: '$count ديون متأخرة تحتاج متابعة.',
-      two: 'ديان متأخران يحتاجان متابعة.',
+      two: 'دينان متأخران يحتاجان متابعة.',
       one: 'دين واحد متأخر يحتاج متابعة.',
       zero: 'لا ديون متأخرة.',
     );
@@ -1405,6 +1387,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportNeedsAttentionEmpty => 'لا شيء متأخر ولا مستحق اليوم.';
+
+  @override
+  String get reportNetIOwe => 'الصافي عليّ';
+
+  @override
+  String get reportNetOwedToMe => 'الصافي لي';
 
   @override
   String get reportNewDebts => 'ديون جديدة';
@@ -1454,6 +1442,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportReceived => 'ما تم استلامه';
 
   @override
+  String get reportRemainingIOwe => 'المتبقي عليّ';
+
+  @override
+  String get reportRemainingOwedToMe => 'المتبقي لي';
+
+  @override
   String get reportSavePdf => 'طباعة أو حفظ';
 
   @override
@@ -1466,7 +1460,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportShareStatement => 'مشاركة كشف';
 
   @override
-  String get reportStatementFor => 'كشف حساب';
+  String get reportStatementFor => 'الحساب مع';
 
   @override
   String get reportStatementReady => 'تم إنشاء كشف الحساب';
@@ -2560,4 +2554,78 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get backupSeparateFromExport =>
       'التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد.';
+
+  @override
+  String get currencyNameAed => 'درهم إماراتي';
+
+  @override
+  String get currencyNameEur => 'يورو';
+
+  @override
+  String get currencyNameGbp => 'جنيه إسترليني';
+
+  @override
+  String get currencyNameInr => 'روبية هندية';
+
+  @override
+  String get currencyNameSar => 'ريال سعودي';
+
+  @override
+  String get currencyNameUsd => 'دولار أمريكي';
+
+  @override
+  String get currencyNameYer => 'ريال يمني';
+
+  @override
+  String get currencySuggestedForRegion => 'مقترحة حسب منطقتك';
+
+  @override
+  String get languageDevice => 'لغة الجهاز';
+
+  @override
+  String languageDeviceCurrently(String language) {
+    return 'حاليًا: $language';
+  }
+
+  @override
+  String get languageFollowsDevice => 'تتبع لغة جهازك';
+
+  @override
+  String get onboardingChangeLanguage => 'تغيير اللغة';
+
+  @override
+  String get onboardingChangeLater => 'يمكنك تغيير ذلك في أي وقت من الإعدادات.';
+
+  @override
+  String get onboardingFeatureBooksBody =>
+      'سجّل الديون والدفعات الجزئية والالتزامات الشهرية، ويُحسب المتبقي تلقائيًا.';
+
+  @override
+  String get onboardingFeatureBooksTitle => 'ما لك وما عليك في دفتر واحد';
+
+  @override
+  String get onboardingFeaturePrivateBody =>
+      'يعمل بدون إنترنت، ولا يُرفع شيء إلى أي خادم.';
+
+  @override
+  String get onboardingFeatureRemindersBody =>
+      'تنبيه قبل موعد الاستحقاق، وملخص لذمتك في آخر كل شهر.';
+
+  @override
+  String get onboardingFeatureRemindersTitle => 'تذكير قبل كل موعد';
+
+  @override
+  String onboardingMonthEndWhen(String day, String time) {
+    return '$day، الساعة $time';
+  }
+
+  @override
+  String onboardingReminderTime(String time) {
+    return 'الساعة $time';
+  }
+
+  @override
+  String onboardingStepOf(int step, int total) {
+    return 'الخطوة $step من $total';
+  }
 }

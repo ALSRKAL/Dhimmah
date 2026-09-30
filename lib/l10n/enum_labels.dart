@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../core/money/currency.dart';
 import '../domain/enums/activity_enums.dart';
 import '../domain/enums/debt_enums.dart';
 import '../domain/enums/obligation_enums.dart';
@@ -208,8 +209,41 @@ extension ActivityTypeL10n on ActivityType {
 }
 
 extension AppLanguageL10n on AppLanguage {
+  /// The language's name in the interface's language — «الإنجليزية», "Arabic".
   String label(AppLocalizations l) =>
       isArabic ? l.languageArabic : l.languageEnglish;
+
+  /// The locale the interface, the dates and the statement are written in.
+  Locale get locale => Locale(code);
+
+  /// The language's own name for itself — «العربية», "English".
+  ///
+  /// What a language picker shows, because it is read by someone who may not
+  /// understand the language the interface is currently in, and the name in its
+  /// own script is the one they recognise. It is taken from that language's own
+  /// strings rather than written down again, so it has no key of its own to
+  /// drift out of step.
+  String get endonym => label(lookupAppLocalizations(locale));
+}
+
+extension LanguagePreferenceL10n on LanguagePreference {
+  /// The option as a picker lists it: the language by its own name, or the
+  /// phone.
+  String label(AppLocalizations l) => language?.endonym ?? l.languageDevice;
+}
+
+extension AppCurrencyL10n on AppCurrency {
+  /// The currency's name, which is what tells ﷼ the Saudi riyal apart from ﷼
+  /// the Yemeni one to a person rather than to a parser.
+  String label(AppLocalizations l) => switch (this) {
+        AppCurrency.inr => l.currencyNameInr,
+        AppCurrency.usd => l.currencyNameUsd,
+        AppCurrency.sar => l.currencyNameSar,
+        AppCurrency.aed => l.currencyNameAed,
+        AppCurrency.yer => l.currencyNameYer,
+        AppCurrency.eur => l.currencyNameEur,
+        AppCurrency.gbp => l.currencyNameGbp,
+      };
 }
 
 extension AppThemeModeL10n on AppThemeMode {

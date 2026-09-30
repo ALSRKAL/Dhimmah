@@ -68,6 +68,14 @@ void main() {
       expect(parse('1000000000000'), isNull);
     });
 
+    test('rejects a whole part so large that scaling it wraps round', () {
+      // 184467440737095517 × 100 is 2^64 + 84, which 64-bit arithmetic keeps
+      // as 84: without the check this parsed as 0.84.
+      expect(parse('184467440737095517'), isNull);
+      // The largest accepted amount is still accepted.
+      expect(parse('1000000000'), 100000000000);
+    });
+
     test('handles a second separator as a grouping mark', () {
       expect(parse('1.234.567'), 123456700);
     });

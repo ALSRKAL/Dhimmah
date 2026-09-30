@@ -84,6 +84,20 @@ void main() {
       expect(await coordinator.dueTrigger(leavingForeground: false), isNull);
     });
 
+    test('a ledger that holds only reminders is not empty', () async {
+      // Reminders are the user's records too: a ledger of nothing else used to
+      // count as empty, so it was never copied, and a restore replaced it
+      // without a safety copy.
+      await service.createReminder(
+        ReminderDraft(title: 'اتصل بالمحاسب', dueAt: addDays(today, 1)),
+      );
+      expect(await backups.isEmpty(), isFalse);
+      expect(
+        await coordinator.dueTrigger(leavingForeground: true),
+        isNotNull,
+      );
+    });
+
     test('the first changes get a first snapshot at the next boundary',
         () async {
       await addDebt('أحمد');

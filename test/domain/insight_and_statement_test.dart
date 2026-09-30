@@ -171,6 +171,53 @@ void main() {
       expect(items.single.daysUntilDue, -2);
     });
 
+    test('the figures count every period of a commitment, not only its row',
+        () {
+      // Rent three months behind is three rents late, though the section lists
+      // it once, at the oldest period.
+      final List<AttentionItem> items = AttentionList.build(
+        debts: const <DebtView>[],
+        obligations: <ObligationInstance>[
+          obligationInstance(id: 'rent', dueAt: addDays(today, -62)),
+          obligationInstance(id: 'rent', dueAt: addDays(today, -31)),
+          obligationInstance(id: 'rent', dueAt: addDays(today, -1)),
+          obligationInstance(id: 'rent', dueAt: addDays(today, 5)),
+          obligationInstance(id: 'rent', dueAt: addDays(today, 29)),
+        ],
+        asOf: today,
+        limit: null,
+      );
+      expect(items, hasLength(1));
+      expect(items.single.amountMinor, 200000,
+          reason: 'the row still shows the one period to pay first');
+
+      final ({int overdueMinor, int dueSoonMinor}) totals =
+          AttentionList.totalsFor(items, AppCurrency.inr);
+      expect(totals.overdueMinor, 600000);
+      expect(
+        totals.dueSoonMinor,
+        200000,
+        reason: 'the next period is inside the window; the one after is not',
+      );
+    });
+
+    test('a debt adds its own amount to the figure its row is under', () {
+      final List<AttentionItem> items = AttentionList.build(
+        debts: <DebtView>[
+          view(debt(id: 'late', dueAt: addDays(today, -3), principal: 70000)),
+          view(debt(id: 'today', dueAt: today, principal: 5000)),
+          view(debt(id: 'soon', dueAt: addDays(today, 4), principal: 300)),
+        ],
+        obligations: const <ObligationInstance>[],
+        asOf: today,
+        limit: null,
+      );
+      final ({int overdueMinor, int dueSoonMinor}) totals =
+          AttentionList.totalsFor(items, AppCurrency.inr);
+      expect(totals.overdueMinor, 70000);
+      expect(totals.dueSoonMinor, 5300, reason: 'due soon includes today');
+    });
+
     test('respects the due-soon window', () {
       final List<DebtView> debts = <DebtView>[
         view(debt(id: 'd1', dueAt: addDays(today, 10))),
@@ -378,6 +425,136 @@ void main() {
       expect(entries.single.kind, StatementEntryKind.debtCreated);
       expect(entries.single.balanceAfterMinor, 250000);
     });
+
+    test('runs in date order, debts and payments together', () {
+      // A debt recorded in August used to be listed above a payment made in
+      // June, because every debt came first and every payment after.
+      final List<StatementEntry> entries = buildStatementEntries(
+        debts: <Debt>[
+          debt(id: 'june', principal: 500000).copyWith(
+            issuedAt: addDays(today, -100),
+          ),
+          debt(id: 'august', principal: 300000).copyWith(
+            issuedAt: addDays(today, -50),
+          ),
+        ],
+        payments: <Payment>[
+          payment('p1', 100000, addDays(today, -90), debtId: 'june'),
+          payment('p2', 100000, addDays(today, -40), debtId: 'august'),
+        ],
+        currency: AppCurrency.inr,
+      );
+
+      expect(
+        entries.map((StatementEntry e) => e.date).toList(),
+        <DateTime>[
+          addDays(today, -100),
+          addDays(today, -90),
+          addDays(today, -50),
+          addDays(today, -40),
+        ],
+      );
+      expect(
+        entries.map((StatementEntry e) => e.balanceAfterMinor).toList(),
+        <int>[500000, 400000, 700000, 600000],
+      );
+    });
+
+    test('sets money owed both ways against each other', () {
+      final List<StatementEntry> entries = buildStatementEntries(
+        debts: <Debt>[
+          // The helper's default principal: 1,000,000.
+          debt(id: 'borrowed').copyWith(issuedAt: addDays(today, -100)),
+          debt(
+            id: 'lent',
+            principal: 300000,
+            direction: DebtDirection.owedToMe,
+          ).copyWith(issuedAt: addDays(today, -50)),
+        ],
+        payments: <Payment>[
+          payment('p1', 800000, addDays(today, -40), debtId: 'borrowed'),
+          payment('p2', 100000, addDays(today, -30), debtId: 'lent'),
+          payment('p3', 200000, addDays(today, -20), debtId: 'borrowed'),
+        ],
+        currency: AppCurrency.inr,
+      );
+
+      // 1,000,000 borrowed; 300,000 lent: 700,000 still owed by the user.
+      expect(entries[1].balanceAfterMinor, 700000);
+      expect(entries[1].balanceDirection, DebtDirection.iOwe);
+      // 800,000 repaid: the user is owed 100,000 on balance.
+      expect(entries[2].balanceAfterMinor, 100000);
+      expect(entries[2].balanceDirection, DebtDirection.owedToMe);
+      // 100,000 received: 200,000 each way.
+      expect(entries[3].balanceAfterMinor, 0);
+      expect(entries[3].balanceDirection, isNull);
+      // The last 200,000 repaid: the user is owed the other 200,000.
+      expect(entries[4].balanceAfterMinor, 200000);
+      expect(entries[4].balanceDirection, DebtDirection.owedToMe);
+    });
+
+    test('every line says which debt it is and on which side', () {
+      final List<StatementEntry> entries = buildStatementEntries(
+        debts: <Debt>[
+          debt(id: 'd1', principal: 500000).copyWith(title: 'قرض سيارة'),
+        ],
+        payments: <Payment>[payment('p1', 100000, addDays(today, -1))],
+        currency: AppCurrency.inr,
+      );
+      expect(entries.last.kind, StatementEntryKind.payment);
+      expect(entries.last.debtTitle, 'قرض سيارة',
+          reason: 'a payment used to be named by nothing at all');
+      expect(entries.last.direction, DebtDirection.iOwe);
+    });
+  });
+
+  group('statement sides', () {
+    StatementDebtLine line(DebtDirection direction, int remaining) =>
+        StatementDebtLine(
+          title: '',
+          direction: direction,
+          principal: Money(remaining, AppCurrency.inr),
+          paid: const Money(0, AppCurrency.inr),
+          remaining: Money(remaining, AppCurrency.inr),
+          status: DebtLifecycleStatus.active,
+        );
+
+    StatementData data(List<StatementDebtLine> debts) => StatementData(
+          documentNumber: 'DHM-2026-1234',
+          generatedAt: DateTime(2026, 9, 22),
+          language: AppLanguage.arabic,
+          personName: 'أحمد',
+          phone: null,
+          currency: AppCurrency.inr,
+          totalMinor: 0,
+          paidMinor: 0,
+          remainingMinor: 0,
+          status: DebtLifecycleStatus.active,
+          debts: debts,
+          entries: const <StatementEntry>[],
+          options: const StatementOptions(),
+        );
+
+    test('one side is named, and is not mixed', () {
+      final StatementData statement =
+          data(<StatementDebtLine>[line(DebtDirection.iOwe, 500000)]);
+      expect(statement.isMixed, isFalse);
+      expect(statement.direction, DebtDirection.iOwe);
+    });
+
+    test('both sides are stated apart, with their difference', () {
+      final StatementData statement = data(<StatementDebtLine>[
+        line(DebtDirection.iOwe, 600000),
+        line(DebtDirection.iOwe, 400000),
+        line(DebtDirection.owedToMe, 250000),
+      ]);
+      expect(statement.isMixed, isTrue);
+      expect(statement.direction, isNull);
+      expect(statement.iOwe.minorUnits, 1000000);
+      expect(statement.owedToMe.minorUnits, 250000);
+      expect(statement.net.minorUnits, -750000,
+          reason: 'negative: the user owes on balance');
+    });
   });
 
   group('statement naming', () {
@@ -395,7 +572,6 @@ void main() {
     test('the file name carries the person and the date', () {
       final StatementData data = StatementData(
         documentNumber: 'DHM-2026-1234',
-        documentId: 'ABCDEF',
         generatedAt: DateTime(2026, 9, 22),
         language: AppLanguage.arabic,
         personName: 'أحمد محمد',

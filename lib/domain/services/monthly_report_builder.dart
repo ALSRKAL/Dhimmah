@@ -60,25 +60,24 @@ MonthlyReport buildMonthlyReport({
     }
   }
 
-  final Set<String> obligationIdsInCurrency = <String>{
-    for (final Obligation obligation in obligations)
-      if (obligation.currency == currency) obligation.id,
-  };
+  final _PeriodRule counts = _PeriodRule(obligations, currency);
   int obligationsMinor = 0;
   for (final ObligationOccurrence occurrence in occurrences) {
-    if (!obligationIdsInCurrency.contains(occurrence.obligationId)) continue;
-    if (occurrence.status == ObligationStatus.cancelled) continue;
+    if (!counts.isDue(occurrence)) continue;
     if (!isWithin(occurrence.dueAt, monthStart, monthEnd)) continue;
     obligationsMinor += occurrence.amountMinor;
   }
 
-  // Position at the end of the month: what was still open then.
-  int paidByDebt(Payment payment) => payment.amountMinor;
+  // Position at the end of the month: what was still open then. A payment made
+  // after the month ended had not happened at its end, so it cannot shrink what
+  // that month's report says was open or late — a debt due and unpaid all of
+  // August, and paid on 5 September, was reported as never having been late.
   final Map<String, int> paidTotals = <String, int>{};
   for (final Payment payment in payments) {
     final String? debtId = payment.debtId;
     if (debtId == null) continue;
-    paidTotals[debtId] = (paidTotals[debtId] ?? 0) + paidByDebt(payment);
+    if (payment.paidAt.isAfter(monthEnd)) continue;
+    paidTotals[debtId] = (paidTotals[debtId] ?? 0) + payment.amountMinor;
   }
 
   // "Overdue" must mean the same thing everywhere in the app. For a month that
@@ -188,10 +187,7 @@ List<MonthlyTrendPoint> buildTrend({
   final Map<String, DebtDirection> directionOfDebt = <String, DebtDirection>{
     for (final Debt debt in debts) debt.id: debt.direction,
   };
-  final Set<String> obligationIdsInCurrency = <String>{
-    for (final Obligation obligation in obligations)
-      if (obligation.currency == currency) obligation.id,
-  };
+  final _PeriodRule counts = _PeriodRule(obligations, currency);
 
   final List<MonthlyTrendPoint> points = <MonthlyTrendPoint>[];
   final DateTime end = DateTime(endYear, endMonth);
@@ -216,8 +212,7 @@ List<MonthlyTrendPoint> buildTrend({
 
     int obligationsTotal = 0;
     for (final ObligationOccurrence occurrence in occurrences) {
-      if (!obligationIdsInCurrency.contains(occurrence.obligationId)) continue;
-      if (occurrence.status == ObligationStatus.cancelled) continue;
+      if (!counts.isDue(occurrence)) continue;
       if (isWithin(occurrence.dueAt, start, stop)) {
         obligationsTotal += occurrence.amountMinor;
       }
@@ -234,4 +229,45 @@ List<MonthlyTrendPoint> buildTrend({
     );
   }
   return points;
+}
+
+/// Which commitment periods count as money due, for the report and its trend.
+///
+/// One rule, so the month's figure and the chart under it cannot disagree:
+///
+/// * only commitments in the report's currency;
+/// * never a period the user **skipped** or that was cancelled — a skipped
+///   period is "not applicable this time", and counting it reported a rent the
+///   user had said was not owed;
+/// * for a commitment in the archive, what was paid stays in the history, but
+///   the unpaid periods from the day it was archived onwards are not due — they
+///   belong to a commitment the user has set aside.
+class _PeriodRule {
+  _PeriodRule(List<Obligation> obligations, AppCurrency currency)
+      : _archivedOn = <String, DateTime?>{
+          for (final Obligation obligation in obligations)
+            if (obligation.currency == currency)
+              // A timestamp, so the day is taken on the phone's own clock.
+              obligation.id: obligation.archivedAt == null
+                  ? null
+                  : dateOnly(obligation.archivedAt!.toLocal()),
+        };
+
+  /// Commitments in the report's currency, with the day each was archived.
+  final Map<String, DateTime?> _archivedOn;
+
+  bool isDue(ObligationOccurrence occurrence) {
+    if (!_archivedOn.containsKey(occurrence.obligationId)) return false;
+    if (occurrence.status == ObligationStatus.cancelled ||
+        occurrence.status == ObligationStatus.skipped) {
+      return false;
+    }
+    final DateTime? archivedOn = _archivedOn[occurrence.obligationId];
+    if (archivedOn != null &&
+        !occurrence.isPaid &&
+        !occurrence.dueAt.isBefore(archivedOn)) {
+      return false;
+    }
+    return true;
+  }
 }

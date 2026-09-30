@@ -157,29 +157,36 @@ class LedgerQueries {
       final List<ActivityEntry> recent =
           await activity.recent(limit: activityLimit);
 
+      final List<Obligation> obligationList = await obligations.getAll();
       final List<ObligationInstance> upcomingObligations =
-          await _readUpcomingObligations(asOf);
+          await _readUpcomingObligations(obligationList, asOf);
+      final List<DebtView> withDueDates = DebtCalculator.sortByUrgency(views)
+          .where((DebtView v) => v.debt.dueAt != null)
+          .toList(growable: false);
 
       return DashboardSnapshot(
         totalsByCurrency: totals,
         primaryCurrency:
             DebtCalculator.primaryCurrency(totals, defaultCurrency),
-        upcoming: DebtCalculator.sortByUrgency(views)
-            .where((DebtView v) => v.debt.dueAt != null)
-            .take(6)
-            .toList(growable: false),
+        upcoming: withDueDates.take(6).toList(growable: false),
         upcomingObligations: upcomingObligations.take(4).toList(growable: false),
+        attentionDebts: withDueDates,
+        attentionObligations: upcomingObligations,
         recentActivity: recent,
         peopleCount: data.people.length,
         openDebtCount: views.where((DebtView v) => v.isOpen).length,
-        hasAnyRecord: data.debts.isNotEmpty,
+        // Commitments count: a ledger of bills alone showed "nothing recorded
+        // yet" in place of the section that said the rent was late.
+        hasAnyRecord: data.debts.isNotEmpty || obligationList.isNotEmpty,
       );
     });
   }
 
-  /// Open obligation periods coming up, soonest first.
-  Future<List<ObligationInstance>> _readUpcomingObligations(DateTime asOf) async {
-    final List<Obligation> list = await obligations.getAll();
+  /// Open periods of [list]'s obligations, soonest first.
+  Future<List<ObligationInstance>> _readUpcomingObligations(
+    List<Obligation> list,
+    DateTime asOf,
+  ) async {
     final List<ObligationOccurrence> all = await obligations.allOccurrences();
     final Map<String, Obligation> byId = <String, Obligation>{
       for (final Obligation obligation in list) obligation.id: obligation,

@@ -330,6 +330,159 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
     });
   });
 
+  group('what the statement says', () {
+    test('a date keeps the space before its year', () async {
+      // The renderer placed the words of an Arabic line by their ink rather
+      // than their advance, and beside a number the space closed: the issue
+      // date printed as «سبتمبر2026», about 0.8pt apart where a space is 2.24.
+      // Set word by word and placed by advance, the month is one space from
+      // each neighbour.
+      final PdfInspection page = inspectPdf(await render(_arabicStatement()));
+      final List<PdfRun> line = page.lineContaining(visual('سبتمبر'));
+      expect(line, isNotEmpty, reason: 'the issue date was not drawn');
+
+      final PdfRun month =
+          line.firstWhere((PdfRun run) => run.text == visual('سبتمبر'));
+      final PdfRun year = line.firstWhere((PdfRun run) => run.text == '2026');
+      final PdfRun day = line.firstWhere((PdfRun run) => run.text == '23');
+      // Read right to left: the day, the month, then the year.
+      expect(day.x, greaterThan(month.x));
+      expect(month.x, greaterThan(year.x));
+      final double beforeMonth = day.x - month.right;
+      final double afterMonth = month.x - year.right;
+      expect(afterMonth, greaterThan(2.0),
+          reason: 'the month and the year are a space apart');
+      expect(afterMonth, closeTo(beforeMonth, 0.05),
+          reason: 'and the month is not pushed towards either neighbour');
+    });
+
+    test('the other party is introduced once, not as a second statement',
+        () async {
+      final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
+      final PdfInspection page = inspectPdf(await render(_arabicStatement()));
+      expect(lineWithAllWords(page, l10n.reportStatementFor), isNotEmpty);
+      expect(
+        page.lines
+            .where((List<PdfRun> line) => line.any(
+                  (PdfRun run) => run.text == visual('كشف'),
+                ))
+            .length,
+        1,
+        reason: '«كشف حساب» was the header and the party card both',
+      );
+    });
+
+    test('a statement of one debt names the debt', () async {
+      // With one debt there is no breakdown table, and the title used to
+      // appear nowhere on the page.
+      final PdfInspection page = inspectPdf(
+        await render(_arabicStatement(title: 'فاتورة خدمات')),
+      );
+      expect(lineWithAllWords(page, 'فاتورة خدمات'), isNotEmpty);
+    });
+
+    test('a single side is named with what is left', () async {
+      // Read in English, whose words the page keeps as they are written.
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(language: AppLanguage.english),
+          language: AppLanguage.english,
+        ),
+      );
+      expect(
+        page.lineContaining('still').map((PdfRun run) => run.text).join(' '),
+        contains('I still owe'),
+        reason: 'the figure alone does not say who owes whom',
+      );
+    });
+
+    test('an Arabic table gives each column its own width', () async {
+      // The renderer keys a width by where a cell is drawn, and an Arabic table
+      // draws its columns in reverse: the title, the widest column, was given
+      // the due date's narrow width and broke over several lines.
+      final PdfInspection page = inspectPdf(
+        await render(_arabicStatement(extraDebts: <String>['سلفة'])),
+      );
+      const String title = 'مشاركة في مصاريف السفر';
+      final Set<String> words = title.split(' ').map(visual).toSet();
+      final List<PdfRun> drawn = lineWithAllWords(page, title)
+          .where((PdfRun run) => words.contains(run.text))
+          .toList();
+      expect(drawn, hasLength(words.length),
+          reason: 'the title was broken over several lines');
+
+      // The title column is the first 26% of the table, from the right.
+      const double titleColumn = (rightEdge - leftEdge) * 0.26;
+      for (final PdfRun run in drawn) {
+        expect(run.x, greaterThanOrEqualTo(rightEdge - titleColumn),
+            reason: 'the title left its column — $run');
+        expect(run.right, lessThanOrEqualTo(rightEdge + measurementSlack),
+            reason: 'the title ran past the margin — $run');
+      }
+    });
+
+    test('a two-sided balance keeps its figure on the column edge', () async {
+      // The side is named first, so the figure sits against the edge like the
+      // amounts beside it. Named after it, the figure moved with the width of
+      // «لي» or «عليّ».
+      final PdfInspection english = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            extraDebts: <String>['Loan'],
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      expect(
+        english.lineContaining('67,500').map((PdfRun run) => run.text).join(' '),
+        endsWith('I Owe · ₹ 67,500'),
+      );
+
+      final PdfInspection arabic = inspectPdf(
+        await render(_arabicStatement(extraDebts: <String>['سلفة'])),
+      );
+      final List<PdfRun> line = arabic.lineContaining('67,500');
+      // The balance is the leftmost column of an Arabic table.
+      expect(
+        line.map((PdfRun run) => run.text).join(' '),
+        startsWith('₹ 67,500 · ${visual('عليّ')}'),
+      );
+      expect(line.first.x, lessThan(leftEdge + 8),
+          reason: 'the figure is against the far edge of its column');
+    });
+
+    test('debts both ways are stated apart, with their difference', () async {
+      final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
+      // One debt the user owes, 45,500, and one owed to them, 8,500.
+      final PdfInspection arabic = inspectPdf(
+        await render(_arabicStatement(extraDebts: <String>['سلفة'])),
+      );
+      expect(arabic.lineContaining('37,000'), isNotEmpty,
+          reason: '45,500 owed by the user less 8,500 owed to them');
+      expect(
+        lineWithAllWords(arabic, l10n.detailTotal),
+        isEmpty,
+        reason: 'a total adding both sides describes no one',
+      );
+      expectInsideMargins(arabic, 'debts both ways');
+
+      final PdfInspection english = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            extraDebts: <String>['Loan'],
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      expect(
+        english.lineContaining('Net,').map((PdfRun run) => run.text).join(' '),
+        contains('Net, I owe'),
+      );
+    });
+  });
+
   group('the reading side', () {
     // A heading is the one thing on a page that has to start where the eye
     // starts. These were laid out as rows only as wide as their own text, so the
@@ -529,6 +682,61 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       }
     });
 
+    test('a name, title or note that opens with «لا» is printed', () async {
+      // The renderer's bidirectional pass threw on any paragraph that starts
+      // with a lam-alef, so none of these statements could be generated.
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            name: 'لانا',
+            title: 'لابتوب',
+            notes: 'لا توجد ملاحظات أخرى على هذا الدين. ' * 6,
+            options: const StatementOptions(includeNotes: true),
+          ),
+        ),
+      );
+      final String all = page.runs.map((PdfRun run) => run.text).join(' ');
+      expect(all, contains(visual('لانا')));
+      expect(all, contains(visual('لابتوب')));
+      expect(all, contains(visual('ملاحظات')));
+      expectInsideMargins(page, 'lines that open with lam-alef');
+    });
+
+    test('every character on the page has a glyph in the font', () async {
+      // A box in a word is invisible to every other check here: the text is
+      // all there, it just cannot be read. The renderer joined a shadda and its
+      // vowel into a ligature the font does not have, and «دفعة مسدَّدة» and
+      // «تُسدَّد» printed one each.
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            title: 'مشاركة مُسدَّدة',
+            notes: 'تُسدَّد على دفعات مِن الراتب، شهريًّا.',
+            options: const StatementOptions(includeNotes: true),
+          ),
+        ),
+      );
+      final TtfParser regularFace = TtfParser(regular);
+      final TtfParser semiBoldFace = TtfParser(semiBold);
+      final Set<int> missing = <int>{
+        for (final PdfRun run in page.runs)
+          for (final int code in run.text.runes)
+            if (!regularFace.charToGlyphIndexMap.containsKey(code) ||
+                !semiBoldFace.charToGlyphIndexMap.containsKey(code))
+              code,
+      };
+      expect(
+        missing.map((int code) => code.toRadixString(16)),
+        isEmpty,
+        reason: 'these code points print as a box',
+      );
+      expect(
+        page.runs.map((PdfRun run) => run.text).join(' '),
+        contains('\u0651'),
+        reason: 'the shadda itself is still drawn',
+      );
+    });
+
     test('a mixed Arabic and Latin note keeps both orders', () async {
       final PdfInspection page = inspectPdf(
         await render(
@@ -597,7 +805,6 @@ StatementData _arabicStatement({
 
   return StatementData(
     documentNumber: 'DHM-2026-1234',
-    documentId: 'ABC123',
     generatedAt: today,
     language: language,
     personName: name,
@@ -636,10 +843,12 @@ StatementData _arabicStatement({
           kind: i.isEven
               ? StatementEntryKind.payment
               : StatementEntryKind.debtCreated,
+          direction: DebtDirection.iOwe,
           amountMinor: 3500000 - i * 50000,
           balanceAfterMinor: 6850000 - i * 50000,
+          balanceDirection: DebtDirection.iOwe,
           currency: currency,
-          note: i == 1 ? 'سلفة شخصية' : null,
+          debtTitle: i == 1 ? 'سلفة شخصية' : null,
         ),
     ],
     options: options,

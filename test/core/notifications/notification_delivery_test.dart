@@ -2,6 +2,7 @@ import 'package:dhimmah/core/formatting/app_formatting.dart';
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/money/money.dart';
 import 'package:dhimmah/core/notifications/notification_composer.dart';
+import 'package:dhimmah/core/notifications/notification_gateway.dart';
 import 'package:dhimmah/core/notifications/notification_service.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
@@ -354,6 +355,85 @@ void main() {
       );
       expect(result.blocked, isTrue);
       expect(desktop.permission, NotificationPermission.unsupported);
+    });
+  });
+
+  group('the words follow the app', () {
+    final AppLocalizations english = lookupAppLocalizations(const Locale('en'));
+    final NotificationComposer inEnglish = NotificationComposer(
+      localizations: english,
+      formatting: AppFormatting(
+        language: AppLanguage.english,
+        numerals: NumeralsStyle.latin,
+        defaultCurrency: AppCurrency.inr,
+        localizations: english,
+      ),
+    );
+
+    test('a reminder whose words changed is re-worded in place', () async {
+      final List<NotificationIntent> intents = <NotificationIntent>[
+        intent(id: 'a', when: now.add(const Duration(days: 1))),
+      ];
+      await service.sync(composed(intents));
+      final int id = platform.held.keys.single;
+      expect(platform.held[id]!.title, l10n.notifDueSoonTitle);
+
+      // The same record, the same moment — only the language changed.
+      final NotificationSyncResult result =
+          await service.sync(inEnglish.composeAll(intents));
+
+      expect(result.reworded, 1);
+      expect(result.scheduled, 0, reason: 'it is not a new reminder');
+      expect(result.cancelled, 0, reason: 'nor is the old one taken away');
+      expect(result.changed, isTrue);
+      expect(platform.held.keys.single, id, reason: 'same identity');
+      expect(platform.held[id]!.title, english.notifDueSoonTitle);
+      expect(platform.cancelled, isEmpty);
+    });
+
+    test('words that did not change are left alone', () async {
+      final List<NotificationIntent> intents = <NotificationIntent>[
+        intent(id: 'a', when: now.add(const Duration(days: 1))),
+        intent(id: 'b', when: now.add(const Duration(days: 2))),
+      ];
+      await service.sync(inEnglish.composeAll(intents));
+      final NotificationSyncResult again =
+          await service.sync(inEnglish.composeAll(intents));
+
+      expect(again.reworded, 0);
+      expect(again.changed, isFalse);
+    });
+
+    test('a platform that does not report its words is trusted, not rewritten',
+        () async {
+      platform.reportsWording = false;
+      final List<NotificationIntent> intents = <NotificationIntent>[
+        intent(id: 'a', when: now.add(const Duration(days: 1))),
+      ];
+      await service.sync(composed(intents));
+      final NotificationSyncResult result =
+          await service.sync(inEnglish.composeAll(intents));
+
+      expect(
+        result.reworded,
+        0,
+        reason: 'rewriting on every pass because nothing can be compared would '
+            'cost a platform call per reminder, per save',
+      );
+    });
+
+    test('the channels are renamed into the new language', () async {
+      await service.relabelChannels(english);
+      expect(platform.channels[NotificationTier.now]!.name,
+          english.notifChannelDueName);
+      expect(platform.channels[NotificationTier.digest]!.name,
+          english.notifChannelSummaryName);
+    });
+
+    test('renaming before the plugin is ready does nothing', () async {
+      final FakeNotificationGateway cold = FakeNotificationGateway();
+      await NotificationService(gateway: cold).relabelChannels(english);
+      expect(cold.channelCreates, 0);
     });
   });
 }

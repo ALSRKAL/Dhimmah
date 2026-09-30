@@ -49,6 +49,10 @@ enum AppCurrency {
   bool get hasAmbiguousSymbol =>
       this == AppCurrency.sar || this == AppCurrency.yer;
 
+  /// The code and the symbol together — `INR · ₹` — as the currency settings
+  /// state it. One place, so the settings row and its picker cannot disagree.
+  String get codeAndSymbol => '$code · $symbol';
+
   /// The symbol to print when [displayCurrency] is the user's default; a shared
   /// symbol keeps its ISO code so ﷼ never means two different things.
   String symbolFor({required bool isDefaultCurrency}) {

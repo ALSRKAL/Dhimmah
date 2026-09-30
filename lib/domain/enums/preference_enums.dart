@@ -1,4 +1,8 @@
-/// The two languages Dhimmah ships with. Arabic is the default.
+/// The two languages Dhimmah ships with.
+///
+/// This is the language the interface is *in*, and it is never stored: it is
+/// resolved from the user's [LanguagePreference] and the phone's own list of
+/// languages, so a phone that changes language takes the app with it.
 enum AppLanguage {
   arabic('ar'),
   english('en');
@@ -13,20 +17,75 @@ enum AppLanguage {
   /// Script direction implied by the language.
   bool get isRtl => this == AppLanguage.arabic;
 
-  static AppLanguage fromCode(String? code) {
-    if (code == null) return AppLanguage.arabic;
-    final String needle = code.trim().toLowerCase();
+  /// The other one. There are two, so a switch between them is a toggle.
+  AppLanguage get other => isArabic ? AppLanguage.english : AppLanguage.arabic;
+
+  /// What a phone in neither language opens in.
+  ///
+  /// English rather than Arabic: a phone set to Hindi, Urdu or French belongs to
+  /// someone who is far more likely to read English than Arabic, and the app is
+  /// complete in both. Arabic-first means an Arabic phone opens in Arabic — not
+  /// that everyone else has to read it.
+  static const AppLanguage fallback = AppLanguage.english;
+
+  /// The language a locale tag names, or null when Dhimmah does not ship it.
+  ///
+  /// Only the language subtag counts, so `ar`, `ar-YE` and `ar_EG` are all
+  /// Arabic and `en-IN` is English. Anything else is an honest "not ours".
+  static AppLanguage? tryParse(String? tag) {
+    if (tag == null) return null;
+    final String subtag =
+        tag.trim().toLowerCase().split(RegExp('[-_]')).first;
     for (final AppLanguage language in AppLanguage.values) {
-      if (language.code == needle) return language;
+      if (language.code == subtag) return language;
     }
-    if (needle.startsWith('ar')) return AppLanguage.arabic;
-    if (needle.startsWith('en')) return AppLanguage.english;
-    return AppLanguage.arabic;
+    return null;
   }
 
-  /// A short label the settings screen can show without localisation, used only
-  /// as a fallback; the localised name comes from the ARB files.
-  String get nativeName => this == AppLanguage.arabic ? 'العربية' : 'English';
+  /// The language to open in on a phone that prefers [languageCodes], most
+  /// preferred first.
+  ///
+  /// The first language on the phone's list that Dhimmah ships wins, which is
+  /// the rule the phone's own settings describe: someone who reads French first
+  /// and Arabic second gets Arabic, not the [fallback].
+  static AppLanguage fromDevice(Iterable<String> languageCodes) {
+    for (final String code in languageCodes) {
+      final AppLanguage? language = tryParse(code);
+      if (language != null) return language;
+    }
+    return fallback;
+  }
+}
+
+/// What the user asked for: follow the phone, or one language whatever the
+/// phone says.
+///
+/// Stored, unlike [AppLanguage]. Keeping the choice apart from its result is what
+/// lets the app follow a phone whose language changes while it is open, and
+/// still remember a user who picked a language on purpose. A new install
+/// follows the phone.
+enum LanguagePreference {
+  system,
+  arabic,
+  english;
+
+  /// The language this preference names, or null when the phone decides.
+  AppLanguage? get language => switch (this) {
+        LanguagePreference.system => null,
+        LanguagePreference.arabic => AppLanguage.arabic,
+        LanguagePreference.english => AppLanguage.english,
+      };
+
+  bool get followsDevice => this == LanguagePreference.system;
+
+  /// The language the interface is in on a phone whose language is [device].
+  AppLanguage resolve(AppLanguage device) => language ?? device;
+
+  /// The preference that pins [language].
+  static LanguagePreference of(AppLanguage language) => switch (language) {
+        AppLanguage.arabic => LanguagePreference.arabic,
+        AppLanguage.english => LanguagePreference.english,
+      };
 }
 
 /// Whether amounts are rendered with Western or Arabic-Indic digits.

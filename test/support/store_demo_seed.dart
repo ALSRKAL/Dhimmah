@@ -105,7 +105,7 @@ Future<void> seedStoreDemoData(
     AppSettings.initial.copyWith(
       onboardingCompleted: true,
       defaultCurrency: currency,
-      language: language,
+      languagePreference: LanguagePreference.of(language),
       dueSoonWindowDays: 7,
       themeMode: themeMode,
     ),

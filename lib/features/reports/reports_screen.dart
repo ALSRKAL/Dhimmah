@@ -25,15 +25,28 @@ import '../../l10n/generated/app_localizations.dart';
 /// months. No chart is drawn when there is nothing to compare, because an empty
 /// axis looks like a failure rather than an absence of data.
 class ReportsScreen extends ConsumerStatefulWidget {
-  const ReportsScreen({super.key});
+  const ReportsScreen({this.initialMonth, super.key});
+
+  /// The month to open on: a month-end summary opens the month it is about.
+  /// The current month when absent, or when it names a month still to come.
+  final DateTime? initialMonth;
 
   @override
   ConsumerState<ReportsScreen> createState() => _ReportsScreenState();
 }
 
 class _ReportsScreenState extends ConsumerState<ReportsScreen> {
-  late DateTime _month = DateTime(DateTime.now().year, DateTime.now().month);
+  late DateTime _month = _openingMonth();
   AppCurrency? _currency;
+
+  DateTime _openingMonth() {
+    final DateTime now = DateTime.now();
+    final DateTime current = DateTime(now.year, now.month);
+    final DateTime? asked = widget.initialMonth;
+    if (asked == null) return current;
+    final DateTime month = DateTime(asked.year, asked.month);
+    return month.isAfter(current) ? current : month;
+  }
 
   @override
   Widget build(BuildContext context) {

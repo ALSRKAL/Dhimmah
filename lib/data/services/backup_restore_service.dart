@@ -90,7 +90,7 @@ class BackupRestoreService {
       await _applyInserts(plan.inserts);
       await _applyReplaces(plan.replaces);
       if (mode == RestoreMode.replace) {
-        await _applySettings(backup.settings);
+        await _applySettings(backup.settings, schemaVersion: backup.schemaVersion);
       }
       // Verification runs on the state the transaction is about to commit.
       // Throwing here rolls the whole thing back.
@@ -382,7 +382,10 @@ class BackupRestoreService {
     }
   }
 
-  Future<void> _applySettings(Map<String, Object?> settings) async {
+  Future<void> _applySettings(
+    Map<String, Object?> settings, {
+    required int schemaVersion,
+  }) async {
     if (settings.isEmpty) return;
     final Setting? current = await _db.settingsDao.get();
     final AppSettings base =
@@ -391,7 +394,11 @@ class BackupRestoreService {
     // stay with the device: the credential that would satisfy a lock lives in
     // the Android keystore and never travels, and "this month's summary was
     // sent" is a fact about this phone.
-    final AppSettings next = BackupCodec.applySettings(settings, base).copyWith(
+    final AppSettings next = BackupCodec.applySettings(
+      settings,
+      base,
+      schemaVersion: schemaVersion,
+    ).copyWith(
       lockEnabled: base.lockEnabled,
       biometricEnabled: base.biometricEnabled,
       lastSummarySentOn: base.lastSummarySentOn,

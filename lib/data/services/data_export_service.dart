@@ -267,15 +267,26 @@ class DataExportService {
       ].join('، ');
 
   /// Quotes and escapes a CSV cell.
+  ///
+  /// A cell a spreadsheet would take for a formula — one that starts with `=`,
+  /// `+`, `-` or `@` — is written with a leading `'`, so a name or a note typed
+  /// as `=HYPERLINK(…)` opens as the text it is instead of running when the
+  /// file is opened. Only free text passes through here; amounts, dates and
+  /// codes are written as they are.
   static String _csvCell(String value) {
-    final String trimmed = value.trim();
-    if (trimmed.isEmpty) return '';
-    final bool needsQuotes = trimmed.contains(',') ||
-        trimmed.contains('"') ||
-        trimmed.contains('\n');
-    if (!needsQuotes) return trimmed;
-    return '"${trimmed.replaceAll('"', '""')}"';
+    String text = value.trim();
+    if (text.isEmpty) return '';
+    if (_formulaLeads.contains(text[0])) text = "'$text";
+    final bool needsQuotes = text.contains(',') ||
+        text.contains('"') ||
+        text.contains('\n') ||
+        text.contains('\r');
+    if (!needsQuotes) return text;
+    return '"${text.replaceAll('"', '""')}"';
   }
+
+  /// The characters a spreadsheet reads as the start of a formula.
+  static const String _formulaLeads = '=+-@';
 
   /// A readable amount, used by the PDF report path.
   String formatMoney(Money money) =>

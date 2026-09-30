@@ -601,7 +601,7 @@ void main() {
       await openScreen(
         tester,
         folders,
-        settings: AppSettings.initial.copyWith(language: AppLanguage.english),
+        settings: AppSettings.initial.copyWith(languagePreference: LanguagePreference.english),
       );
 
       final AppLocalizations english = lookupAppLocalizations(const Locale('en'));
@@ -686,6 +686,38 @@ void main() {
             'from a minute ago answers that as well as one made now',
       );
       expect(snapshotsOnDisk(), hasLength(1));
+    });
+
+    testWidgets('is taken when the ledger changed after a recent copy', (
+      WidgetTester tester,
+    ) async {
+      await seedLedger();
+      await seedSnapshot(tester);
+      // Work done after that copy was written, so it is in no file yet. The
+      // real pause keeps the two from sharing a timestamp, and the write comes
+      // before the app is up, as [seedLedger]'s does: made from inside
+      // `runAsync` once the screen was open, it never completed here.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 5)),
+      );
+      await buildService(
+        db,
+        notifications: NotificationService(gateway: FakeNotificationGateway()),
+      ).createPerson(const PersonDraft(name: 'خالد العلي'));
+      final ProviderContainer container =
+          await openScreen(tester, FakeBackupLocationRepository.used());
+
+      final BackupFileInfo? made = await tester.runAsync<BackupFileInfo?>(
+        () => container.read(backupControllerProvider).safetyBeforeDestructive(),
+      );
+
+      expect(
+        made,
+        isNotNull,
+        reason: 'a recent copy stands in only for the ledger it holds; deleting '
+            'everything now would otherwise lose what was added since',
+      );
+      expect(snapshotsOnDisk(), hasLength(2));
     });
 
     testWidgets('is skipped when there is nothing to protect', (

@@ -344,11 +344,15 @@ class BackupService {
   /// Asked at every app resume and before every restore, so it does not read a
   /// table to answer it: one row is fetched, or none, and the database stops
   /// there.
+  ///
+  /// Reminders count. A ledger that held only reminders used to be "empty":
+  /// it was never snapshotted, and a restore replaced it without a safety copy.
   Future<bool> isEmpty() async {
     for (final TableInfo<Table, dynamic> table in <TableInfo<Table, dynamic>>[
       _db.people,
       _db.debts,
       _db.obligations,
+      _db.reminders,
     ]) {
       if (await _hasAny(table)) return false;
     }

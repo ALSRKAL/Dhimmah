@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../app/providers.dart';
@@ -81,6 +82,11 @@ class _LockGateState extends ConsumerState<LockGate>
       if (settings.lockEnabled) {
         await ref.read(settingsControllerProvider).setLockEnabled(false);
       }
+      // Fingerprint unlock is a way through the lock, and there is no lock
+      // now: the same pair Settings clears when the lock is switched off.
+      if (settings.biometricEnabled) {
+        await ref.read(settingsControllerProvider).setBiometricEnabled(false);
+      }
     }
     if (!mounted) return;
     setState(() => _pinConfigured = configured);
@@ -90,6 +96,30 @@ class _LockGateState extends ConsumerState<LockGate>
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  /// Whether the lock is covering the app.
+  ///
+  /// Up while the keystore has not answered yet (`_pinConfigured == null`): a
+  /// lock that turns out to have no PIN behind it is taken down the moment the
+  /// answer arrives, and showing the ledger for that instant would be a way
+  /// past a lock that does have one.
+  bool _coversApp(bool lockEnabled) =>
+      lockEnabled && !_unlocked && _pinConfigured != false;
+
+  /// The back button, while the lock is up, leaves the app — as it did when the
+  /// lock replaced the ledger outright.
+  ///
+  /// The ledger is kept alive underneath now, and this runs before its
+  /// navigator's own handler: letting the press through would pop a page the
+  /// user cannot see, or raise a hidden page's "discard changes?" question.
+  @override
+  Future<bool> didPopRoute() async {
+    if (!_coversApp(ref.read(effectiveSettingsProvider).lockEnabled)) {
+      return false;
+    }
+    await SystemNavigator.pop();
+    return true;
   }
 
   @override
@@ -114,7 +144,13 @@ class _LockGateState extends ConsumerState<LockGate>
   /// the PIN pad is already in front of them.
   Future<void> _offerBiometrics() async {
     if (_biometricPrompted || _unlocked) return;
-    final bool enabled = ref.read(effectiveSettingsProvider).biometricEnabled;
+    final AppSettings settings = ref.read(effectiveSettingsProvider);
+    // Only over a lock that is really up, and one a PIN stands behind. After a
+    // restore onto a new phone the lock takes itself down for want of a PIN,
+    // and the fingerprint prompt used to go on appearing on every return to
+    // the app, guarding nothing.
+    if (!settings.lockEnabled || _pinConfigured != true) return;
+    final bool enabled = settings.biometricEnabled;
     if (!enabled) return;
     _biometricPrompted = true;
     final BiometricService biometrics = ref.read(biometricServiceProvider);
@@ -127,24 +163,42 @@ class _LockGateState extends ConsumerState<LockGate>
 
   @override
   Widget build(BuildContext context) {
+    // The stored setting, which the boot read seeds before the first frame.
+    // This read the live stream alone, with "off" standing in until it
+    // answered: a cold start drew the ledger unlocked for its first frames —
+    // including a record opened by tapping a notification — and a stream that
+    // failed left it unlocked for good.
     final bool lockEnabled = ref.watch(
-      settingsProvider.select(
-        (AsyncValue<dynamic> value) =>
-            (value.value?.lockEnabled as bool?) ?? false,
-      ),
+      effectiveSettingsProvider.select((AppSettings s) => s.lockEnabled),
     );
+    final bool locked = _coversApp(lockEnabled);
 
-    // `_pinConfigured == null` is the moment before the keystore has been read;
-    // showing the ledger for that instant is better than flashing a lock screen
-    // that may turn out to be unsatisfiable.
-    if (!lockEnabled || _unlocked || _pinConfigured == false) {
-      return widget.child;
+    if (locked) {
+      // Offer biometrics on the first frame of the lock too, not only on resume.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _offerBiometrics());
     }
 
-    // Offer biometrics on the first frame of the lock too, not only on resume.
-    WidgetsBinding.instance.addPostFrameCallback((_) => _offerBiometrics());
-
-    return LockScreen(onUnlocked: () => setState(() => _unlocked = true));
+    return Stack(
+      fit: StackFit.expand,
+      children: <Widget>[
+        // The app stays built under the lock. Replacing it tore the whole
+        // navigator down on every trip to the background: a half-typed form
+        // was gone on return, and a file or folder the app had asked the
+        // system picker for came back to a screen that no longer existed — with
+        // the lock on, a backup could not be restored from a file at all.
+        // Hidden, it is not painted, not hit, not read out, holds no focus and
+        // runs no animations.
+        Offstage(
+          offstage: locked,
+          child: TickerMode(
+            enabled: !locked,
+            child: ExcludeFocus(excluding: locked, child: widget.child),
+          ),
+        ),
+        if (locked)
+          LockScreen(onUnlocked: () => setState(() => _unlocked = true)),
+      ],
+    );
   }
 }
 

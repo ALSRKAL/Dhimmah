@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/widgets/empty_state.dart';
 import '../domain/enums/debt_enums.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/debts/debt_detail_screen.dart';
@@ -22,6 +23,7 @@ import '../features/settings/backup_screen.dart';
 import '../features/settings/settings_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/shell/more_screen.dart';
+import '../l10n/generated/app_localizations.dart';
 
 /// Every route in Dhimmah, in one place.
 ///
@@ -72,6 +74,18 @@ abstract final class AppRoutes {
   static String obligationEditPath(String id) => '/obligations/$id/edit';
   static String reminderPath(String id) => '/reminders/$id/edit';
 
+  /// The report for one month, by its `yyyy-MM` key.
+  static String reportsPath(String monthKey) => '$reports?month=$monthKey';
+
+  /// The month a `yyyy-MM` key names, or null when it names none.
+  static DateTime? monthFromKey(String? key) {
+    if (key == null || !RegExp(r'^\d{4}-\d{2}$').hasMatch(key)) return null;
+    final int year = int.parse(key.substring(0, 4));
+    final int month = int.parse(key.substring(5));
+    if (month < 1 || month > 12) return null;
+    return DateTime(year, month);
+  }
+
   /// Route for the record a notification points at.
   static String? forNotificationPayload(String payload) {
     final int separator = payload.indexOf(':');
@@ -83,7 +97,12 @@ abstract final class AppRoutes {
       'obligation' => obligationPath(id),
       'person' => personPath(id),
       'reminder' => reminderPath(id),
-      'report' => reports,
+      // The month the summary is about. It used to open the current month, so
+      // September's summary, tapped on 2 October, showed October's figures.
+      'report' => monthFromKey(id) == null ? reports : reportsPath(id),
+      // The backup alert opens the screen where the problem is fixed; it used
+      // to match nothing, so tapping it did nothing at all.
+      'backup' => backup,
       _ => null,
     };
   }
@@ -252,8 +271,10 @@ GoRouter buildRouter({
       ),
       GoRoute(
         path: AppRoutes.reports,
-        builder: (BuildContext context, GoRouterState state) =>
-            const ReportsScreen(),
+        builder: (BuildContext context, GoRouterState state) => ReportsScreen(
+          initialMonth:
+              AppRoutes.monthFromKey(state.uri.queryParameters['month']),
+        ),
       ),
       GoRoute(
         path: AppRoutes.search,
@@ -271,9 +292,20 @@ GoRouter buildRouter({
             const AboutScreen(),
       ),
     ],
-    errorBuilder: (BuildContext context, GoRouterState state) => Scaffold(
-      appBar: AppBar(),
-      body: Center(child: Text(state.error?.toString() ?? 'Not found')),
-    ),
+    // A location nothing matches — a stale link, a record that is gone. It used
+    // to print the router's own exception text, in English, with no way out
+    // but the back button.
+    errorBuilder: (BuildContext context, GoRouterState state) {
+      final AppLocalizations localizations = AppLocalizations.of(context);
+      return Scaffold(
+        appBar: AppBar(),
+        body: EmptyState(
+          icon: Icons.error_outline,
+          title: localizations.recordGone,
+          actionLabel: localizations.navHome,
+          onAction: () => context.go(AppRoutes.dashboard),
+        ),
+      );
+    },
   );
 }

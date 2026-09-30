@@ -112,6 +112,38 @@ void main() {
     expect(people.ahmed.id, isNotEmpty);
   });
 
+  test('a cell a spreadsheet would run as a formula opens as text', () async {
+    final Person person = await service.createPerson(
+      const PersonDraft(name: '=HYPERLINK("http://example.invalid","x")'),
+    );
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[person.id],
+        title: '+1+1',
+        note: '@SUM(A1)',
+        principalMinor: 100000,
+        currency: AppCurrency.inr,
+        issuedAt: dateOnly(DateTime.now()),
+      ),
+    );
+
+    final String path = await exporter().export(ExportFormat.csv);
+    final String debtRow = (await File(path).readAsString())
+        .split('\n')
+        .firstWhere((String line) => line.contains(',debt,'));
+
+    expect(
+      debtRow,
+      contains('"\'=HYPERLINK(""http://example.invalid"",""x"")"'),
+      reason: 'quoted for its commas and quotes, and led by an apostrophe',
+    );
+    expect(debtRow, contains(",'+1+1,"));
+    expect(debtRow, endsWith(",'@SUM(A1)"));
+    // An amount is a number, not free text, and stays one.
+    expect(debtRow, contains(',1000.00,INR,'));
+  });
+
   test('the JSON carries every participant and still one record', () async {
     final ({Person ahmed, Person ali, Person mohammed}) people = await seed();
 

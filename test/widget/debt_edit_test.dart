@@ -6,6 +6,7 @@ import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
 import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
+import 'package:dhimmah/domain/enums/recurrence.dart';
 import 'package:dhimmah/features/people/people_screen.dart';
 import 'package:dhimmah/features/people/person_picker_sheet.dart';
 import 'package:flutter/material.dart';
@@ -303,6 +304,44 @@ void main() {
       final Debt after = await reloaded();
       expect(after.dueAt, addDays(dateOnly(DateTime.now()), -4));
       expect(after.personIds, <String>[personId]);
+    });
+
+    testWidgets('a repeating debt keeps the end of its series',
+        (WidgetTester tester) async {
+      await seed(tester);
+      final DebtRow debt = (await db.debtsDao.getAll()).single;
+      final DateTime today = dateOnly(DateTime.now());
+      final DateTime end = addDays(today, 200);
+      // Set outside the form, which has no field for it: a restored backup
+      // can carry one.
+      await buildService(db).updateDebt(
+        debt.id,
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[personId],
+          title: debtTitle,
+          principalMinor: 1000000,
+          currency: AppCurrency.inr,
+          issuedAt: addDays(today, -10),
+          dueAt: addDays(today, 20),
+          recurrence: RecurrenceFrequency.monthly,
+          recurrenceEndAt: end,
+        ),
+      );
+      await settle(tester);
+
+      await openEditForm(tester);
+      await typeAmount(tester, '12000');
+      await save(tester);
+
+      final Debt after = await reloaded();
+      expect(after.principalMinor, 1200000);
+      expect(after.recurrence, RecurrenceFrequency.monthly);
+      expect(
+        after.recurrenceEndAt,
+        end,
+        reason: 'an edit that did not touch the series must not erase its end',
+      );
     });
   });
 

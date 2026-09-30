@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dhimmah/app/startup_failure.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
@@ -163,6 +165,41 @@ void main() {
       await tester.tap(find.text(ar.startupFailedRetry));
       await tester.pump();
       expect(retried, isTrue);
+    });
+
+    testWidgets('a second tap while a retry runs starts nothing',
+        (WidgetTester tester) async {
+      // Each retry opens the database again in a fresh container; two at once
+      // were two connections to one file.
+      int attempts = 0;
+      Completer<void> running = Completer<void>();
+      await tester.pumpWidget(
+        DhimmahStartupFailureApp(
+          error: StateError('disk full'),
+          onRetry: () {
+            attempts++;
+            return running.future;
+          },
+        ),
+      );
+      await tester.pump();
+
+      final AppLocalizations ar = lookupAppLocalizations(const Locale('ar'));
+      await tester.tap(find.text(ar.startupFailedRetry));
+      await tester.pump();
+      await tester.tap(find.text(ar.startupFailedRetry));
+      await tester.pump();
+      expect(attempts, 1);
+
+      // A retry that failed again leaves the button usable.
+      running.complete();
+      await tester.pump();
+      running = Completer<void>();
+      await tester.tap(find.text(ar.startupFailedRetry));
+      await tester.pump();
+      expect(attempts, 2);
+      running.complete();
+      await tester.pump();
     });
 
     testWidgets('it is legible at the largest text scale', (WidgetTester tester) async {

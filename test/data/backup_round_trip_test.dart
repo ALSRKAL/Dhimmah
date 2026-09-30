@@ -480,7 +480,7 @@ void main() {
     await datasetA();
     await db.settingsDao.write(
       (AppSettings.initial.copyWith(
-        language: AppLanguage.english,
+        languagePreference: LanguagePreference.english,
         themeMode: AppThemeMode.dark,
         defaultCurrency: AppCurrency.usd,
         dueSoonWindowDays: 14,
@@ -501,7 +501,7 @@ void main() {
     expect(report.counts['people'], 1);
 
     final AppSettings now = (await db.settingsDao.get())!.toEntity();
-    expect(now.language, AppLanguage.english);
+    expect(now.languagePreference, LanguagePreference.english);
     expect(now.themeMode, AppThemeMode.dark);
     expect(now.defaultCurrency, AppCurrency.usd);
     expect(now.dueSoonWindowDays, 14);
@@ -542,11 +542,48 @@ void main() {
     await restores.apply(backup: written.backup, mode: RestoreMode.replace);
 
     expect(
-      platform.armedPayloads,
+      // The month-end summary is armed in the last days of every month, and it
+      // is the ledger's, not a record's.
+      platform.armedPayloads.where((String p) => !p.startsWith('report:')),
       hasLength(1),
       reason: 'one record with a reminder, so one payload — the old schedule '
           'is never consulted',
     );
+  });
+
+  test('a file from the previous version does not pin the seeded Arabic',
+      () async {
+    await datasetA();
+    final ({File file, ParsedBackup backup}) written =
+        await backups.create(kind: BackupKind.manual);
+
+    // The file exactly as the previous version wrote it: schema 4, and the
+    // Arabic every install of that version was seeded with.
+    final Map<String, Object?> envelope =
+        jsonDecode(await written.file.readAsString()) as Map<String, Object?>;
+    final Map<String, Object?> payload =
+        envelope['payload']! as Map<String, Object?>;
+    payload['schemaVersion'] = BackupCodec.languagePreferenceSchema - 1;
+    ((payload['data']! as Map<String, Object?>)['settings']!
+        as Map<String, Object?>)['language'] = 'arabic';
+    envelope['checksum'] = BackupFormat.checksumOf(payload);
+    final File old = File('${dir.path}/previous-version.dhimmah');
+    await old.writeAsString(jsonEncode(envelope));
+
+    await db.settingsDao.write(AppSettings.initial.toCompanion());
+    await restores.apply(
+      backup: await backups.read(old.path),
+      mode: RestoreMode.replace,
+      takeSafetySnapshot: false,
+    );
+
+    expect(
+      (await db.settingsDao.get())!.languagePreference,
+      LanguagePreference.system,
+      reason: 'the app still follows the phone after restoring a file the '
+          'previous version wrote',
+    );
+    expect((await db.peopleDao.getAll()), isNotEmpty, reason: 'and the records came back');
   });
 
   test('a file from a newer schema is refused, not guessed at', () async {

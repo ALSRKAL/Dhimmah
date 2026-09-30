@@ -13,6 +13,7 @@ import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/entities/reminder.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/enums/obligation_enums.dart';
+import 'package:dhimmah/domain/enums/preference_enums.dart';
 import 'package:dhimmah/domain/enums/recurrence.dart';
 import 'package:dhimmah/domain/services/notification_planner.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
@@ -447,6 +448,39 @@ void main() {
       expect(armed(), isEmpty, reason: 'a paid period is not reminded about');
     });
 
+    test('an unpaid period keeps its overdue nudge through the next save',
+        () async {
+      // Due yesterday and unpaid: its one nudge is tomorrow at 20:00. Every
+      // plan made after the due date used to read periods from today onwards,
+      // leave this one out, and cancel the nudge it had armed.
+      final DateTime due = addDays(today, -1);
+      await service.createObligation(
+        ObligationDraft(
+          name: 'الإيجار',
+          category: ObligationCategory.housing,
+          amountMinor: 200000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.yearly,
+          startAt: due,
+          reminderLeads: const <ReminderLead>[ReminderLead.oneDayBefore],
+        ),
+      );
+      await service.ensureOccurrences();
+      final Obligation obligation = (await service.obligations.getAll()).single;
+
+      // An unrelated save, the kind any use of the app makes.
+      await addPerson('أحمد');
+
+      expect(
+        momentsFor('obligation:${obligation.id}'),
+        <DateTime>[
+          atReminderTime(
+            addDays(due, NotificationPlanner.overdueNudgeAfterDays),
+          ),
+        ],
+      );
+    });
+
     test('a reminder the user made reminds once and then stops', () async {
       final Reminder reminder = await service.createReminder(
         ReminderDraft(title: 'اتصل بالمحاسب', dueAt: addDays(today, 1)),
@@ -489,6 +523,90 @@ void main() {
         hasLength(1),
         reason: 'what was sent is recorded in the settings row',
       );
+    });
+  });
+
+  group('one pass at a time', () {
+    test('overlapping calls share one pass after the one that is running',
+        () async {
+      final Person ahmed = await addPerson('أحمد');
+      await addDebt(person: ahmed);
+      final int before = platform.pendingReads;
+
+      await Future.wait(<Future<NotificationSyncResult>>[
+        service.refreshNotifications(),
+        service.refreshNotifications(),
+        service.refreshNotifications(),
+      ]);
+
+      expect(
+        platform.pendingReads - before,
+        2,
+        reason: 'the pass already running, then one more that reads what '
+            'every waiting caller wrote — not one pass per caller',
+      );
+    });
+
+    test('a record written while a pass runs is armed by the next pass',
+        () async {
+      final Person ahmed = await addPerson('أحمد');
+      // A pass is running when the write lands, and it may have read the
+      // records before it; the write's own refresh must not be lost to it.
+      final Future<NotificationSyncResult> running =
+          service.refreshNotifications();
+      final Debt debt = await addDebt(person: ahmed);
+      await running;
+
+      expect(armed(), contains('debt:${debt.id}'));
+    });
+
+    test('a pass that fails does not strand the one queued behind it',
+        () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Debt debt = await addDebt(person: ahmed);
+      platform.loseEverythingOnReboot();
+
+      platform.pendingFailure = StateError('the platform refused');
+      final Future<NotificationSyncResult> failing =
+          service.refreshNotifications();
+      final Future<NotificationSyncResult> queued =
+          service.refreshNotifications();
+
+      await expectLater(failing, throwsStateError);
+      await queued;
+      expect(armed(), contains('debt:${debt.id}'),
+          reason: 'the queued pass still ran, and put the reminders back');
+    });
+  });
+
+  group('the words follow the language', () {
+    test('a pass in another language re-words what is armed, in place',
+        () async {
+      final Person ahmed = await addPerson('Ahmed');
+      final Debt debt = await addDebt(person: ahmed);
+      final Map<int, String> arabicTitles = <int, String>{
+        for (final FakeScheduledNotification n in platform.held.values)
+          n.id: n.title,
+      };
+      expect(arabicTitles, isNotEmpty);
+
+      final LedgerService english = buildService(
+        db,
+        notifications: service.notifications,
+        language: AppLanguage.english,
+      );
+      final NotificationSyncResult result = await english.refreshNotifications();
+
+      expect(result.reworded, arabicTitles.length);
+      expect(result.scheduled, 0);
+      expect(result.cancelled, 0);
+      expect(platform.held.keys.toSet(), arabicTitles.keys.toSet());
+      for (final FakeScheduledNotification n in platform.held.values) {
+        expect(n.title, isNot(arabicTitles[n.id]));
+        expect(RegExp(r'[\u0600-\u06FF]').hasMatch(n.title), isFalse,
+            reason: n.title);
+      }
+      expect(armed(), contains('debt:${debt.id}'));
     });
   });
 }

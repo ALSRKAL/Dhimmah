@@ -6,9 +6,11 @@ import '../../l10n/enum_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../formatting/app_formatting.dart';
 import '../money/currency.dart';
+import '../money/region_currency.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 import '../utils/money_input.dart';
+import 'directional_field.dart';
 
 /// A labelled text field with consistent spacing and error presentation.
 class AppTextField extends StatelessWidget {
@@ -63,30 +65,37 @@ class AppTextField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         FieldLabel(label),
-        TextFormField(
+        // The text's own direction, and a caret that stays where it is put.
+        DirectionalField(
           controller: controller,
-          focusNode: focusNode,
-          enabled: enabled,
-          autofocus: autofocus,
-          keyboardType: keyboardType,
-          textInputAction: textInputAction,
-          maxLines: obscureText ? 1 : maxLines,
-          minLines: maxLines > 1 ? 2 : null,
-          obscureText: obscureText,
-          maxLength: maxLength,
-          textCapitalization: textCapitalization,
-          onChanged: onChanged,
-          onFieldSubmitted: onSubmitted,
-          validator: validator,
-          inputFormatters: formatters,
-          decoration: InputDecoration(
-            hintText: hint,
-            errorText: errorText,
-            helperText: helperText,
-            counterText: '',
-            prefixIcon:
-                prefixIcon == null ? null : Icon(prefixIcon, size: 20),
-            suffixIcon: suffix,
+          builder: (BuildContext context, FieldLayout field) => TextFormField(
+            controller: field.controller,
+            textDirection: field.direction,
+            textAlign: field.align,
+            onTap: field.onTap,
+            focusNode: focusNode,
+            enabled: enabled,
+            autofocus: autofocus,
+            keyboardType: keyboardType,
+            textInputAction: textInputAction,
+            maxLines: obscureText ? 1 : maxLines,
+            minLines: maxLines > 1 ? 2 : null,
+            obscureText: obscureText,
+            maxLength: maxLength,
+            textCapitalization: textCapitalization,
+            onChanged: onChanged,
+            onFieldSubmitted: onSubmitted,
+            validator: validator,
+            inputFormatters: formatters,
+            decoration: InputDecoration(
+              hintText: hint,
+              errorText: errorText,
+              helperText: helperText,
+              counterText: '',
+              prefixIcon:
+                  prefixIcon == null ? null : Icon(prefixIcon, size: 20),
+              suffixIcon: suffix,
+            ),
           ),
         ),
       ],
@@ -200,48 +209,61 @@ class _AmountFieldState extends State<AmountField> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         FieldLabel(widget.label),
-        TextFormField(
+        // An amount is written left to right in both languages. It used to
+        // take the app's direction, so in Arabic tapping the field beside the
+        // digits put the caret before the first one.
+        DirectionalField(
           controller: _controller,
-          focusNode: widget.focusNode,
-          enabled: widget.enabled,
-          autofocus: widget.autofocus,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          textInputAction: TextInputAction.next,
-          style: theme.textTheme.headlineSmall,
-          inputFormatters: <TextInputFormatter>[
-            // Includes Arabic-Indic (٠-٩) and extended Arabic-Indic (۰-۹)
-            // digits: the parser normalises them, and an Arabic keyboard types
-            // them by default, so filtering them out here meant the field
-            // silently deleted every character a user on that keyboard typed.
-            FilteringTextInputFormatter.allow(
-              RegExp(r'[0-9\u0660-\u0669\u06F0-\u06F9.,\u066B\u066C\s]'),
-            ),
-            LengthLimitingTextInputFormatter(20),
-          ],
-          decoration: InputDecoration(
-            hintText: '0',
-            errorText: widget.errorText ?? _error,
-            // The symbol sits inline before the digits rather than in the icon
-            // slot, so the amount reads as one phrase: "₹ 12,000".
-            prefix: Padding(
-              padding: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
-              child: Text(
-                widget.currency.symbolFor(isDefaultCurrency: true),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  color: palette.textSecondary,
+          direction: TextDirection.ltr,
+          builder: (BuildContext context, FieldLayout field) => TextFormField(
+            controller: field.controller,
+            textDirection: field.direction,
+            textAlign: field.align,
+            onTap: field.onTap,
+            focusNode: widget.focusNode,
+            enabled: widget.enabled,
+            autofocus: widget.autofocus,
+            keyboardType:
+                const TextInputType.numberWithOptions(decimal: true),
+            textInputAction: TextInputAction.next,
+            style: theme.textTheme.headlineSmall,
+            inputFormatters: <TextInputFormatter>[
+              // Includes Arabic-Indic (٠-٩) and extended Arabic-Indic (۰-۹)
+              // digits: the parser normalises them, and an Arabic keyboard
+              // types them by default, so filtering them out here meant the
+              // field silently deleted every character a user on that keyboard
+              // typed.
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[0-9\u0660-\u0669\u06F0-\u06F9.,\u066B\u066C\s]'),
+              ),
+              LengthLimitingTextInputFormatter(20),
+            ],
+            decoration: InputDecoration(
+              hintText: '0',
+              errorText: widget.errorText ?? _error,
+              // The symbol sits inline before the digits rather than in the
+              // icon slot, so the amount reads as one phrase: "₹ 12,000".
+              prefix: Padding(
+                padding: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
+                child: Text(
+                  widget.currency.symbolFor(isDefaultCurrency: true),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: palette.textSecondary,
+                  ),
                 ),
               ),
-            ),
-            // A plain label, not a button: the currency is chosen by the field
-            // below, and a control that only explains itself is a false affordance.
-            suffixIcon: Padding(
-              padding: const EdgeInsetsDirectional.only(end: AppSpacing.lg),
-              child: Align(
-                widthFactor: 1,
-                child: Text(
-                  widget.currency.code,
-                  style: theme.textTheme.labelLarge?.copyWith(
-                    color: palette.textTertiary,
+              // A plain label, not a button: the currency is chosen by the
+              // field below, and a control that only explains itself is a false
+              // affordance.
+              suffixIcon: Padding(
+                padding: const EdgeInsetsDirectional.only(end: AppSpacing.lg),
+                child: Align(
+                  widthFactor: 1,
+                  child: Text(
+                    widget.currency.code,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: palette.textTertiary,
+                    ),
                   ),
                 ),
               ),
@@ -345,6 +367,7 @@ class OptionField<T> extends StatelessWidget {
     required this.labelOf,
     required this.onChanged,
     this.iconOf,
+    this.subtitleOf,
     this.title,
     this.icon = Icons.tune,
     this.errorText,
@@ -356,6 +379,9 @@ class OptionField<T> extends StatelessWidget {
   final List<T> options;
   final String Function(T option) labelOf;
   final IconData Function(T option)? iconOf;
+
+  /// A second line for an option in the sheet, or null for one that needs none.
+  final String? Function(T option)? subtitleOf;
   final ValueChanged<T> onChanged;
   final String? title;
   final IconData icon;
@@ -394,9 +420,46 @@ class OptionField<T> extends StatelessWidget {
         options: options,
         labelOf: labelOf,
         iconOf: iconOf,
+        subtitleOf: subtitleOf,
       ),
     );
     if (picked != null && picked != value) onChanged(picked);
+  }
+}
+
+/// The currency of a record.
+///
+/// [suggested] — the currency of the place the phone is in, when there is one
+/// — comes first in the list and says so, as it does wherever a currency is
+/// picked. It is only offered: [value] is what the record has.
+class CurrencyField extends StatelessWidget {
+  const CurrencyField({
+    required this.value,
+    required this.onChanged,
+    this.suggested,
+    super.key,
+  });
+
+  final AppCurrency value;
+  final AppCurrency? suggested;
+  final ValueChanged<AppCurrency> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    return OptionField<AppCurrency>(
+      label: localizations.fieldCurrency,
+      value: value,
+      options: currenciesWithFirst(suggested),
+      labelOf: (AppCurrency currency) => currency.codeAndSymbol,
+      subtitleOf: (AppCurrency currency) => currency == suggested
+          ? localizations.currencySuggestedForRegion
+          : null,
+      iconOf: (AppCurrency _) => Icons.payments_outlined,
+      title: localizations.fieldCurrency,
+      icon: Icons.payments_outlined,
+      onChanged: onChanged,
+    );
   }
 }
 
@@ -418,7 +481,8 @@ class OptionSheet<T> extends StatelessWidget {
   final List<T> options;
   final String Function(T option) labelOf;
   final IconData Function(T option)? iconOf;
-  final String Function(T option)? subtitleOf;
+  /// A second line for an option, or null for an option that needs none.
+  final String? Function(T option)? subtitleOf;
 
   @override
   Widget build(BuildContext context) {

@@ -38,6 +38,24 @@ class _DebtPlan {
   final int recordsRead;
 }
 
+/// What a month-end summary states, and the currency it is stated in.
+@immutable
+class _SummaryFigures {
+  const _SummaryFigures({
+    required this.currency,
+    required this.iOweMinor,
+    required this.owedToMeMinor,
+    required this.paidMinor,
+    required this.overdueMinor,
+  });
+
+  final AppCurrency currency;
+  final int iOweMinor;
+  final int owedToMeMinor;
+  final int paidMinor;
+  final int overdueMinor;
+}
+
 /// Every write Dhimmah can perform.
 ///
 /// Screens call this and nothing else: the service owns the invariants that must
@@ -241,54 +259,65 @@ class LedgerService {
   Future<void> updateDebt(String id, DebtDraft draft) async {
     _requireValidAmount(draft.principalMinor, 'debt principal');
     final List<String> personIds = _requireParticipants(draft.personIds);
-    final Debt? existing = await debts.getById(id);
-    if (existing == null) return;
 
-    // The record is edited, never replaced: the same id, the same created-at and
-    // the same payment history. Only the fields the form owns are written.
-    final Debt updated = existing.copyWith(
-      personIds: personIds,
-      direction: draft.direction,
-      title: draft.title.trim(),
-      principalMinor: draft.principalMinor,
-      currency: draft.currency,
-      issuedAt: dateOnly(draft.issuedAt),
-      dueAt: draft.dueAt == null ? null : dateOnly(draft.dueAt!),
-      note: _blankToNull(draft.note),
-      reminderLeads: ReminderLead.sorted(draft.reminderLeads),
-      recurrence: draft.recurrence,
-      recurrenceInterval: draft.recurrenceInterval,
-      recurrenceEndAt:
-          draft.recurrenceEndAt == null ? null : dateOnly(draft.recurrenceEndAt!),
-      updatedAt: clock(),
-    );
-    await debts.save(updated);
+    // One transaction: the record, the payments that follow its currency and
+    // its closing stamp are one fact, and a failure between them used to be
+    // able to leave a dollar debt holding rupee payments.
+    final bool found = await _db.transaction(() async {
+      final Debt? existing = await debts.getById(id);
+      if (existing == null) return false;
 
-    // A payment has no currency of its own: it is recorded in the debt's, and
-    // inherits it at creation. So when the user corrects the debt's currency,
-    // the payments must follow it — otherwise a debt retagged from rupees to
-    // dollars keeps rupee payments and the two get summed as though they were
-    // the same unit, which is a wrong number, not a missing feature.
-    if (existing.currency != updated.currency) {
-      final List<Payment> existingPayments = await payments.forDebt(id);
-      for (final Payment payment in existingPayments) {
-        if (payment.currency == updated.currency) continue;
-        await payments.save(
-          payment.copyWith(currency: updated.currency),
-        );
+      // The record is edited, never replaced: the same id, the same created-at
+      // and the same payment history. Only the fields the form owns are written.
+      final Debt updated = existing.copyWith(
+        personIds: personIds,
+        direction: draft.direction,
+        title: draft.title.trim(),
+        principalMinor: draft.principalMinor,
+        currency: draft.currency,
+        issuedAt: dateOnly(draft.issuedAt),
+        dueAt: draft.dueAt == null ? null : dateOnly(draft.dueAt!),
+        note: _blankToNull(draft.note),
+        reminderLeads: ReminderLead.sorted(draft.reminderLeads),
+        recurrence: draft.recurrence,
+        recurrenceInterval: draft.recurrenceInterval,
+        recurrenceEndAt: draft.recurrenceEndAt == null
+            ? null
+            : dateOnly(draft.recurrenceEndAt!),
+        updatedAt: clock(),
+      );
+      await debts.save(updated);
+
+      // A payment has no currency of its own: it is recorded in the debt's, and
+      // inherits it at creation. So when the user corrects the debt's currency,
+      // the payments must follow it — otherwise a debt retagged from rupees to
+      // dollars keeps rupee payments and the two get summed as though they were
+      // the same unit, which is a wrong number, not a missing feature.
+      if (existing.currency != updated.currency) {
+        final List<Payment> existingPayments = await payments.forDebt(id);
+        for (final Payment payment in existingPayments) {
+          if (payment.currency == updated.currency) continue;
+          await payments.save(
+            payment.copyWith(currency: updated.currency),
+          );
+        }
       }
-    }
 
-    await _log(
-      type: ActivityType.debtUpdated,
-      entityType: RelatedEntityType.debt,
-      entityId: id,
-      title: await _displayNameFor(updated),
-      amountMinor: updated.principalMinor,
-      currency: updated.currency,
-    );
-    // A changed balance can change whether a closing stamp is still correct.
-    await _syncClosedStamp(updated);
+      await _log(
+        type: ActivityType.debtUpdated,
+        entityType: RelatedEntityType.debt,
+        entityId: id,
+        title: await _displayNameFor(updated),
+        amountMinor: updated.principalMinor,
+        currency: updated.currency,
+      );
+      // A changed balance can change whether a closing stamp is still correct —
+      // and lowering the amount to what has already been paid closes the debt
+      // exactly as a final payment would, next period included.
+      await _settleIfPaid(updated);
+      return true;
+    });
+    if (!found) return;
     await refreshNotifications();
   }
 
@@ -318,6 +347,11 @@ class LedgerService {
   Future<LedgerServiceSnapshot> deleteDebtWithSnapshot(String id) async {
     final Debt? existing = await debts.getById(id);
     final List<Payment> history = await payments.forDebt(id);
+    // The record's own feed — created, paid, edited — goes with it, so it is
+    // kept too: an undo that brought back the debt without it left a record
+    // whose history began at the moment it was undone.
+    final List<ActivityEntry> feed =
+        await activity.forEntity(RelatedEntityType.debt, id);
     final String title =
         existing == null ? '' : await _displayNameFor(existing);
 
@@ -334,32 +368,55 @@ class LedgerService {
     );
     await refreshNotifications();
 
-    return LedgerServiceSnapshot(debt: existing, payments: history);
+    return LedgerServiceSnapshot(
+      debt: existing,
+      payments: history,
+      activity: feed,
+    );
   }
 
-  /// Restores a debt and its payments exactly as they were.
+  /// Restores a debt, its payments and its history exactly as they were.
   ///
   /// Identifiers are preserved, so an undone delete leaves no trace behind: the
-  /// same ids, the same timestamps, the same balances.
+  /// same ids, the same timestamps, the same balances, the same feed.
+  ///
+  /// A person the record was with may have been deleted in the meantime. They
+  /// are left out, as [deletePerson] would have left them out had the record
+  /// been there: a link to nobody used to fail the whole undo.
   Future<void> restoreDeleted(LedgerServiceSnapshot snapshot) async {
     final Debt? debt = snapshot.debt;
     if (debt == null) return;
 
     await _db.transaction(() async {
-      await debts.save(debt);
-      for (final Payment payment in snapshot.payments) {
-        await payments.save(payment);
+      final Set<String> present = <String>{};
+      for (final String id in <String>{
+        ...debt.personIds,
+        for (final Payment payment in snapshot.payments)
+          if (payment.personId != null) payment.personId!,
+      }) {
+        if (await people.getById(id) != null) present.add(id);
       }
+
+      await debts.save(
+        debt.copyWith(
+          personIds: <String>[
+            for (final String id in debt.personIds)
+              if (present.contains(id)) id,
+          ],
+        ),
+      );
+      for (final Payment payment in snapshot.payments) {
+        final String? payer = payment.personId;
+        await payments.save(
+          payer == null || present.contains(payer)
+              ? payment
+              : payment.copyWith(personId: null),
+        );
+      }
+      // The entry the delete wrote goes; the record's own entries come back.
       await activity.deleteForEntity(RelatedEntityType.debt, debt.id);
+      await activity.addAll(snapshot.activity);
     });
-    await _log(
-      type: ActivityType.debtCreated,
-      entityType: RelatedEntityType.debt,
-      entityId: debt.id,
-      title: await _displayNameFor(debt),
-      amountMinor: debt.principalMinor,
-      currency: debt.currency,
-    );
     await ensureOccurrences();
     await refreshNotifications();
   }
@@ -372,43 +429,39 @@ class LedgerService {
   /// exactly what it just added.
   Future<Payment> recordPayment(String debtId, PaymentDraft draft) async {
     _requireValidAmount(draft.amountMinor, 'payment');
-    final Debt? debt = await debts.getById(debtId);
-    if (debt == null) {
-      throw StateError('Cannot record a payment for a debt that no longer exists');
-    }
-    final DateTime now = clock();
-    final Payment payment = Payment(
-      id: newId(),
-      debtId: debtId,
-      personId: debt.personId,
-      amountMinor: draft.amountMinor,
-      currency: debt.currency,
-      paidAt: dateOnly(draft.paidAt),
-      note: _blankToNull(draft.note),
-      createdAt: now,
-    );
-    await payments.save(payment);
-    await _log(
-      type: ActivityType.paymentRecorded,
-      entityType: RelatedEntityType.debt,
-      entityId: debtId,
-      title: await _displayNameFor(debt),
-      amountMinor: payment.amountMinor,
-      currency: payment.currency,
-    );
-
-    final Debt? settled = await _syncClosedStamp(debt);
-    if (settled != null && settled.closedAt != null) {
+    // The payment, its feed entry, the closing stamp and a recurring debt's next
+    // period are one write: a failure part-way must not leave a paid-off debt
+    // open, or an open one with nothing to show for the money.
+    final Payment payment = await _db.transaction(() async {
+      final Debt? debt = await debts.getById(debtId);
+      if (debt == null) {
+        throw StateError(
+          'Cannot record a payment for a debt that no longer exists',
+        );
+      }
+      final DateTime now = clock();
+      final Payment payment = Payment(
+        id: newId(),
+        debtId: debtId,
+        personId: debt.personId,
+        amountMinor: draft.amountMinor,
+        currency: debt.currency,
+        paidAt: dateOnly(draft.paidAt),
+        note: _blankToNull(draft.note),
+        createdAt: now,
+      );
+      await payments.save(payment);
       await _log(
-        type: ActivityType.debtClosed,
+        type: ActivityType.paymentRecorded,
         entityType: RelatedEntityType.debt,
         entityId: debtId,
         title: await _displayNameFor(debt),
-        amountMinor: settled.principalMinor,
-        currency: settled.currency,
+        amountMinor: payment.amountMinor,
+        currency: payment.currency,
       );
-      await _spawnNextRecurrence(settled);
-    }
+      await _settleIfPaid(debt);
+      return payment;
+    });
 
     await refreshNotifications();
     return payment;
@@ -416,61 +469,79 @@ class LedgerService {
 
   Future<void> updatePayment(String id, PaymentDraft draft) async {
     _requireValidAmount(draft.amountMinor, 'payment');
-    final Payment? existing = await payments.getById(id);
-    if (existing == null) return;
-    await payments.save(
-      existing.copyWith(
-        amountMinor: draft.amountMinor,
-        paidAt: dateOnly(draft.paidAt),
-        note: _blankToNull(draft.note),
-      ),
-    );
-    final String? debtId = existing.debtId;
-    if (debtId != null) {
-      final Debt? debt = await debts.getById(debtId);
-      if (debt != null) await _syncClosedStamp(debt);
-    }
+    final bool found = await _db.transaction(() async {
+      final Payment? existing = await payments.getById(id);
+      if (existing == null) return false;
+      await payments.save(
+        existing.copyWith(
+          amountMinor: draft.amountMinor,
+          paidAt: dateOnly(draft.paidAt),
+          note: _blankToNull(draft.note),
+        ),
+      );
+      final String? debtId = existing.debtId;
+      if (debtId != null) {
+        final Debt? debt = await debts.getById(debtId);
+        // A corrected amount can be the one that pays the debt off, and it
+        // closes the debt exactly as a new payment would.
+        if (debt != null) await _settleIfPaid(debt);
+      }
+      return true;
+    });
+    if (!found) return;
     await refreshNotifications();
   }
 
   /// Puts a deleted payment back, used by the undo on the payments list.
+  ///
+  /// Only the stamp is brought back in line: the debt's closing was announced
+  /// when the payment was first recorded, and its next period, if it has one,
+  /// already exists.
   Future<void> restorePaymentRecord(Payment payment) async {
-    await payments.save(payment);
-    final String? debtId = payment.debtId;
-    if (debtId != null) {
-      final Debt? debt = await debts.getById(debtId);
-      if (debt != null) await _syncClosedStamp(debt);
-    }
+    await _db.transaction(() async {
+      await payments.save(payment);
+      final String? debtId = payment.debtId;
+      if (debtId != null) {
+        final Debt? debt = await debts.getById(debtId);
+        if (debt != null) await _syncClosedStamp(debt);
+      }
+    });
     await refreshNotifications();
   }
 
   Future<void> deletePayment(String id) async {
-    final Payment? existing = await payments.getById(id);
-    if (existing == null) return;
-    await payments.delete(id);
-    final String? debtId = existing.debtId;
-    if (debtId != null) {
-      final Debt? debt = await debts.getById(debtId);
-      if (debt != null) {
-        await _syncClosedStamp(debt);
-        await _log(
-          type: ActivityType.paymentDeleted,
-          entityType: RelatedEntityType.debt,
-          entityId: debtId,
-          title: await _displayNameFor(debt),
-          amountMinor: existing.amountMinor,
-          currency: existing.currency,
-        );
+    final bool found = await _db.transaction(() async {
+      final Payment? existing = await payments.getById(id);
+      if (existing == null) return false;
+      await payments.delete(id);
+      final String? debtId = existing.debtId;
+      if (debtId != null) {
+        final Debt? debt = await debts.getById(debtId);
+        if (debt != null) {
+          await _syncClosedStamp(debt);
+          await _log(
+            type: ActivityType.paymentDeleted,
+            entityType: RelatedEntityType.debt,
+            entityId: debtId,
+            title: await _displayNameFor(debt),
+            amountMinor: existing.amountMinor,
+            currency: existing.currency,
+          );
+        }
       }
-    }
+      return true;
+    });
+    if (!found) return;
     await refreshNotifications();
   }
 
   /// Brings a debt's closing stamp in line with its payment history.
   ///
   /// This is the single place that decides whether a debt is closed, so the
-  /// stamp can never disagree with the payments that justify it.
-  Future<Debt?> _syncClosedStamp(Debt debt) async {
+  /// stamp can never disagree with the payments that justify it. It also says
+  /// whether *this* call is the one that closed it, which is the only moment
+  /// the closing may be announced or a recurring debt's next period created.
+  Future<({Debt debt, bool justClosed})> _syncClosedStamp(Debt debt) async {
     final List<Payment> history = await payments.forDebt(debt.id);
     final int remaining = DebtCalculator.remainingOf(
       debt.principalMinor,
@@ -481,14 +552,37 @@ class LedgerService {
     if (shouldBeClosed && debt.closedAt == null) {
       final Debt updated = debt.copyWith(closedAt: clock(), updatedAt: clock());
       await debts.save(updated);
-      return updated;
+      return (debt: updated, justClosed: true);
     }
     if (!shouldBeClosed && debt.closedAt != null) {
       final Debt updated = debt.copyWith(closedAt: null, updatedAt: clock());
       await debts.save(updated);
-      return updated;
+      return (debt: updated, justClosed: false);
     }
-    return debt;
+    return (debt: debt, justClosed: false);
+  }
+
+  /// Everything that follows a change to what a debt owes: the stamp, and —
+  /// only when this write is the one that closed it — the feed entry and a
+  /// recurring debt's next period.
+  ///
+  /// A payment, a corrected payment and a lowered amount can each be what pays
+  /// a debt off, and they used to disagree: only a new payment announced the
+  /// closing or created the next period, and it did so again when a debt that
+  /// was already closed received another payment.
+  Future<void> _settleIfPaid(Debt debt) async {
+    final ({Debt debt, bool justClosed}) closing = await _syncClosedStamp(debt);
+    if (!closing.justClosed) return;
+    final Debt settled = closing.debt;
+    await _log(
+      type: ActivityType.debtClosed,
+      entityType: RelatedEntityType.debt,
+      entityId: settled.id,
+      title: await _displayNameFor(settled),
+      amountMinor: settled.principalMinor,
+      currency: settled.currency,
+    );
+    await _spawnNextRecurrence(settled);
   }
 
   /// Creates the next period of a recurring debt once the current one is settled.
@@ -571,66 +665,88 @@ class LedgerService {
     final Obligation anchored = obligation.copyWith(
       nextDueAt: ObligationSchedule.nthDueDate(obligation, 0),
     );
-    await obligations.save(anchored);
-    await ensureOccurrences();
-    await _log(
-      type: ActivityType.obligationCreated,
-      entityType: RelatedEntityType.obligation,
-      entityId: anchored.id,
-      title: anchored.name,
-      amountMinor: anchored.amountMinor,
-      currency: anchored.currency,
-    );
+    await _db.transaction(() async {
+      await obligations.save(anchored);
+      await ensureOccurrences();
+      // A schedule that started long ago has its first open period inside the
+      // look-back, not at its anchor years back.
+      await _syncNextDue(anchored.id, now);
+      await _log(
+        type: ActivityType.obligationCreated,
+        entityType: RelatedEntityType.obligation,
+        entityId: anchored.id,
+        title: anchored.name,
+        amountMinor: anchored.amountMinor,
+        currency: anchored.currency,
+      );
+    });
     await refreshNotifications();
-    return anchored;
+    return (await obligations.getById(anchored.id)) ?? anchored;
   }
 
   Future<void> updateObligation(String id, ObligationDraft draft) async {
     _requireValidAmount(draft.amountMinor, 'obligation amount');
-    final Obligation? existing = await obligations.getById(id);
-    if (existing == null) return;
+    final bool found = await _db.transaction(() async {
+      final Obligation? existing = await obligations.getById(id);
+      if (existing == null) return false;
 
-    final bool scheduleChanged =
-        existing.frequency != draft.frequency ||
-        existing.intervalCount != draft.intervalCount ||
-        existing.dayOfMonth != draft.dayOfMonth ||
-        !isSameDate(existing.startAt, draft.startAt) ||
-        existing.amountMinor != draft.amountMinor ||
-        (existing.endAt == null) != (draft.endAt == null) ||
-        (existing.endAt != null &&
-            draft.endAt != null &&
-            !isSameDate(existing.endAt!, draft.endAt!));
+      // The rhythm is when periods fall. Changing it replaces the schedule;
+      // changing the amount, the start or the end keeps it and moves its edges.
+      final bool sameRhythm = existing.frequency == draft.frequency &&
+          existing.intervalCount == draft.intervalCount &&
+          existing.dayOfMonth == draft.dayOfMonth;
+      final bool scheduleChanged = !sameRhythm ||
+          !isSameDate(existing.startAt, draft.startAt) ||
+          existing.amountMinor != draft.amountMinor ||
+          (existing.endAt == null) != (draft.endAt == null) ||
+          (existing.endAt != null &&
+              draft.endAt != null &&
+              !isSameDate(existing.endAt!, draft.endAt!));
 
-    final Obligation updated = existing.copyWith(
-      name: draft.name.trim(),
-      category: draft.category,
-      amountMinor: draft.amountMinor,
-      currency: draft.currency,
-      frequency: draft.frequency,
-      intervalCount: draft.intervalCount,
-      dayOfMonth: draft.dayOfMonth,
-      startAt: dateOnly(draft.startAt),
-      endAt: draft.endAt == null ? null : dateOnly(draft.endAt!),
-      note: _blankToNull(draft.note),
-      reminderLeads: ReminderLead.sorted(draft.reminderLeads),
-      updatedAt: clock(),
-    );
-    await obligations.save(updated);
+      final Obligation updated = existing.copyWith(
+        name: draft.name.trim(),
+        category: draft.category,
+        amountMinor: draft.amountMinor,
+        currency: draft.currency,
+        frequency: draft.frequency,
+        intervalCount: draft.intervalCount,
+        dayOfMonth: draft.dayOfMonth,
+        startAt: dateOnly(draft.startAt),
+        endAt: draft.endAt == null ? null : dateOnly(draft.endAt!),
+        note: _blankToNull(draft.note),
+        reminderLeads: ReminderLead.sorted(draft.reminderLeads),
+        updatedAt: clock(),
+      );
+      await obligations.save(updated);
 
-    if (scheduleChanged) {
-      // Paid periods are history and stay untouched; only unpaid ones are rebuilt
-      // against the new schedule.
-      await _rebuildFutureOccurrences(updated);
-    }
-    await ensureOccurrences();
-    await _log(
-      type: ActivityType.obligationCreated,
-      entityType: RelatedEntityType.obligation,
-      entityId: id,
-      title: updated.name,
-      amountMinor: updated.amountMinor,
-      currency: updated.currency,
-    );
+      if (scheduleChanged) {
+        // Paid periods are history and stay untouched; the periods the new
+        // schedule no longer has are removed, and it is filled in again.
+        await _rebuildFutureOccurrences(updated, sameRhythm: sameRhythm);
+        final DateTime asOf = dateOnly(clock());
+        await _materialise(
+          updated,
+          // A new rhythm starts today. Its dates before today were never due —
+          // filling them in turned "monthly rent is now weekly" into a late
+          // week for every week of the last two months.
+          from: sameRhythm ? addDays(asOf, -obligationLookbackDays) : asOf,
+          to: addDays(asOf, obligationHorizonDays),
+          now: clock(),
+        );
+      }
+      await ensureOccurrences();
+      await _syncNextDue(id, clock());
+      await _log(
+        type: ActivityType.obligationCreated,
+        entityType: RelatedEntityType.obligation,
+        entityId: id,
+        title: updated.name,
+        amountMinor: updated.amountMinor,
+        currency: updated.currency,
+      );
+      return true;
+    });
+    if (!found) return;
     await refreshNotifications();
   }
 
@@ -690,6 +806,8 @@ class LedgerService {
       createdAt: now,
     );
 
+    // The payment, the period, the periods after it and where the commitment
+    // points next are one write.
     await _db.transaction(() async {
       await payments.save(payment);
       await obligations.saveOccurrence(
@@ -700,42 +818,27 @@ class LedgerService {
           updatedAt: now,
         ),
       );
-    });
-
-    await _log(
-      type: ActivityType.obligationPaid,
-      entityType: RelatedEntityType.obligation,
-      entityId: obligation.id,
-      title: obligation.name,
-      amountMinor: payment.amountMinor,
-      currency: payment.currency,
-    );
-
-    // Point the obligation at the next period that still needs paying.
-    final DateTime? next = ObligationSchedule.rollForward(
-      obligation.copyWith(nextDueAt: occurrence.dueAt),
-    );
-    if (next != null) {
-      await obligations.save(
-        obligation.copyWith(nextDueAt: next, updatedAt: now),
-      );
-      await ensureOccurrences();
-    } else {
-      await obligations.setArchived(obligation.id, archived: true);
       await _log(
-        type: ActivityType.debtArchived,
+        type: ActivityType.obligationPaid,
         entityType: RelatedEntityType.obligation,
         entityId: obligation.id,
         title: obligation.name,
+        amountMinor: payment.amountMinor,
+        currency: payment.currency,
       );
-    }
+      // Later periods first, so the next due date can point at one of them.
+      await ensureOccurrences();
+      await _syncNextDue(obligation.id, now);
+    });
     await refreshNotifications();
   }
 
-  /// Undoes a payment on one period.
+  /// Undoes a payment on one period — or re-opens a skipped one, which the
+  /// same action on the screen also calls.
   Future<void> undoObligationPayment(ObligationInstance instance) async {
     final ObligationOccurrence occurrence = instance.occurrence;
     final String? paymentId = occurrence.paymentId;
+    final String id = instance.obligation.id;
     final DateTime now = clock();
     await _db.transaction(() async {
       if (paymentId != null) await payments.delete(paymentId);
@@ -747,18 +850,26 @@ class LedgerService {
           updatedAt: now,
         ),
       );
+      // A period open again means the commitment is not finished, whatever
+      // paying its last period had concluded.
+      final Obligation? stored = await obligations.getById(id);
+      if (stored != null && stored.isArchived) {
+        await obligations.setArchived(id, archived: false);
+      }
+      // Only a payment is announced as removed: re-opening a skipped period
+      // used to add "payment deleted" to the feed, with an amount nobody paid.
+      if (paymentId != null) {
+        await _log(
+          type: ActivityType.paymentDeleted,
+          entityType: RelatedEntityType.obligation,
+          entityId: id,
+          title: instance.obligation.name,
+          amountMinor: occurrence.amountMinor,
+          currency: instance.obligation.currency,
+        );
+      }
+      await _syncNextDue(id, now);
     });
-    if (instance.obligation.isArchived) {
-      await obligations.setArchived(instance.obligation.id, archived: false);
-    }
-    await _log(
-      type: ActivityType.paymentDeleted,
-      entityType: RelatedEntityType.obligation,
-      entityId: instance.obligation.id,
-      title: instance.obligation.name,
-      amountMinor: occurrence.amountMinor,
-      currency: instance.obligation.currency,
-    );
     await refreshNotifications();
   }
 
@@ -766,19 +877,68 @@ class LedgerService {
   /// rent.
   Future<void> skipObligationPeriod(ObligationInstance instance) async {
     final DateTime now = clock();
-    await obligations.saveOccurrence(
-      instance.occurrence.copyWith(
-        status: ObligationStatus.skipped,
-        updatedAt: now,
-      ),
-    );
-    await _log(
-      type: ActivityType.obligationSkipped,
-      entityType: RelatedEntityType.obligation,
-      entityId: instance.obligation.id,
-      title: instance.obligation.name,
-    );
+    await _db.transaction(() async {
+      await obligations.saveOccurrence(
+        instance.occurrence.copyWith(
+          status: ObligationStatus.skipped,
+          updatedAt: now,
+        ),
+      );
+      await _log(
+        type: ActivityType.obligationSkipped,
+        entityType: RelatedEntityType.obligation,
+        entityId: instance.obligation.id,
+        title: instance.obligation.name,
+      );
+      await _syncNextDue(instance.obligation.id, now);
+    });
     await refreshNotifications();
+  }
+
+  /// Points a commitment at its earliest period still to be paid, and archives
+  /// it only once its schedule has ended with nothing left open.
+  ///
+  /// The one place "next due" is decided, for paying, undoing, skipping and
+  /// editing alike. It used to be worked out from the period just paid, which
+  /// went wrong twice: paying the *last* period of a schedule archived the
+  /// commitment even while earlier periods were unpaid — and an archived
+  /// commitment is hidden, so those periods vanished from the dashboard, the
+  /// attention list and the reminders — and paying an older period out of
+  /// order moved "next due" backwards, onto a period that was already paid.
+  Future<void> _syncNextDue(String obligationId, DateTime now) async {
+    final Obligation? obligation = await obligations.getById(obligationId);
+    if (obligation == null) return;
+    final List<ObligationOccurrence> periods =
+        await obligations.occurrencesFor(obligationId);
+    if (periods.isEmpty) return;
+
+    DateTime? earliestOpen;
+    DateTime latest = periods.first.dueAt;
+    for (final ObligationOccurrence period in periods) {
+      if (period.dueAt.isAfter(latest)) latest = period.dueAt;
+      if (!period.isPayable) continue;
+      if (earliestOpen == null || period.dueAt.isBefore(earliestOpen)) {
+        earliestOpen = period.dueAt;
+      }
+    }
+
+    // Nothing open: the first period the schedule has not produced yet, or
+    // none at all once it has ended.
+    final DateTime? next = earliestOpen ??
+        ObligationSchedule.rollForward(obligation.copyWith(nextDueAt: latest));
+    if (next == null) {
+      if (obligation.isArchived) return;
+      await obligations.setArchived(obligationId, archived: true);
+      await _log(
+        type: ActivityType.debtArchived,
+        entityType: RelatedEntityType.obligation,
+        entityId: obligationId,
+        title: obligation.name,
+      );
+      return;
+    }
+    if (isSameDate(next, obligation.nextDueAt)) return;
+    await obligations.save(obligation.copyWith(nextDueAt: next, updatedAt: now));
   }
 
   /// Materials every obligation's periods for the visible window.
@@ -788,61 +948,99 @@ class LedgerService {
   /// user having to do anything.
   Future<void> ensureOccurrences() async {
     final DateTime asOf = dateOnly(clock());
-    final DateTime from = addDays(asOf, -obligationLookbackDays);
+    final DateTime lookback = addDays(asOf, -obligationLookbackDays);
     final DateTime to = addDays(asOf, obligationHorizonDays);
     final DateTime now = clock();
 
     for (final Obligation obligation in await obligations.getAll()) {
       if (obligation.frequency == RecurrenceFrequency.none) continue;
-
-      final Set<String> existing = await obligations.existingPeriodKeys(obligation.id);
-      final List<DateTime> dueDates = ObligationSchedule.dueDatesBetween(
+      await _materialise(
         obligation,
-        from,
-        to,
+        from: await _extendFrom(obligation, lookback),
+        to: to,
+        now: now,
       );
-
-      final List<ObligationOccurrence> missing = <ObligationOccurrence>[];
-      for (final DateTime due in dueDates) {
-        final String key =
-            ObligationSchedule.periodKeyFor(obligation.frequency, due);
-        if (existing.contains(key)) continue;
-        missing.add(
-          ObligationOccurrence(
-            id: newId(),
-            obligationId: obligation.id,
-            periodKey: key,
-            dueAt: due,
-            amountMinor: obligation.amountMinor,
-            status: ObligationStatus.upcoming,
-            createdAt: now,
-            updatedAt: now,
-          ),
-        );
-      }
-      await obligations.saveOccurrences(missing);
     }
   }
 
-  /// Discards unpaid future periods and regenerates them from the new schedule.
-  Future<void> _rebuildFutureOccurrences(Obligation obligation) async {
+  /// Where filling a commitment's periods starts: the look-back, or the day
+  /// after the last period it already has, whichever is later.
+  ///
+  /// A schedule is extended, never filled in behind periods that exist: a gap
+  /// there is not a missing period but a changed schedule, and filling it
+  /// produced periods for dates that were never due.
+  Future<DateTime> _extendFrom(Obligation obligation, DateTime lookback) async {
+    final DateTime? latest = await obligations.latestPeriodDue(obligation.id);
+    if (latest == null) return lookback;
+    final DateTime next = addDays(latest, 1);
+    return next.isAfter(lookback) ? next : lookback;
+  }
+
+  /// Creates the periods [obligation]'s schedule has in `[from, to]` that do
+  /// not exist yet.
+  Future<void> _materialise(
+    Obligation obligation, {
+    required DateTime from,
+    required DateTime to,
+    required DateTime now,
+  }) async {
+    if (from.isAfter(to)) return;
+    final Set<String> existing =
+        await obligations.existingPeriodKeys(obligation.id);
+    final List<DateTime> dueDates =
+        ObligationSchedule.dueDatesBetween(obligation, from, to);
+
+    final List<ObligationOccurrence> missing = <ObligationOccurrence>[];
+    for (final DateTime due in dueDates) {
+      final String key = ObligationSchedule.periodKeyFor(obligation.frequency, due);
+      if (!existing.add(key)) continue;
+      missing.add(
+        ObligationOccurrence(
+          id: newId(),
+          obligationId: obligation.id,
+          periodKey: key,
+          dueAt: due,
+          amountMinor: obligation.amountMinor,
+          status: ObligationStatus.upcoming,
+          createdAt: now,
+          updatedAt: now,
+        ),
+      );
+    }
+    await obligations.saveOccurrences(missing);
+  }
+
+  /// Removes the periods a changed schedule no longer has.
+  ///
+  /// Paid periods are history and are never touched. Of the others:
+  ///
+  /// * an open period still ahead is removed, to be created again from the new
+  ///   schedule (with its new amount, on its new day);
+  /// * a skipped period ahead is kept while the rhythm is the same — the user
+  ///   said that month does not apply, and a new amount does not undo that —
+  ///   and removed when the rhythm changes, since the period it stood for is
+  ///   gone;
+  /// * an open period outside the new schedule's start and end never belonged
+  ///   to it, and would otherwise sit there late for ever.
+  Future<void> _rebuildFutureOccurrences(
+    Obligation obligation, {
+    required bool sameRhythm,
+  }) async {
     final DateTime asOf = dateOnly(clock());
+    final DateTime start = ObligationSchedule.anchorFor(obligation);
+    final DateTime? end =
+        obligation.endAt == null ? null : dateOnly(obligation.endAt!);
     final List<ObligationOccurrence> current =
         await obligations.occurrencesFor(obligation.id);
     for (final ObligationOccurrence occurrence in current) {
-      final bool isFuture = occurrence.dueAt.isAfter(asOf);
-      final bool isPaid = occurrence.status == ObligationStatus.paid;
-      if (isFuture && !isPaid) {
-        await obligations.deleteOccurrence(occurrence.id);
-      }
-    }
-    final DateTime? next = ObligationSchedule.rollForward(
-      obligation.copyWith(nextDueAt: addDays(asOf, -1)),
-    );
-    if (next != null) {
-      await obligations.save(
-        obligation.copyWith(nextDueAt: next, updatedAt: clock()),
-      );
+      if (occurrence.isPaid) continue;
+      final bool open = occurrence.isPayable;
+      final bool outside = occurrence.dueAt.isBefore(start) ||
+          (end != null && occurrence.dueAt.isAfter(end));
+      final bool discard = occurrence.dueAt.isAfter(asOf)
+          ? open || !sameRhythm
+          : open && outside;
+      if (discard) await obligations.deleteOccurrence(occurrence.id);
     }
   }
 
@@ -937,7 +1135,40 @@ class LedgerService {
   /// rather than patched — that is what guarantees a settled debt can never
   /// leave a reminder behind — and the service then makes the platform agree
   /// with it, so nothing is duplicated and nothing stale survives.
-  Future<NotificationSyncResult> refreshNotifications() async {
+  ///
+  /// One pass at a time. Two passes used to be able to run at once — a save and
+  /// a change of language arrive together, a resume lands in the middle of a
+  /// write — and the one that finished last won, whichever of them had read the
+  /// older state. Now a call made while a pass is running waits for one more
+  /// pass after it, which starts after the call and so sees whatever that caller
+  /// wrote; every caller arriving meanwhile shares that same pass, because it
+  /// reads what all of them wrote.
+  Future<NotificationSyncResult> refreshNotifications() {
+    final Future<NotificationSyncResult>? running = _refreshRunning;
+    if (running == null) return _startRefresh();
+    return _refreshQueued ??= running.then<void>(
+      (NotificationSyncResult _) {},
+      // The pass that failed has already reported it to its own caller; the
+      // next one is still owed to everyone waiting on it.
+      onError: (Object _) {},
+    ).then((void _) {
+      _refreshQueued = null;
+      return _startRefresh();
+    });
+  }
+
+  Future<NotificationSyncResult>? _refreshRunning;
+  Future<NotificationSyncResult>? _refreshQueued;
+
+  Future<NotificationSyncResult> _startRefresh() {
+    final Future<NotificationSyncResult> pass = _refreshPass();
+    _refreshRunning = pass;
+    return pass.whenComplete(() {
+      if (identical(_refreshRunning, pass)) _refreshRunning = null;
+    });
+  }
+
+  Future<NotificationSyncResult> _refreshPass() async {
     final AppSettings current = await settings.get();
     if (!current.notificationsEnabled) {
       // Nothing may fire, and nothing should be held: an armed set the user has
@@ -964,14 +1195,90 @@ class LedgerService {
       ),
     ];
 
+    // The month-end summary, armed in the last days before its moment so it
+    // arrives when the user asked for it whether or not the app is open then.
+    final NotificationIntent? summary =
+        await _monthEndSummaryToArm(current, now, asOf);
+    if (summary != null) intents.add(summary);
+
     final NotificationComposer activeComposer = composer();
+    final List<ComposedNotification> composed =
+        activeComposer.composeAll(intents);
     final NotificationSyncResult result = await notifications.sync(
-      activeComposer.composeAll(intents),
+      composed,
       recordsRead: plan.recordsRead,
     );
 
+    if (summary != null) {
+      await _recordArmedSummary(summary, composed, result, current);
+    }
     await _deliverPendingSummary(current, now, asOf, activeComposer);
     return result;
+  }
+
+  /// The month-end summary to arm in this pass, or null.
+  ///
+  /// Only inside [NotificationPlanner.monthEndArmWindow]: the figures read the
+  /// whole ledger, and outside that window no save pays for them.
+  Future<NotificationIntent?> _monthEndSummaryToArm(
+    AppSettings current,
+    DateTime now,
+    DateTime asOf,
+  ) async {
+    final DateTime? moment =
+        NotificationPlanner.monthEndToArm(settings: current, now: now);
+    if (moment == null) return null;
+    final List<DebtView> views = await _summaryViews(current, asOf);
+    // The same rule as the catch-up: a ledger with nothing in it is not told
+    // that its totals are zero.
+    if (views.isEmpty) return null;
+    final _SummaryFigures figures =
+        await _summaryFigures(views, current, asOf, month: moment);
+    return NotificationPlanner.monthEndSummary(
+      settings: current,
+      now: now,
+      iOweMinor: figures.iOweMinor,
+      owedToMeMinor: figures.owedToMeMinor,
+      paidMinor: figures.paidMinor,
+      overdueMinor: figures.overdueMinor,
+      currency: figures.currency,
+    );
+  }
+
+  /// Records the summary's month as handed over, once the phone is holding it.
+  ///
+  /// Without this the catch-up could not tell a summary that was delivered on
+  /// time from one that never was, and would show it a second time on the first
+  /// launch after its moment.
+  Future<void> _recordArmedSummary(
+    NotificationIntent summary,
+    List<ComposedNotification> composed,
+    NotificationSyncResult result,
+    AppSettings current,
+  ) async {
+    final ComposedNotification? armed =
+        composed.where((ComposedNotification n) => n.isSummary).firstOrNull;
+    if (armed == null || !result.armedIds.contains(armed.id)) return;
+    final MonthEndFigures? figures = summary.summary;
+    if (figures == null) return;
+    final DateTime month = DateTime(figures.year, figures.month);
+    final DateTime record = NotificationPlanner.summaryRecordFor(month, current);
+    final DateTime? last = current.lastSummarySentOn;
+    // Every pass in the window arms the same summary; only the first writes.
+    if (last != null && !last.isBefore(record)) return;
+    await _recordSummaryHandedOver(month);
+  }
+
+  /// Notes that [month]'s summary has reached the phone, never moving the
+  /// record backwards: a late catch-up for an older month must not undo the
+  /// record of a newer one that is already armed.
+  Future<void> _recordSummaryHandedOver(DateTime month) async {
+    await settings.update((AppSettings s) {
+      final DateTime record = NotificationPlanner.summaryRecordFor(month, s);
+      final DateTime? last = s.lastSummarySentOn;
+      if (last != null && !last.isBefore(record)) return s;
+      return s.copyWith(lastSummarySentOn: record);
+    });
   }
 
   /// The debt reminders the nearest notifications are made of.
@@ -1090,12 +1397,19 @@ class LedgerService {
   }
 
   /// The commitment periods a reminder can still be planned from.
+  ///
+  /// The window starts a little in the past, exactly as the debts' does: a
+  /// period that fell due yesterday still has its overdue nudge ahead of it.
+  /// Reading from today onwards left that period out of every plan made after
+  /// its due date — and a plan leaves out what it does not want, so the nudge
+  /// that was armed on the day was cancelled by the next save, and a commitment
+  /// passed its date in silence for anyone who used the app in between.
   Future<List<ObligationInstance>> _obligationInstancesInWindow(
     DateTime asOf,
   ) async {
     final List<ObligationOccurrenceRow> occurrences =
         await _db.obligationsDao.occurrencesBetween(
-      from: asOf,
+      from: addDays(asOf, -NotificationPlanner.overdueNudgeAfterDays),
       to: addDays(asOf, NotificationPlanner.horizon.inDays),
     );
     if (occurrences.isEmpty) return const <ObligationInstance>[];
@@ -1134,30 +1448,33 @@ class LedgerService {
     DateTime asOf,
     NotificationComposer composer,
   ) async {
-    if (!NotificationPlanner.isCatchUpSummaryDue(settings: current, now: now)) {
-      return;
-    }
+    final DateTime? month =
+        NotificationPlanner.catchUpSummaryMonth(settings: current, now: now);
+    if (month == null) return;
     final List<DebtView> views = await _summaryViews(current, asOf);
     // A ledger with nothing in it owes nobody a summary: an install that has not
     // recorded anything yet used to be greeted with a month-end notification
     // reporting three zeroes.
     if (views.isEmpty) return;
-    final totals = _primaryTotals(views, current, asOf);
+    final _SummaryFigures figures =
+        await _summaryFigures(views, current, asOf, month: month);
 
     final NotificationIntent? catchUp = NotificationPlanner.pendingCatchUpSummary(
       settings: current,
       now: now,
-      iOweMinor: totals.$1,
-      owedToMeMinor: totals.$2,
-      paidMinor: totals.$3,
-      overdueMinor: totals.$4,
+      iOweMinor: figures.iOweMinor,
+      owedToMeMinor: figures.owedToMeMinor,
+      paidMinor: figures.paidMinor,
+      overdueMinor: figures.overdueMinor,
+      currency: figures.currency,
     );
     if (catchUp == null) return;
 
-    // The id comes from the same identity rule as every other notification: a
-    // summary that is delivered twice replaces itself instead of stacking up.
+    // The id comes from the same identity rule as every other notification, and
+    // the catch-up's moment is its month's: a summary that is delivered twice
+    // replaces itself instead of stacking up.
     await notifications.showNow(composer.compose(catchUp, _summaryId(catchUp)));
-    await settings.update((AppSettings s) => s.copyWith(lastSummarySentOn: asOf));
+    await _recordSummaryHandedOver(month);
     await _log(
       type: ActivityType.monthSummaryGenerated,
       entityType: RelatedEntityType.none,
@@ -1168,12 +1485,17 @@ class LedgerService {
   static int _summaryId(NotificationIntent intent) =>
       NotificationComposer.idFor(intent);
 
-  /// iOwe, owedToMe, paid-this-month and overdue for the user's main currency.
-  (int, int, int, int) _primaryTotals(
+  /// The figures a month-end summary states, in the ledger's main currency.
+  ///
+  /// The balances are the ledger as it stands; "paid" is what was paid against
+  /// debts during [month] itself — read from the payments, not inferred from
+  /// each debt's lifetime total.
+  Future<_SummaryFigures> _summaryFigures(
     List<DebtView> views,
     AppSettings current,
-    DateTime asOf,
-  ) {
+    DateTime asOf, {
+    required DateTime month,
+  }) async {
     final List<CurrencyTotals> totals = DebtCalculator.totalsByCurrency(
       views,
       asOf: asOf,
@@ -1184,20 +1506,17 @@ class LedgerService {
     final CurrencyTotals? pick = totals
         .where((CurrencyTotals t) => t.currency == primary)
         .firstOrNull;
-    final DateTime monthStart = startOfMonth(asOf);
-    int paidThisMonth = 0;
-    for (final DebtView view in views) {
-      if (view.currency != primary) continue;
-      final DateTime? last = view.lastPaymentAt;
-      if (last != null && isWithin(last, monthStart, asOf)) {
-        paidThisMonth += view.paidMinor;
-      }
-    }
-    return (
-      pick?.iOweMinor ?? 0,
-      pick?.owedToMeMinor ?? 0,
-      paidThisMonth,
-      pick?.overdueMinor ?? 0,
+    final int paid = await _db.debtsDao.debtPaymentsTotalBetween(
+      currencyCode: primary.code,
+      from: startOfMonth(month),
+      to: endOfMonth(month),
+    );
+    return _SummaryFigures(
+      currency: primary,
+      iOweMinor: pick?.iOweMinor ?? 0,
+      owedToMeMinor: pick?.owedToMeMinor ?? 0,
+      paidMinor: paid,
+      overdueMinor: pick?.overdueMinor ?? 0,
     );
   }
 
@@ -1320,10 +1639,17 @@ class LedgerService {
 /// Everything needed to undo a delete.
 @immutable
 class LedgerServiceSnapshot {
-  const LedgerServiceSnapshot({required this.debt, required this.payments});
+  const LedgerServiceSnapshot({
+    required this.debt,
+    required this.payments,
+    required this.activity,
+  });
 
   /// Null when the record had already gone.
   final Debt? debt;
 
   final List<Payment> payments;
+
+  /// The record's feed entries, as they were before the delete.
+  final List<ActivityEntry> activity;
 }

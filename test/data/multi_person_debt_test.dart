@@ -633,7 +633,6 @@ void main() {
           defaultCurrency: AppCurrency.inr,
           localizations: l10n,
         ),
-        settings: AppSettings.initial,
       ).buildData(
         ledger: ledger,
         payments: await service.payments.getAll(),

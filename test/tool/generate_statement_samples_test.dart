@@ -19,7 +19,6 @@ import 'package:dhimmah/data/repositories/reminder_repository_impl.dart';
 import 'package:dhimmah/data/repositories/settings_repository_impl.dart';
 import 'package:dhimmah/data/services/ledger_service.dart';
 import 'package:dhimmah/data/services/statement_service.dart';
-import 'package:dhimmah/domain/entities/app_settings.dart';
 import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
 import 'package:dhimmah/domain/entities/ledger_views.dart';
@@ -181,10 +180,9 @@ void main() {
       final List<Payment> payments = await _paymentsFor(queries, ledger!);
       final StatementData data = StatementService(
         localizations: l10n,
+        // The document language is the formatting's, so both languages can be
+        // generated in one run.
         formatting: formatting,
-        // The document language follows the caller, not the stored setting, so
-        // both languages can be generated in one run.
-        settings: AppSettings.initial.copyWith(language: language),
       ).buildData(
         ledger: ledger,
         payments: payments,

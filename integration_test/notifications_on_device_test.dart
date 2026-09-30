@@ -74,6 +74,11 @@ void main() {
     // ignore: avoid_print
     print('DEVICE permission: ${notifications.permission.name}');
 
+    // The month-end summary is armed in the last days of every month and is
+    // not one of the records' reminders this test counts.
+    await SettingsRepositoryImpl(db).update(
+      (AppSettings s) => s.copyWith(monthEndSummaryEnabled: false),
+    );
     final LedgerService service = buildService(db, notifications: notifications);
     final Person ahmed = await service.createPerson(
       const PersonDraft(name: 'أحمد'),

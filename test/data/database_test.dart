@@ -3,6 +3,7 @@ import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/enums/obligation_enums.dart';
+import 'package:dhimmah/domain/enums/preference_enums.dart';
 import 'package:dhimmah/domain/enums/recurrence.dart';
 // drift exports its own `isNull` / `isNotNull` SQL expressions, which collide
 // with the matchers of the same name.
@@ -31,7 +32,8 @@ void main() {
 
     final Setting settings = rows.single;
     expect(settings.id, 1);
-    expect(settings.language.code, 'ar');
+    // A new install follows the phone rather than assuming Arabic.
+    expect(settings.languagePreference, LanguagePreference.system);
     expect(settings.defaultCurrencyCode, 'INR');
     expect(settings.monthEndDay.isLastDay, isTrue);
     expect(settings.notificationsEnabled, isTrue);

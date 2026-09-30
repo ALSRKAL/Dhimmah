@@ -81,7 +81,7 @@
   "categoryTelecom": "اتصالات",
   "categoryUtilities": "فواتير",
   "chooseOption": "اختر",
-  "clearDataBody": "سيتم حذف جميع الأشخاص والديون والدفعات والالتزامات والتذكيرات نهائيًا. لا يمكن التراجع.",
+  "clearDataBody": "سيُحذف كل الأشخاص والديون والدفعات والالتزامات والتذكيرات من هذا الجهاز. تُحفظ نسخة أمان أولًا وتبقى النسخ الاحتياطية على الجهاز، فيمكن استعادة الدفتر من «النسخ الاحتياطي والاستعادة».",
   "clearDataTitle": "حذف كل البيانات؟",
   "collapse": "طي",
   "copiedToClipboard": "تم النسخ",
@@ -506,22 +506,13 @@
   "onboardingBack": "السابق",
   "onboardingCurrencyBody": "ستُستخدم في السجلات الجديدة. كل سجل يمكن أن يكون بعملة مختلفة.",
   "onboardingCurrencyTitle": "عملتك الافتراضية",
-  "onboardingEnableNotifications": "تفعيل التنبيهات",
-  "onboardingLanguageBody": "يمكنك تغييرها لاحقًا من الإعدادات.",
-  "onboardingLanguageTitle": "اختر لغتك",
-  "onboardingMaybeLater": "لاحقًا",
+  "onboardingEnableNotifications": "تفعيل التذكيرات",
+  "onboardingMaybeLater": "ليس الآن",
   "onboardingNext": "التالي",
-  "onboardingNotificationsBody": "نحتاج إذنك لإرسال تنبيهات الاستحقاق. الإشعارات محلية ولا تغادر جهازك.",
+  "onboardingNotificationsBody": "نذكّرك قبل كل موعد استحقاق، في الوقت الذي تختاره. التذكيرات تُجدول على جهازك ولا تحتاج إنترنت.",
   "onboardingNotificationsDenied": "لم يتم منح الإذن. يمكنك تفعيله من الإعدادات.",
-  "onboardingNotificationsTitle": "التذكيرات",
-  "onboardingReadyTitle": "كل شيء جاهز.",
+  "onboardingNotificationsTitle": "لا يفوتك أي موعد",
   "onboardingSkip": "تخطي",
-  "onboardingSlide1Body": "سجّل ما عليك وما لك، واعرف مركزك المالي فورًا عند فتح التطبيق.",
-  "onboardingSlide1Title": "ذمّتك المالية، منظمة في مكان واحد.",
-  "onboardingSlide2Body": "ديون، دفعات جزئية، والتزامات متكررة — ويُحسب المتبقي تلقائيًا.",
-  "onboardingSlide2Title": "سجّل ما عليك وما لك.",
-  "onboardingSlide3Body": "تذكيرات محلية تعمل بدون إنترنت، وملخص لذمتك في نهاية كل شهر.",
-  "onboardingSlide3Title": "لا تنسَ أي موعد.",
   "onboardingStart": "ابدأ الآن",
   "owedToMeEmptyBody": "سجّل ما لك عند الآخرين لتتابعه.",
   "owedToMeEmptyTitle": "لا توجد أموال مستحقة لك.",
@@ -669,11 +660,15 @@
   "reportDocumentNumber": "رقم المستند",
   "reportEmptyBody": "جرّب اختيار شهر آخر، أو أضف عملية جديدة.",
   "reportEmptyTitle": "لا توجد بيانات لهذا الشهر.",
+  "reportEntryIOwe": "دين عليّ",
+  "reportEntryOwedToMe": "دين لي",
+  "reportEntryPaid": "دفعة مسدّدة",
+  "reportEntryReceived": "دفعة مستلمة",
   "reportExportPdf": "تصدير PDF",
   "reportFutureMonth": "هذا الشهر لم يبدأ بعد.",
   "reportGeneratedBy": "تم إنشاء هذا المستند بواسطة تطبيق ذِمّة",
   "reportInsightAllClear": "لا توجد متأخرات، وكل شيء تحت السيطرة.",
-  "reportInsightClosed": "{count, plural, =0{لم تُغلق أي ديون هذا الشهر.} =1{تم إغلاق دين واحد هذا الشهر.} =2{تم إغلاق ديان هذا الشهر.} few{تم إغلاق {count} ديون هذا الشهر.} other{تم إغلاق {count} دينًا هذا الشهر.}}",
+  "reportInsightClosed": "{count, plural, =0{لم تُغلق أي ديون هذا الشهر.} =1{تم إغلاق دين واحد هذا الشهر.} =2{تم إغلاق دينين هذا الشهر.} few{تم إغلاق {count} ديون هذا الشهر.} other{تم إغلاق {count} دينًا هذا الشهر.}}",
   "@reportInsightClosed": {
     "placeholders": {
       "count": {
@@ -681,7 +676,7 @@
       }
     }
   },
-  "reportInsightOverdue": "{count, plural, =0{لا ديون متأخرة.} =1{دين واحد متأخر يحتاج متابعة.} =2{ديان متأخران يحتاجان متابعة.} few{{count} ديون متأخرة تحتاج متابعة.} other{{count} دينًا متأخرًا يحتاج متابعة.}}",
+  "reportInsightOverdue": "{count, plural, =0{لا ديون متأخرة.} =1{دين واحد متأخر يحتاج متابعة.} =2{دينان متأخران يحتاجان متابعة.} few{{count} ديون متأخرة تحتاج متابعة.} other{{count} دينًا متأخرًا يحتاج متابعة.}}",
   "@reportInsightOverdue": {
     "placeholders": {
       "count": {
@@ -702,6 +697,8 @@
   "reportMonthlyTitle": "التقرير الشهري",
   "reportNeedsAttention": "يحتاج انتباهك",
   "reportNeedsAttentionEmpty": "لا شيء متأخر ولا مستحق اليوم.",
+  "reportNetIOwe": "الصافي عليّ",
+  "reportNetOwedToMe": "الصافي لي",
   "reportNewDebts": "ديون جديدة",
   "reportObligations": "إجمالي الالتزامات",
   "reportOpenPdf": "فتح الملف",
@@ -727,11 +724,13 @@
   "reportPeopleCount": "عدد الأشخاص",
   "reportPickMonth": "اختر الشهر",
   "reportReceived": "ما تم استلامه",
+  "reportRemainingIOwe": "المتبقي عليّ",
+  "reportRemainingOwedToMe": "المتبقي لي",
   "reportSavePdf": "طباعة أو حفظ",
   "reportSettled": "إجمالي ما تم سداده",
   "reportSharePdf": "مشاركة PDF",
   "reportShareStatement": "مشاركة كشف",
-  "reportStatementFor": "كشف حساب",
+  "reportStatementFor": "الحساب مع",
   "reportStatementReady": "تم إنشاء كشف الحساب",
   "reportStatementReadyBody": "يمكنك مراجعته قبل الإرسال.",
   "reportStatementTitle": "كشف حساب",
@@ -1242,5 +1241,63 @@
   "backupFoundBody": "لا توجد بيانات على هذا الجهاز، وهناك نسخة محفوظة يمكن استعادتها.",
   "backupPrivacyTitle": "أين تُحفظ النسخ؟",
   "backupPrivacyBody": "النسخ التلقائية داخل التطبيق ولا يقرؤها غيره. وعند المشاركة تختار أنت المكان — الملفات أو Drive أو غيره — والملف غير مشفّر. حذف التطبيق يحذف النسخ التي داخله، فاحتفظ بنسخة خارج الجهاز إن كانت بياناتك تهمّك.",
-  "backupSeparateFromExport": "التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد."
+  "backupSeparateFromExport": "التصدير (CSV وJSON) للقراءة والتحليل، ولا يُستخدم للاستعادة. النسخة الاحتياطية هي التي تُستعاد.",
+  "currencyNameAed": "درهم إماراتي",
+  "currencyNameEur": "يورو",
+  "currencyNameGbp": "جنيه إسترليني",
+  "currencyNameInr": "روبية هندية",
+  "currencyNameSar": "ريال سعودي",
+  "currencyNameUsd": "دولار أمريكي",
+  "currencyNameYer": "ريال يمني",
+  "currencySuggestedForRegion": "مقترحة حسب منطقتك",
+  "@currencySuggestedForRegion": {
+    "description": "Marks the currency of the place the phone is in, worked out from its time zone and region settings, in every currency picker."
+  },
+  "languageDevice": "لغة الجهاز",
+  "languageDeviceCurrently": "حاليًا: {language}",
+  "@languageDeviceCurrently": {
+    "placeholders": {
+      "language": {
+        "type": "String"
+      }
+    }
+  },
+  "languageFollowsDevice": "تتبع لغة جهازك",
+  "onboardingChangeLanguage": "تغيير اللغة",
+  "onboardingChangeLater": "يمكنك تغيير ذلك في أي وقت من الإعدادات.",
+  "onboardingFeatureBooksBody": "سجّل الديون والدفعات الجزئية والالتزامات الشهرية، ويُحسب المتبقي تلقائيًا.",
+  "onboardingFeatureBooksTitle": "ما لك وما عليك في دفتر واحد",
+  "onboardingFeaturePrivateBody": "يعمل بدون إنترنت، ولا يُرفع شيء إلى أي خادم.",
+  "onboardingFeatureRemindersBody": "تنبيه قبل موعد الاستحقاق، وملخص لذمتك في آخر كل شهر.",
+  "onboardingFeatureRemindersTitle": "تذكير قبل كل موعد",
+  "onboardingMonthEndWhen": "{day}، الساعة {time}",
+  "@onboardingMonthEndWhen": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingReminderTime": "الساعة {time}",
+  "@onboardingReminderTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingStepOf": "الخطوة {step} من {total}",
+  "@onboardingStepOf": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }

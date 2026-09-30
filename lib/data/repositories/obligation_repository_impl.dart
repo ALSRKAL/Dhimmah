@@ -98,6 +98,10 @@ class ObligationRepositoryImpl implements ObligationRepository {
   Future<Set<String>> existingPeriodKeys(String obligationId) =>
       _db.obligationsDao.existingPeriodKeys(obligationId);
 
+  @override
+  Future<DateTime?> latestPeriodDue(String obligationId) =>
+      _db.obligationsDao.latestPeriodDue(obligationId);
+
   static List<Obligation> _toEntities(List<ObligationRow> rows) =>
       rows.map((ObligationRow row) => row.toEntity()).toList(growable: false);
 

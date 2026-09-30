@@ -258,10 +258,9 @@ class BackupController {
   /// everywhere.
   ///
   /// Guarded by freshness rather than run every time, so ten deletions in a row
-  /// make one copy and not ten: the point is that there is *something* recent to
-  /// go back to, and a copy from two minutes ago answers that as well as one made
-  /// now. Returns the file when it made one, and null when the recent snapshot
-  /// already covered it, or when there is nothing to protect.
+  /// make one copy and not ten — as long as the recent copy still holds the
+  /// ledger as it is. Returns the file when it made one, and null when the
+  /// recent snapshot already covered it, or when there is nothing to protect.
   Future<BackupFileInfo?> safetyBeforeDestructive() async {
     final BackupService backups = _ref.read(backupServiceProvider);
     if (await backups.isEmpty()) return null;
@@ -269,7 +268,13 @@ class BackupController {
     final BackupFileInfo? last = await backups.latest();
     final DateTime now = _ref.read(clockProvider)();
     if (last != null && now.difference(last.createdAt) < safetyFreshness) {
-      return null;
+      // Recent is not enough on its own: a copy from two minutes ago does not
+      // hold the three debts added one minute ago, and deleting everything
+      // then left them in no copy at all. It stands in only when nothing has
+      // changed since it was written.
+      final int pending =
+          await _ref.read(backupCoordinatorProvider).pendingChanges();
+      if (pending == 0) return null;
     }
     final ({File file, ParsedBackup backup}) written =
         await backups.create(kind: BackupKind.safety);

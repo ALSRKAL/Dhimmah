@@ -5,6 +5,7 @@ import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/data/repositories/debt_repository_impl.dart';
 import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
+import 'package:dhimmah/domain/enums/preference_enums.dart';
 import 'package:dhimmah/domain/enums/recurrence.dart';
 import 'package:drift/drift.dart' show QueryRow;
 import 'package:drift/native.dart';
@@ -30,9 +31,11 @@ void main() {
   /// Sets a file's `user_version` back and removes what later versions added.
   ///
   /// Version 2 added indexes, version 3 added `debt_people`, version 4 added the
-  /// auto-backup switch to settings; the tables are otherwise identical, which is
-  /// exactly what makes this a faithful fixture rather than a hand-written
-  /// approximation of one.
+  /// auto-backup switch to settings, and version 5 changed no column — it made
+  /// `system` a stored language — so a version 4 file is this schema with the
+  /// version set back. The tables are otherwise identical, which is exactly what
+  /// makes this a faithful fixture rather than a hand-written approximation of
+  /// one.
   Future<void> downgrade(AppDatabase db, int version) async {
     await db.customStatement('DROP TABLE debt_people');
     await db.customStatement('DROP INDEX IF EXISTS idx_debt_people_person');
@@ -241,6 +244,92 @@ void main() {
       expect(paid.closedAt, isNotNull);
       expect(paid.closedAt!.millisecondsSinceEpoch,
           today.millisecondsSinceEpoch);
+    });
+  });
+
+  group('a version 4 file upgrading to the language preference', () {
+    /// A version 4 file whose settings row says [language], onboarded or not.
+    Future<File> version4({
+      required String language,
+      required bool onboarded,
+    }) async {
+      final File file = File('${temp.path}/v4-$language-$onboarded.sqlite');
+      final AppDatabase db = AppDatabase(NativeDatabase(file));
+      await seed(db);
+      await db.customStatement(
+        "UPDATE settings SET language = '$language', "
+        'onboarding_completed = ${onboarded ? 1 : 0}',
+      );
+      await downgrade(db, 4);
+      await db.close();
+      return file;
+    }
+
+    Future<LanguagePreference> preferenceAfterUpgrade(File file) async {
+      final AppDatabase db = await open(file);
+      addTearDown(db.close);
+      return (await db.settingsDao.get())!.languagePreference;
+    }
+
+    test('the seeded Arabic follows the phone — finished, skipped or neither',
+        () async {
+      // Skipping the old onboarding finished it, so "onboarded" covers both;
+      // neither says anything about a language, because the phone was never
+      // asked and Arabic was simply what every install was given.
+      for (final bool onboarded in <bool>[true, false]) {
+        expect(
+          await preferenceAfterUpgrade(
+            await version4(language: 'arabic', onboarded: onboarded),
+          ),
+          LanguagePreference.system,
+          reason: 'onboarded: $onboarded',
+        );
+      }
+    });
+
+    test('an English choice is kept, finished or not', () async {
+      // Nothing but a tap ever stored English.
+      for (final bool onboarded in <bool>[true, false]) {
+        expect(
+          await preferenceAfterUpgrade(
+            await version4(language: 'english', onboarded: onboarded),
+          ),
+          LanguagePreference.english,
+          reason: 'onboarded: $onboarded',
+        );
+      }
+    });
+
+    test('nothing else in the settings row changes', () async {
+      final File file = File('${temp.path}/v4-everything.sqlite');
+      final AppDatabase old = AppDatabase(NativeDatabase(file));
+      await seed(old);
+      await old.customStatement(
+        "UPDATE settings SET language = 'arabic', onboarding_completed = 1, "
+        "theme_mode = 'dark', numerals = 'arabicIndic', "
+        "default_currency_code = 'USD', notification_hour = 7, "
+        'lock_enabled = 1, backup_auto_enabled = 0',
+      );
+      await downgrade(old, 4);
+      final Map<String, Object?> before =
+          (await old.customSelect('SELECT * FROM settings').getSingle()).data;
+      await old.close();
+
+      final AppDatabase db = await open(file);
+      addTearDown(db.close);
+      final Map<String, Object?> after =
+          (await db.customSelect('SELECT * FROM settings').getSingle()).data;
+      expect(after, <String, Object?>{...before, 'language': 'system'});
+    });
+
+    test('and every record comes through untouched', () async {
+      final File file = await version4(language: 'arabic', onboarded: true);
+      final AppDatabase db = await open(file);
+      addTearDown(db.close);
+      expect(await db.peopleDao.getAll(), hasLength(2));
+      expect(await db.debtsDao.getAll(), hasLength(2));
+      expect(await db.debtsDao.getPaymentsForDebt('d1'), hasLength(1));
+      expect((await db.settingsDao.get())!.backupAutoEnabled, isTrue);
     });
   });
 

@@ -70,7 +70,7 @@ void main() {
         await backups.create(kind: BackupKind.manual);
 
     final ({ParsedBackup backup, BackupValidation validation}) offThread =
-        (await openOnWorker(path: written.file.path, schemaVersion: 4))!;
+        (await openOnWorker(path: written.file.path, schemaVersion: AppDatabase.currentSchemaVersion))!;
     final ({ParsedBackup backup, BackupValidation validation}) inline =
         await backups.openInline(written.file.path);
 
@@ -117,7 +117,7 @@ void main() {
     final ({ParsedBackup backup, BackupValidation validation})? answer =
         await openOnWorker(
       path: written.file.path,
-      schemaVersion: 4,
+      schemaVersion: AppDatabase.currentSchemaVersion,
       timeout: Duration.zero,
     );
     race.stop();
@@ -164,7 +164,7 @@ void main() {
     final File junk = File('${dir.path}/refusal.dhimmah');
     await junk.writeAsString('{"hello":"world"}');
     expect(
-      await openOnWorker(path: junk.path, schemaVersion: 4),
+      await openOnWorker(path: junk.path, schemaVersion: AppDatabase.currentSchemaVersion),
       isNull,
       reason: 'no answer, not a classification',
     );
@@ -218,7 +218,7 @@ void main() {
     await future.writeAsString(jsonEncode(envelope));
 
     final ({ParsedBackup backup, BackupValidation validation})? opened =
-        await openOnWorker(path: future.path, schemaVersion: 4);
+        await openOnWorker(path: future.path, schemaVersion: AppDatabase.currentSchemaVersion);
     expect(opened, isNotNull);
     expect(opened!.validation.isUsable, isFalse);
     expect(

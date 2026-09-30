@@ -5,7 +5,6 @@ import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/pdf/statement_models.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/data/database/app_database.dart';
-import 'package:dhimmah/data/mappers/db_mappers.dart';
 import 'package:dhimmah/data/read_models/ledger_queries.dart';
 import 'package:dhimmah/data/repositories/activity_repository_impl.dart';
 import 'package:dhimmah/data/repositories/debt_repository_impl.dart';
@@ -136,7 +135,6 @@ void main() {
     final StatementData data = StatementService(
       localizations: l10n,
       formatting: formatting,
-      settings: settings.toEntity(),
     ).buildData(
       ledger: ledger!,
       payments: await payments.getAll(),

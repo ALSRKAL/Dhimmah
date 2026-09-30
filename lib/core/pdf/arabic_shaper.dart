@@ -126,6 +126,14 @@ bool _joinsForward(int code) {
   return forms.initial != null;
 }
 
+/// Whether a letter accepts a join from the letter before it.
+///
+/// Every letter does but the hamza written on the line, which stands alone on
+/// both sides. The letter before it therefore ends its word: «شيء» is a sheen,
+/// a final yeh and a hamza, not a medial yeh reaching for a hamza that does not
+/// join — which is how it printed while only the first letter was asked.
+bool _joinsBackward(int code) => code != 0x0621;
+
 bool _canShape(int code) => _forms.containsKey(code) || _isTatweel(code);
 
 /// Shapes [input] into Arabic Presentation Forms.
@@ -143,10 +151,19 @@ String shapeArabic(String input) {
   while (index < codes.length) {
     final int code = codes[index];
 
-    // Lam followed by an alef collapses into one glyph.
-    if (code == 0x0644 && index + 1 < codes.length) {
-      final int next = codes[index + 1];
-      if (_lamAlefFinal.containsKey(next)) {
+    // Lam followed by an alef collapses into one glyph — with a vowel on the
+    // lam too: «أولًا» and «سجلًا» are written with the ligature, the tanween
+    // above it. Only a real mark is looked past; a zero-width non-joiner is
+    // there to stop the ligature.
+    if (code == 0x0644) {
+      int alef = index + 1;
+      while (alef < codes.length &&
+          isCombiningMark(codes[alef]) &&
+          codes[alef] != 0x200C &&
+          codes[alef] != 0x200D) {
+        alef++;
+      }
+      if (alef < codes.length && _lamAlefFinal.containsKey(codes[alef])) {
         // The ligature has two forms and the choice is the same question every
         // other letter answers: does the letter *before* it join forward? A lam
         // after an alef, a waw or a dal is not connected to it, so the ligature
@@ -156,9 +173,11 @@ String shapeArabic(String input) {
         final int? previous = _previousShapingCode(codes, index);
         final bool joinsBefore = previous != null && _joinsForward(previous);
         out.add(
-          (joinsBefore ? _lamAlefFinal : _lamAlefIsolated)[next]!,
+          (joinsBefore ? _lamAlefFinal : _lamAlefIsolated)[codes[alef]]!,
         );
-        index += 2;
+        // The lam's marks are drawn on the ligature, after it.
+        out.addAll(codes.sublist(index + 1, alef));
+        index = alef + 1;
         continue;
       }
     }
@@ -178,10 +197,13 @@ String shapeArabic(String input) {
     final int? previous = _previousShapingCode(codes, index);
     final int? next = _nextShapingCode(codes, index);
 
-    // A letter connects to the previous one only if that letter joins forward,
-    // and to the next one only if it joins forward itself.
-    final bool connectsBefore = previous != null && _joinsForward(previous);
-    final bool connectsAfter = next != null && _joinsForward(code);
+    // A join takes two letters: the first has to join forward and the second
+    // has to accept it.
+    final bool connectsBefore = previous != null &&
+        _joinsForward(previous) &&
+        _joinsBackward(code);
+    final bool connectsAfter =
+        next != null && _joinsForward(code) && _joinsBackward(next);
 
     final _LetterForms forms = _forms[code]!;
     final int shaped;

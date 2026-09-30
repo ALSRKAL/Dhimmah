@@ -9,6 +9,7 @@ import 'package:dhimmah/core/formatting/app_formatting.dart';
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/notifications/notification_composer.dart';
 import 'package:dhimmah/core/notifications/notification_service.dart';
+import 'package:dhimmah/core/security/biometric_service.dart';
 import 'package:dhimmah/core/security/pin_service.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/data/database/app_database.dart';
@@ -40,8 +41,14 @@ import 'package:flutter_test/flutter_test.dart';
 /// navigation or to a shared widget shows up here instead of only on a device.
 /// [notifications] lets a test hand the service a fake platform, so the
 /// delivery policy can be driven without a phone.
-LedgerService buildService(AppDatabase db, {NotificationService? notifications}) {
-  final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
+/// [language] is the language the service writes notifications in — Arabic,
+/// like the phone the suite runs on, unless a test is about another one.
+LedgerService buildService(
+  AppDatabase db, {
+  NotificationService? notifications,
+  AppLanguage language = AppLanguage.arabic,
+}) {
+  final AppLocalizations l10n = lookupAppLocalizations(Locale(language.code));
   return LedgerService(
     database: db,
     people: PersonRepositoryImpl(db),
@@ -56,7 +63,7 @@ LedgerService buildService(AppDatabase db, {NotificationService? notifications})
     composer: () => NotificationComposer(
       localizations: l10n,
       formatting: AppFormatting(
-        language: AppLanguage.arabic,
+        language: language,
         numerals: NumeralsStyle.latin,
         defaultCurrency: AppCurrency.inr,
         localizations: l10n,
@@ -196,6 +203,9 @@ class FakePinService implements PinService {
 
 /// Pumps the whole app against [db].
 ///
+/// [clock] stands in for the wall clock everywhere the app reads the time
+/// through `clockProvider`, so a test can move time instead of waiting for it.
+///
 /// Returns the container the app was built on, so a test that needs to wait for
 /// a real asynchronous step — a directory read, a file write — can watch the
 /// provider that holds its result instead of guessing how many frames to pump.
@@ -209,13 +219,17 @@ Future<ProviderContainer> pumpDhimmah(
   Directory? backupDirectory,
   BackupLocationRepository? backupFolders,
   PinService? pinService,
+  BiometricService? biometricService,
   Future<bool> Function(Uri)? urlOpener,
+  NotificationService? notificationService,
+  DateTime Function()? clock,
+  bool firstFrameOnly = false,
 }) async {
   if (settings != null) {
     await db.settingsDao.replace(
       Setting(
         id: Settings.singletonId,
-        language: settings.language,
+        languagePreference: settings.languagePreference,
         themeMode: settings.themeMode,
         numerals: settings.numerals,
         defaultCurrencyCode: settings.defaultCurrency.code,
@@ -257,10 +271,19 @@ Future<ProviderContainer> pumpDhimmah(
       if (backupFolders != null)
         backupLocationRepositoryProvider.overrideWithValue(backupFolders),
       if (pinService != null) pinServiceProvider.overrideWithValue(pinService),
+      if (biometricService != null)
+        biometricServiceProvider.overrideWithValue(biometricService),
       if (urlOpener != null) urlOpenerProvider.overrideWithValue(urlOpener),
+      if (notificationService != null)
+        notificationServiceProvider.overrideWithValue(notificationService),
+      if (clock != null) clockProvider.overrideWithValue(clock),
     ],
   );
   addTearDown(container.dispose);
+
+  // What `main` does before `runApp`, so the first frame a test sees is the one
+  // a phone would draw: already in the stored language and theme.
+  await loadBootSettings(container);
 
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -268,6 +291,8 @@ Future<ProviderContainer> pumpDhimmah(
       child: DhimmahApp(onboardingCompleted: onboardingCompleted),
     ),
   );
+  // What a phone draws before anything asynchronous has answered.
+  if (firstFrameOnly) return container;
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
   return container;

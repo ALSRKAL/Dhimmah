@@ -267,7 +267,14 @@ class MonthlySummaries extends Table {
 /// User preferences. Exactly one row, pinned to [singletonId].
 class Settings extends Table {
   IntColumn get id => integer()();
-  TextColumn get language => textEnum<AppLanguage>()();
+
+  /// `system`, `arabic` or `english`: a [LanguagePreference], not a language.
+  ///
+  /// The column keeps its name. Every row written before version 5 holds
+  /// `arabic` or `english`, which are already valid preferences, so the values
+  /// carry over untouched and only the new one, `system`, is added.
+  TextColumn get languagePreference =>
+      textEnum<LanguagePreference>().named('language')();
   TextColumn get themeMode => textEnum<AppThemeMode>()();
   TextColumn get numerals => textEnum<NumeralsStyle>()();
   TextColumn get defaultCurrencyCode => text().withLength(min: 3, max: 3)();

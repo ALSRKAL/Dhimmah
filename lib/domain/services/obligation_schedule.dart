@@ -33,14 +33,30 @@ abstract final class ObligationSchedule {
     final DateTime anchor = anchorFor(obligation);
     final int step = obligation.effectiveInterval;
     if (n <= 0) return anchor;
+    final int? day = obligation.dayOfMonth;
     return switch (obligation.frequency) {
       RecurrenceFrequency.weekly => addDays(anchor, 7 * step * n),
-      RecurrenceFrequency.monthly => addMonths(anchor, step * n),
-      RecurrenceFrequency.quarterly => addMonths(anchor, 3 * step * n),
-      RecurrenceFrequency.yearly => addYears(anchor, step * n),
-      RecurrenceFrequency.custom => addMonths(anchor, step * n),
+      RecurrenceFrequency.monthly => _monthsAfter(anchor, step * n, day),
+      RecurrenceFrequency.quarterly => _monthsAfter(anchor, 3 * step * n, day),
+      RecurrenceFrequency.yearly => day == null
+          ? addYears(anchor, step * n)
+          : _monthsAfter(anchor, 12 * step * n, day),
+      RecurrenceFrequency.custom => _monthsAfter(anchor, step * n, day),
       RecurrenceFrequency.none => anchor,
     };
+  }
+
+  /// [months] after [anchor]'s month, on the chosen [day] — or the anchor's own
+  /// day when none was chosen — clamped to what that month has.
+  ///
+  /// The chosen day, not the anchor's: the anchor is clamped to its own month,
+  /// so a commitment on "the 31st" that started in February had an anchor of
+  /// the 28th, and stepping from it kept the 28th in every month after.
+  static DateTime _monthsAfter(DateTime anchor, int months, int? day) {
+    final DateTime month = addMonths(DateTime(anchor.year, anchor.month), months);
+    final int wanted = day ?? anchor.day;
+    final int last = daysInMonth(month.year, month.month);
+    return DateTime(month.year, month.month, wanted < last ? wanted : last);
   }
 
   /// Smallest period index whose due date is on or after [target].
@@ -109,10 +125,15 @@ abstract final class ObligationSchedule {
   }
 
   /// A stable key for the period a due date belongs to.
+  ///
+  /// A weekly key names the ISO week *and the year that week belongs to*. The
+  /// calendar year used to be written instead, and the last days of December
+  /// can be week 1 of the next year: 31 December 2025 was keyed `2025-W01`,
+  /// the key 1 January 2025 already had, so that period was never created.
   static String periodKeyFor(RecurrenceFrequency frequency, DateTime dueAt) {
     return switch (frequency) {
       RecurrenceFrequency.weekly =>
-        '${dueAt.year}-W${_isoWeekNumber(dueAt).toString().padLeft(2, '0')}',
+        '${_isoWeekYear(dueAt)}-W${_isoWeekNumber(dueAt).toString().padLeft(2, '0')}',
       RecurrenceFrequency.quarterly =>
         '${dueAt.year}-Q${((dueAt.month - 1) ~/ 3) + 1}',
       RecurrenceFrequency.yearly => '${dueAt.year}',
@@ -163,4 +184,8 @@ abstract final class ObligationSchedule {
         addDays(januaryFourth, DateTime.thursday - januaryFourth.weekday);
     return (daysBetween(firstThursday, thursday) ~/ 7) + 1;
   }
+
+  /// The year an ISO week belongs to: the year of its Thursday.
+  static int _isoWeekYear(DateTime date) =>
+      addDays(date, DateTime.thursday - date.weekday).year;
 }

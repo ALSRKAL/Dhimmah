@@ -4,7 +4,8 @@
 
 A personal ledger for the two sides of your financial life: the money you owe
 people, the money people owe you, and the commitments that come back every month.
-Offline-first, Arabic-first, and designed to be understood in under a minute.
+Offline-first, in the phone's own language — Arabic or English — and designed
+to be understood in under a minute.
 
 ---
 
@@ -60,27 +61,44 @@ never a guess.
 ## The statement PDF
 
 Press **مشاركة كشف** on a person and Dhimmah builds a real financial document:
-header with the mark and a document number, the account summary, a payment history
-with a running balance, a status badge, and a footer with the file's own ID on
-every page. The recipient sees a statement, not a picture of an app.
+header with the mark and a document number, the account summary, the history in
+date order with a running balance, a status badge, and a footer with the
+document number and the page on every page. The recipient sees a statement, not
+a picture of an app.
 
-Arabic is the hard part, and it is handled in two halves that are deliberately
-in different places:
+What it states follows the person's page. With every debt on one side, the
+summary gives the total, what was paid and what is left, and names the side —
+«المتبقي عليّ» or «المتبقي لي» — because a figure alone does not say who owes
+whom. With debts both ways it gives each side and the difference («الصافي عليّ»
+/ «الصافي لي»), never a total adding the two, and the history's running balance
+is that same net, with its side beside it. Each history line says which side it
+is on and, when there is more than one debt, which debt. A statement of a single
+debt names the debt.
 
-* **Shaping is ours.** The PDF library lays text out glyph by glyph and applies no
-  OpenType features, so Arabic handed to it raw comes out as disconnected letters.
-  `core/pdf/arabic_shaper.dart` substitutes the contextual form each letter takes
-  — and the obligatory lam-alef ligatures — in the Unicode presentation forms,
-  which the bundled font covers. Shadda-and-vowel pairs the algorithm composes
-  into legacy ligatures the font does *not* have are expanded back, so no code
-  point can reach the page without a glyph.
-* **Ordering, wrapping and alignment are the renderer's.** The text is handed over
-  in logical order with a right-to-left direction, and the renderer applies the
-  Unicode bidirectional algorithm, arranges each line from the reading side, and
-  breaks lines in logical order. Doing the reordering here instead — which this
-  file used to do — meant the width that was measured belonged to one string and
-  the width that was drawn to another, and a long debt title was printed past the
-  margin and clipped.
+Arabic is the hard part. The PDF library draws glyph by glyph and applies no
+OpenType features, and its own right-to-left handling spaces words by their ink
+rather than their advance (which closed «30 سبتمبر 2026» into «سبتمبر2026»),
+re-shapes what it is handed, and throws on a paragraph that opens with «لا». So
+Arabic is set here, not by the renderer:
+
+* **Shaping.** `core/pdf/arabic_shaper.dart` substitutes the contextual form each
+  letter takes, and the obligatory lam-alef ligatures, in the Unicode
+  presentation forms the bundled font covers. Marks the page cannot draw are
+  dealt with first: a shadda keeps no vowel to be composed with (the pair would
+  become a ligature the font lacks, printed as a box), and a kasra is dropped
+  rather than printed above its letter, where it reads as a fatha.
+* **Lines, then words.** Text is broken into lines at its spaces, in logical
+  order, against the width it actually has. Each line's words are then put in
+  drawing order — the bidirectional algorithm at the level of whole words, a
+  number or a Latin name keeping its own order — and drawn one at a time, left
+  to right, a space apart. A word of Arabic letters is handed over already
+  reversed, so it is placed by its advance like any other word. The width that
+  is measured is the width that is drawn, and a test checks that no run leaves
+  the margins.
+* **The renderer's own pass, only where it must.** A word this file cannot order
+  (letters and digits together) or cannot fit on a line of its own is left to
+  the renderer, and such a line opens with a right-to-left mark: it changes
+  nothing that is drawn, and it stops the throw.
 * **Direction is decided per string, not per document.** A Latin or numeric string
   is drawn left-to-right even in an Arabic statement, because the renderer
   reorders every right-to-left paragraph by reversing its words and `₹ 45,500`
@@ -95,9 +113,13 @@ in different places:
 The document is checked two ways: rasterised and looked at, and — for the
 regression — read back. `test/core/pdf/statement_geometry_test.dart` parses the
 finished file's own drawing instructions, works out where every run of text
-lands, and asserts that nothing is drawn outside the margins and that a
-right-to-left line reads in the order a person reads it. One of its tests draws a
-deliberately overflowing line to prove the check can fail.
+lands, and asserts that nothing is drawn outside the margins, that a
+right-to-left line reads in the order a person reads it, that a date keeps the
+space before its year, and that every character on the page has a glyph in the
+font. One of its tests draws a deliberately overflowing line to prove the check
+can fail. `test/core/arabic_shaper_test.dart` draws every Arabic word the app
+writes the way the statement does and compares it with the renderer's own
+ordering, which is how the two places the renderer gets Arabic wrong were found.
 
 ---
 
@@ -114,7 +136,7 @@ Requires Flutter 3.44+ / Dart 3.12+. SQLite is bundled through Dart's
 native-assets build hooks, so there is no extra database setup on any platform.
 
 ```bash
-flutter test                       # 333 tests
+flutter test                       # 888 tests
 flutter analyze                    # clean
 python3 tool/generate_icons.py     # rebuild every icon from the master artwork
 flutter build apk --release
@@ -122,6 +144,11 @@ flutter build apk --release
 # Inspect the statement as a document (writes build/qa/*.pdf)
 flutter test test/tool/generate_statement_samples_test.dart
 pdftoppm -r 110 -png build/qa/ar-multipage.pdf build/qa/page
+
+# Look at onboarding and the language picker: both languages, both themes,
+# 390×844 and 360×640 at 1.5x text (writes build/qa/onboarding/*.png)
+flutter test --update-goldens --dart-define=DHIMMAH_QA=true \
+  test/tool/render_onboarding_test.dart
 ```
 
 ---
@@ -215,16 +242,66 @@ so the app builds and ships without it.
 
 ## Language and direction
 
-Arabic is the default and English is complete. Direction is derived from the
-language rather than set anywhere, so RTL is real layout mirroring, not a text
-flip. No user-facing string is hardcoded — everything comes from `lib/l10n/arb/`,
-including the notifications, which are composed from the same ARB files as the
-screen they open.
+Arabic and English are both complete, and **the app is in the phone's
+language**: an Arabic phone opens in Arabic, an English one in English, and a phone
+in neither opens in English. The first language on the phone's own list that the
+app ships wins, so someone who reads French first and Arabic second gets Arabic.
+Change the phone's language while Dhimmah is open and the app changes with it —
+screens, dates, numbers, the statement and the reminders already scheduled.
+
+An install from before this version follows the phone too: every one of them was
+given Arabic without the phone being asked, so the upgrade hands a stored Arabic
+back to the phone, and keeps an English that someone chose.
+
+Settings → Language offers **لغة الجهاز / Device language** (the default) and each
+language by its own name. What is stored is the *preference* — `system`, `arabic`
+or `english` — never the resolved language, which is worked out in exactly one
+place (`appLanguageProvider`) from the preference and the phone. Android 13+ also
+lists both languages in the system's per-app language setting
+(`res/xml/locales_config.xml`).
+
+The first frame is already right. `main` reads the settings row before `runApp`
+and seeds it into the providers (`loadBootSettings`), because the live settings
+stream answers a frame late — which is how an English, or dark, user used to see
+the app open in Arabic, or light, and then change under them.
+
+Direction is derived from the language rather than set anywhere, so RTL is real
+layout mirroring, not a text flip. No user-facing string is hardcoded — everything
+comes from `lib/l10n/arb/`, including the notifications, which are composed from
+the same ARB files as the screen they open, and are re-worded in place when the
+language changes.
 
 Amounts are wrapped in Unicode bidi isolates so `₹ 50,000` stays one
 left-to-right unit inside an Arabic paragraph. Digit shapes follow a separate
 setting (Western or Arabic-Indic) applied after formatting, because `intl`
 silently ignores a numbering-system request and returns Western digits either way.
+
+A text field takes its direction from what is in it — the first letter decides,
+digits alone run left to right, an empty field follows the app — while its text
+stays on the app's reading side (`core/widgets/directional_field.dart`). A tap
+on the empty part of a field beside a line puts the caret at the end of that
+line, and a tap on the text puts it where the finger landed. Left to the
+framework, a tap beside «1500» or «Ahmed» in an Arabic field put the caret
+before the first character, and the next keystroke landed there. Amounts are
+always left to right.
+
+### The currency of where the phone is
+
+Every currency picker — onboarding, Settings, the debt and commitment forms —
+offers the currency of the place the phone is in first, marked
+**مقترحة حسب منطقتك / Suggested for your region**. It is worked out from the
+phone's time zone (`Asia/Aden` → YER, `Asia/Kolkata` → INR), which the network
+usually sets and which moves with the phone, and, when there is no zone, from the
+region of the phone's languages (`ar_YE`). No location permission is asked for
+and nothing leaves the device (`core/money/region_currency.dart`).
+
+On a fresh install the suggestion is also already chosen, so onboarding's
+"Next" and "Skip" both store it. A default the user has stored is never changed
+by it: afterwards it is only offered, and it follows the phone to another
+country on the next return to the app. A place whose currency Dhimmah does not
+record in — Cairo, Kuwait, Muscat — gets no suggestion, not a neighbour's: the
+app has seven currencies, all with two decimals, and Kuwait's, Bahrain's,
+Oman's and Jordan's dinars have three.
 
 ---
 
@@ -351,66 +428,59 @@ it:
 ## Testing
 
 ```
-test/domain/        77 tests — balances, statuses, schedules, month arithmetic,
+test/domain/       128 tests — balances, statuses, schedules, month arithmetic,
                                the attention list, the monthly insight, what the
-                               planner decides to schedule and when, and what the
-                               service refuses to store
-test/core/         122 tests — the notification delivery policy against a fake
+                               planner decides to schedule and when, what the
+                               service refuses to store, which language a
+                               phone's language list resolves to, and a
+                               statement's history and sides
+test/core/         190 tests — the notification delivery policy against a fake
                                platform (idempotent scheduling, reconciliation,
-                               the cap, permission and timezone changes, the
-                               cold-start tap), plus Arabic shaping and bidi,
-                               amount parsing, currency
-                               formatting, numerals, date phrasing, the WCAG
-                               contrast of every colour pair in both themes, that
-                               English is really English, and the statement's own
-                               geometry read back out of the finished PDF,
-                               including a record linked to several people
-test/data/          69 tests — schema, converters, constraints, the link table's
+                               re-wording in place, the cap, permission and
+                               timezone changes, the cold-start tap), plus Arabic
+                               shaping and bidi, every Arabic word the app
+                               writes against the PDF renderer's own ordering,
+                               Arabic search folding, amount parsing, currency
+                               formatting, the currency a time zone or region
+                               suggests, which way a typed field runs, numerals,
+                               date phrasing, the WCAG contrast of every colour
+                               pair in both themes, that English is really
+                               English and both ARB files hold the same keys,
+                               and the statement's own geometry read back out
+                               of the finished PDF
+test/data/         292 tests — schema, converters, constraints, the link table's
                                own rules, clearing fields, opening a database
-                               written by an earlier build (both upgrade paths),
-                               several people on one record, what an export
-                               contains, and the reminder lifecycle: every way a
-                               notification can be created, moved, cancelled,
-                               paid off or lost, plus the read the plan costs
-test/integration/   27 tests — the service against a real SQLite database,
+                               written by every earlier version, several people
+                               on one record, backups and restores, the language
+                               preference across a restart and a backup, and the
+                               reminder lifecycle — including one pass at a time
+test/integration/   39 tests — the service against a real SQLite database,
                                including a record edited, closed and reopened from
-                               the file it was written to
-test/widget/        97 tests — the real UI driven end to end: onboarding, recording,
-                               RTL, dark mode, the statement screen, the
-                               open-a-person-pay-and-share journey, editing every
-                               field of a record without losing it, required
-                               fields and their errors, the refusal-and-retry
-                               walk-through, adding a debt from a person, one
-                               record linked to three people read on each of
-                               their pages with nobody else named, layout
-                               at 1.0x/1.3x/1.5x text scale on a
-                               360px screen, the places where a number must *not*
-                               mirror, the update card in both languages and both
-                               themes, and an About screen that prints the
-                               installed version rather than a hardcoded one
-test/app/           34 tests — the start-up failure path (a schema from the
-                               future is recognised, the screen names the cause
-                               in both languages, never shows the raw error, and
-                               survives 1.5x text scale), and the update
-                               controller's state machine: one flow per tap, the
-                               cooldown, the resume rules, and what a refusal
-                               from Play does
-test/platform/       9 tests — the Android declarations that no Dart test can see:
-                               the activity can host a biometric prompt, the
-                               permission is declared, a platform refusal is
-                               classified apart from a user cancel, the update
-                               channel names agree across the bridge, the Play
-                               library is the per-feature one, and the update
-                               path cannot reach the ledger
-test/performance/    7 tests — two scale measurements (500/2,500/10,000 and
-                               1,000/10,000/50,000, print only) and the proof that
-                               the SQL aggregate returns exactly what summing the
-                               rows in Dart returned, for multi-person records too
-test/tool/           6 tests — the seed and statement generators and the
-                               query-plan and write profiles
+                               the file it was written to, and a deleted record
+                               undone with its history
+test/widget/       223 tests — the real UI driven end to end: onboarding in the
+                               phone's language from the first frame, the
+                               language switch, following a phone that changes
+                               language, recording, RTL, dark mode, the statement
+                               screen, editing every field of a record, required
+                               fields and their errors, one record linked to three
+                               people, layout at 1.0x/1.3x/1.5x text on a 360px
+                               screen, the places where a number must *not*
+                               mirror, the caret staying where a tap puts it, the
+                               region's currency offered first in every picker,
+                               and the update card in both languages
+test/app/           35 tests — the start-up failure path and the update
+                               controller's state machine
+test/platform/      27 tests — the Android declarations that no Dart test can
+                               see, and the file gateway
+test/performance/    7 tests — two scale measurements (print only) and the proof
+                               that the SQL aggregate matches the Dart sum
+test/tool/          16 tests — the seed and statement generators and the
+                               query-plan and write profiles (plus a screenshot
+                               renderer that only runs when asked, below)
 ```
 
-448 tests. Several exist to hold a decision in place rather than to check a
+957 tests. Several exist to hold a decision in place rather than to check a
 behaviour: the contrast test, the design invariants (one focus figure and one
 primary action per screen, the person page's single balance), and the two journeys
 driven the way a person drives them — open someone, record a payment, watch the
@@ -434,7 +504,9 @@ regression test:
    through a companion with every value present.
 4. **Boxes in the middle of Arabic words.** The bidirectional algorithm composes
    shadda-and-vowel pairs into ligatures the chosen font does not contain. The
-   shaping pipeline now expands them, and a font-coverage test guards the rest.
+   pipeline first expanded them again, which only handed the renderer the pair
+   to compose once more (61, below); a shadda now keeps no vowel, and a test
+   fails if any character on the page has no glyph in the font.
 5. **A PIN keypad that read 3 2 1.** The keypad was laid out with the app's own
    direction, so the top row printed backwards and the dots filled from the wrong
    end — a four-digit code read backwards to the person unlocking their own
@@ -455,10 +527,10 @@ regression test:
    string in its logical form and the page drew it in its shaped form, and on
    Arabic the two disagree by about a third: a 22-character title measured 122pt
    and drew at 92pt. The cell had room to spare and still pushed its last word
-   past the margin, where it was clipped. Wrapping is now the renderer's, so the
-   width that is measured and the width that is drawn are the same string; a test
-   reads every run back out of the finished file and fails if any leaves the
-   margins.
+   past the margin, where it was clipped. Lines are now broken against the
+   shaped words that are drawn, measured with the font's own advances, so the
+   width that is measured is the width that is drawn; a test reads every run
+   back out of the finished file and fails if any leaves the margins.
 6. **A statement ending in a blank page.** The closing note could spill onto a
    page of its own; it now lives in the footer, which repeats on every page.
 7. **Two add buttons stacked on top of each other.** A screen that became a
@@ -660,6 +732,142 @@ regression test:
     two passes over the same records could choose different members of a tie and
     Android would cancel and re-schedule a reminder for no reason at all. Ties
     are now broken by id, which makes the choice a function of the records alone.
+
+40. **An app that never asked the phone which language it was in.** The
+    language was a stored setting seeded with Arabic, so an English phone opened
+    in Arabic and had to find the setting four screens into onboarding. The
+    stored value is now a preference whose default is the phone. Version 5 of the
+    schema hands every stored Arabic back to the phone — onboarded, skipped or
+    neither, it was the seed and not a choice — and keeps a stored English,
+    which only a tap could have written. A backup file from before version 5 is
+    read the same way, so restoring one does not pin Arabic again. Verified by
+    installing 1.0.1 over 1.0.0 on an English-language emulator: every row
+    identical, the one changed value `settings.language` (`arabic` → `system`),
+    the PIN still unlocking, and the app in English.
+41. **A first frame in somebody else's settings.** The providers drew the
+    defaults until the settings stream answered, one query later — so a user who
+    had chosen English, or dark, watched the app open in Arabic, or light, and
+    switch under them. The row read before `runApp` is now the app's starting
+    state.
+42. **Reminders in the language the user had left.** Reconciliation matched
+    pending notifications by id alone, and the id is the record, the kind and the
+    moment — not the words. After a change of language every reminder already
+    armed still arrived in the old one. It now compares the words the platform is
+    holding and re-schedules the ones that differ in place, under the same id,
+    and renames the channels the system settings list.
+43. **Two reminder passes racing.** A save and a change of language arriving
+    together ran two rebuilds at once, and whichever finished last won — even
+    when it had read the older records. Passes now run one at a time, and every
+    caller that arrives while one runs shares the single pass after it.
+
+44. **Reminders that stated the wrong number of days.** A reminder's "in N days"
+    was counted from the day the plan ran, not the day it arrives, so a reminder
+    planned six days out arrived the day before the deadline saying «خلال 6
+    أيام», and the nudge after the deadline said the debt was due in the future.
+    It is now counted from the moment of delivery — which also keeps the words
+    the same from one day to the next, so re-wording in place never re-schedules
+    the whole set daily. The first launch after the update corrects the
+    reminders an older build left behind, under the same ids.
+
+Found in a review of the whole app, and fixed with a regression test each:
+
+45. **Editing a payment recorded a second one.** "Edit" opened the sheet for a
+    new payment, so a correction was saved beside the original, and "pay in
+    full" saved the balance while the field still showed the typed amount. The
+    sheet now edits the payment it was given and writes what it saves into the
+    field. A correction that pays a debt off closes it exactly as a payment does.
+46. **A month-end summary that was never armed, about the wrong money.** It only
+    ever arrived as a catch-up on the next launch; its "paid" added lifetime
+    totals; and a catch-up recorded the day it arrived, so the next month's
+    summary was skipped. It is now armed in the last three days before its
+    moment, "paid" is that month's payments, and the month it summarises is what
+    is recorded. A month's report no longer changes when a later payment arrives,
+    and skipped periods are not money due.
+47. **Notification taps that went nowhere, or twice.** The backup alert matched
+    no route, a month-end summary opened the current month, a second tap stacked
+    a second copy of the page, and an unknown location printed the router's
+    exception in English. Each now opens its own page once, and a missing record
+    says so in the app's language.
+48. **Commitment periods nobody scheduled.** Changing monthly to weekly filled
+    in a late week for each of the last two months; undoing a payment left its
+    paid date behind; paying the last period archived a commitment with earlier
+    periods unpaid; a 31st started in February stayed on the 28th; and
+    31 December was keyed like 1 January. A schedule is now only extended after
+    its last period, and "next due" is decided in one place.
+49. **A ledger drawn unlocked for its first frames.** The lock read settings that
+    had not arrived yet, and locking tore the navigator down, losing a half-typed
+    form and any answer from a system picker. It now reads the settings seeded
+    before the first frame, and the app stays mounted, unpainted, beneath it.
+50. **A safety copy that did not hold the newest records.** Deleting everything
+    skipped the safety copy whenever one was under ten minutes old, even with
+    records added since. A recent copy now stands in only when nothing has
+    changed; a ledger of reminders alone is no longer "empty"; and a CSV cell
+    that starts like a formula opens as text.
+51. **"Late" that added up six debts.** The attention figures were summed from the
+    dashboard's display lists, which stop at six debts and four periods, and a
+    commitment counted only its oldest period. They now count everything late or
+    due, and a ledger of commitments alone is no longer shown as empty.
+52. **«احمد» could not find «أحمد».** Search and the people picker compared raw
+    text. Both now fold the hamza forms, ى and ي, ة and ه, vowel marks, the
+    tatweel and Arabic-Indic digits.
+53. **"Deleted" before anything was deleted.** A reminder's delete was fired
+    without waiting and announced at once, so a failed one was reported as done;
+    a failed delete or undo of a debt was an error nothing caught; and saving an
+    edited reminder said "created". Each now says what actually happened.
+54. **An undo that rewrote history.** Undoing a debt's deletion replaced its feed
+    with one new "created" entry, and failed outright if a person on the record
+    had been deleted in between. The feed comes back as it was, and a missing
+    person is left out.
+55. **Yesterday's deadline still "due today".** The day moved only when the app
+    came back from the background, so a ledger left open overnight kept the old
+    one. It now turns over at midnight.
+56. **Three small ones.** A second tap on the start-up retry opened a second
+    database connection; editing a repeating debt erased the end of its series;
+    and `184467440737095517` parsed as 0.84, because the multiplication wrapped
+    round before the limit was checked.
+
+Found on the phone, in the statement, and in first use:
+
+57. **The caret jumped to the start of the field.** In an Arabic field, a tap on
+    the empty stretch beside «1500» or «Ahmed» — where a thumb usually lands —
+    put the caret before the first character, because the framework puts it at
+    the character painted nearest the tap. The next keystroke went there and
+    scrambled the text. A tap beside a line now goes to that line's end, a tap
+    on the text stays where it landed, and a field takes its direction from what
+    is typed in it, in both languages.
+58. **A statement that added the two sides together.** With debts both ways the
+    summary's total, paid and remaining were sums of what the user owed and what
+    they were owed, and described nobody's position. The history was one block
+    per debt instead of one account in date order, a payment did not say which
+    debt it paid, «كشف حساب» appeared twice, a one-debt statement never named
+    its debt, and the footer carried a second, unexplained code. Each is now
+    stated as the person's page states it.
+59. **«سبتمبر2026».** The renderer places the words of a right-to-left line by
+    their ink rather than their advance, so every gap moved by the difference
+    between two words' side margins, and beside a number it closed. Arabic is now
+    set word by word, and the date test compares the gaps on both sides of the
+    month.
+60. **Statements that could not be generated at all.** The renderer's
+    bidirectional pass throws on a paragraph that opens with «لا» or a vowelled
+    «أ», so there was no statement for «لانا», or with a debt called «لابتوب».
+    Run over every Arabic string in the app and each of its words, 58 threw,
+    every one on its first letter. Arabic no longer goes through that pass
+    unless it has to, and what does starts with a right-to-left mark; a
+    negative control keeps the crash on record.
+61. **A box where «دَّ» was, and a kasra that read as a fatha.** Fix 4 only handed
+    the renderer the pair to join again. The shadda now keeps no vowel, and the
+    kasra, which the font draws above its letter, is dropped.
+62. **An Arabic table with its column widths swapped.** The renderer keys a width
+    by where a cell is drawn, and an Arabic table draws its columns in reverse,
+    so the debt title was squeezed into the due date's narrow column.
+63. **Three words the shaper got wrong.** «شيء» had a medial ي reaching for a
+    hamza that joins nothing, «أولًا» and «سجلًا» lost their lam-alef to the
+    tanween on the lam, and the Arabic dual «ديان» is not a word: «دينان»,
+    «دينين».
+64. **A Yemeni phone started in rupees.** Every picker listed the currencies in
+    one fixed order and a fresh install defaulted to the first. The currency of
+    the place the phone is in now comes first, marked, and is already chosen on
+    a fresh install — with no location permission.
 
 ### On a device
 
