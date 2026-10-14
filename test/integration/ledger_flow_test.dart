@@ -840,7 +840,8 @@ void main() {
     test('still works when a person on it was deleted in between', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
-      final Debt debt = await service.createDebt(
+      final Debt debt = await createLegacySharedDebt(
+        service,
         DebtDraft(
           direction: DebtDirection.iOwe,
           personIds: <String>[ahmed.id, ali.id],
@@ -850,9 +851,11 @@ void main() {
         ),
       );
       // Paid by the first person on the record, which is Ahmed.
-      await service.recordPayment(
-        debt.id,
-        PaymentDraft(amountMinor: 1000000, paidAt: clock),
+      await recordLegacyPayment(
+        service,
+        debt,
+        amountMinor: 1000000,
+        paidAt: clock,
       );
 
       final LedgerServiceSnapshot snapshot =
@@ -934,19 +937,23 @@ void main() {
       final Person ali = await firstService.createPerson(
         const PersonDraft(name: 'علي'),
       );
-      final Debt debt = await firstService.createDebt(
+      // A legacy shared row: edits keep maintaining its own participants.
+      final Debt debt = await createLegacySharedDebt(
+        firstService,
         DebtDraft(
           direction: DebtDirection.iOwe,
-          personIds: <String>[ahmed.id],
+          personIds: <String>[ahmed.id, ali.id],
           title: 'قرض',
           principalMinor: 1000000,
           currency: AppCurrency.inr,
           issuedAt: clock,
         ),
       );
-      await firstService.recordPayment(
-        debt.id,
-        PaymentDraft(amountMinor: 250000, paidAt: clock),
+      await recordLegacyPayment(
+        firstService,
+        debt,
+        amountMinor: 250000,
+        paidAt: clock,
       );
       await firstService.updateDebt(
         debt.id,

@@ -21,9 +21,9 @@ import '../support/store_demo_seed.dart';
 /// The screenshots are photographs of this ledger, so this is where the claims
 /// the listing makes about its own numbers are checked: the flagship record
 /// reads 1,500 borrowed, 500 repaid and 1,000 still owed in the currency the
-/// listing is photographed in; one record belongs to two people and is listed
-/// on both their pages; the month has a paid period and an open one; and no
-/// amount anywhere renders as rupees.
+/// listing is photographed in; the shared expenses are one record per person,
+/// each listed on its own person's page; the month has a paid period and an
+/// open one; and no amount anywhere renders as rupees.
 ///
 ///   flutter test test/tool/store_dataset_test.dart
 void main() {
@@ -52,8 +52,8 @@ void main() {
 
     // --- The debts ----------------------------------------------------------
     final List<DebtRow> debts = await db.debtsDao.getAll();
-    expect(debts, hasLength(8), reason: 'eight records, varied in every way a '
-        'record can vary: overdue, settled, undated, two-person');
+    expect(debts, hasLength(9), reason: 'nine records, varied in every way a '
+        'record can vary: overdue, settled, undated, one per person');
     expect(
       debts.every((DebtRow debt) => debt.currencyCode == currency.code),
       isTrue,
@@ -83,22 +83,32 @@ void main() {
     expect(draw(totals[flagship.id]!.paidMinor), paid);
     expect(draw(flagship.principalMinor - totals[flagship.id]!.paidMinor), remaining);
 
-    // --- One record, two people --------------------------------------------
-    final DebtRow shared =
-        debts.singleWhere((DebtRow debt) => debt.title == copy.sharedExpensesTitle);
-    final List<String> participants = await db.debtsDao.participantsFor(shared.id);
-    expect(participants, hasLength(2));
-    // Each of the two reads it as an ordinary record of their own, and nobody
-    // else's page lists it.
+    // --- The shared expenses: one record per person -------------------------
+    final List<DebtRow> shared = debts
+        .where((DebtRow debt) => debt.title == copy.sharedExpensesTitle)
+        .toList();
+    expect(shared, hasLength(2),
+        reason: 'the same expenses with two people is two records');
+    final Map<String, String> ownerOf = <String, String>{
+      for (final DebtRow debt in shared)
+        debt.id: (await db.debtsDao.participantsFor(debt.id)).single,
+    };
+    expect(ownerOf.values.toSet(), hasLength(2));
+    // Each of the two reads their own as an ordinary record, and nobody
+    // else's page lists either.
     final List<String> everyone = (await db.peopleDao.getAll())
         .map((PersonRow person) => person.id)
         .toList();
     for (final String personId in everyone) {
-      final bool listed = (await db.debtsDao.getForPerson(personId))
-          .any((DebtRow debt) => debt.id == shared.id);
-      expect(listed, participants.contains(personId),
-          reason: 'a record is on the page of each of its people and no one '
-              'else’s');
+      final Set<String> listed = <String>{
+        for (final DebtRow debt in await db.debtsDao.getForPerson(personId))
+          debt.id,
+      };
+      for (final DebtRow debt in shared) {
+        expect(listed.contains(debt.id), ownerOf[debt.id] == personId,
+            reason: 'a record is on the page of its own person and no one '
+                'else’s');
+      }
     }
 
     // --- The recurring month ------------------------------------------------

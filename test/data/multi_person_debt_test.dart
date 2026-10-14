@@ -32,14 +32,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/app_harness.dart';
 
-/// One record, several people.
+/// One debt per person.
 ///
-/// The whole feature turns on a single invariant: **the money is counted once**.
-/// A debt linked to three people is one amount in the ledger, one line in a
-/// report, one payment history — and it appears on each participant's page as
-/// one of their own debts, in full and once: never multiplied by the number of
-/// people on it, and never divided between them either, because the product has
-/// no notion of a per-person share to divide by.
+/// Naming several people when recording a debt is a shortcut for recording the
+/// same debt with each of them: every participant gets an independent record
+/// carrying the full amount, and settling one record never touches another's
+/// balance. A full payment from one participant's page used to zero everyone
+/// at once, because the record was one shared pot — that is the bug this file
+/// pins shut.
+///
+/// Rows written before the fan-out still exist as one record naming several
+/// people. They are kept readable, refuse new payments until the user splits
+/// them after reviewing their history, and convert on demand.
 void main() {
   late AppDatabase db;
   late LedgerService service;
@@ -69,11 +73,12 @@ void main() {
       .watchDebtViews(dueSoonWindowDays: 7, asOf: today)
       .first;
 
-  Future<Debt> sharedDinner({
+  /// The same dinner with each of the people: one independent debt apiece.
+  Future<List<Debt>> dinnerFor({
     required List<Person> withPeople,
     int principalMinor = 150000,
   }) =>
-      service.createDebt(
+      service.createDebts(
         DebtDraft(
           direction: DebtDirection.owedToMe,
           personIds: withPeople.map((Person p) => p.id).toList(),
@@ -84,176 +89,185 @@ void main() {
         ),
       );
 
-  group('one record, several participants', () {
-    test('is stored as one debt with one link per person', () async {
+  /// The old shape: one row naming everyone, for the tests that cover how
+  /// surviving rows are read, paused and split.
+  Future<Debt> legacyDinner({
+    required List<Person> withPeople,
+    int principalMinor = 150000,
+  }) =>
+      createLegacySharedDebt(
+        service,
+        DebtDraft(
+          direction: DebtDirection.owedToMe,
+          personIds: withPeople.map((Person p) => p.id).toList(),
+          title: 'فاتورة العشاء',
+          principalMinor: principalMinor,
+          currency: AppCurrency.inr,
+          issuedAt: today,
+        ),
+      );
+
+  group('fan-out on create', () {
+    test('records one independent debt per participant, in full', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
       final Person mohammed = await addPerson('محمد');
 
-      final Debt debt = await sharedDinner(
+      final List<Debt> created = await dinnerFor(
         withPeople: <Person>[ahmed, ali, mohammed],
       );
 
-      // One debt row — not one per person, which is the shape this feature
-      // exists to prevent.
-      expect(await db.debtsDao.getAll(), hasLength(1));
+      // Three rows — not one shared row, which is the shape that settled
+      // everyone at once.
+      expect(created, hasLength(3));
+      expect(await db.debtsDao.getAll(), hasLength(3));
+      for (final Debt debt in created) {
+        expect(debt.personIds, hasLength(1));
+        expect(debt.isShared, isFalse);
+        expect(debt.principalMinor, 150000);
+      }
       expect(
-        await db.debtsDao.participantsFor(debt.id),
-        <String>[ahmed.id, ali.id, mohammed.id],
-        reason: 'the order is the user\'s, and it decides which person '
-            'single-valued fields read',
+        created.map((Debt d) => d.personIds.single).toSet(),
+        <String>{ahmed.id, ali.id, mohammed.id},
       );
-      expect(debt.isShared, isTrue);
-      expect(debt.personId, ahmed.id, reason: 'the first person named');
     });
 
-    test('keeps the record visible on every participant’s page', () async {
+    test('createDebt hands back the first of the independent debts',
+        () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
-      final Debt debt = await sharedDinner(withPeople: <Person>[ahmed, ali]);
+
+      final Debt first = await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.owedToMe,
+          personIds: <String>[ahmed.id, ali.id],
+          title: 'فاتورة العشاء',
+          principalMinor: 150000,
+          currency: AppCurrency.inr,
+          issuedAt: today,
+        ),
+      );
+
+      expect(first.personIds, <String>[ahmed.id]);
+      expect(await db.debtsDao.getAll(), hasLength(2));
+    });
+
+    test('a single participant still records exactly one debt', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final List<Debt> created = await dinnerFor(
+        withPeople: <Person>[ahmed],
+      );
+
+      expect(created, hasLength(1));
+      expect(await db.debtsDao.getAll(), hasLength(1));
+      expect(created.single.personIds, <String>[ahmed.id]);
+    });
+
+    test('every participant’s page holds only their own record', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      await dinnerFor(withPeople: <Person>[ahmed, ali]);
 
       for (final Person person in <Person>[ahmed, ali]) {
         final PersonLedger? ledger = await queries
             .watchPersonLedger(person.id, dueSoonWindowDays: 7, asOf: today)
             .first;
         expect(ledger, isNotNull);
-        expect(
-          ledger!.debts.map((DebtView v) => v.debt.id),
-          <String>[debt.id],
-          reason: '${person.name} is on this record',
-        );
-        expect(ledger.debts.single.participants, hasLength(2));
+        expect(ledger!.debts, hasLength(1));
+        expect(ledger.debts.single.debt.personIds, <String>[person.id]);
+        expect(ledger.debts.single.participants, hasLength(1));
+        expect(ledger.totals.single.owedToMeMinor, 150000);
+        expect(ledger.openDebtCount, 1);
       }
     });
 
-    test('counts the amount once in the ledger, not once per person', () async {
+    test('the ledger counts each independent record', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
       final Person mohammed = await addPerson('محمد');
-      await sharedDinner(withPeople: <Person>[ahmed, ali, mohammed]);
+      await dinnerFor(withPeople: <Person>[ahmed, ali, mohammed]);
 
       final List<DebtView> all = await views();
-      expect(all, hasLength(1));
+      expect(all, hasLength(3));
 
       final CurrencyTotals totals = DebtCalculator.totalsByCurrency(
         all,
         asOf: today,
         dueSoonWindowDays: 7,
       ).single;
-      expect(totals.owedToMeMinor, 150000);
-      expect(totals.owedToMeCount, 1);
+      // Three people each owe the full 1,500: three independent records.
+      expect(totals.owedToMeMinor, 450000);
+      expect(totals.owedToMeCount, 3);
     });
+  });
 
-    test('reads as one of each participant’s own debts', () async {
+  group('settling one record leaves the others alone', () {
+    test('a full payment settles only its own record', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
-      await sharedDinner(withPeople: <Person>[ahmed, ali]);
-
-      final PersonLedger ledger = (await queries
-          .watchPersonLedger(ahmed.id, dueSoonWindowDays: 7, asOf: today)
-          .first)!;
-
-      // Ahmed's page is about Ahmed's side of the record, so the record is one
-      // of his debts: 1,500 is the amount he sees — not a share of it, and not
-      // three times it.
-      expect(ledger.debts.single.displayNameFor(ahmed.id), 'فاتورة العشاء');
-      expect(ledger.totals.single.owedToMeMinor, 150000);
-      expect(ledger.totals.single.owedToMeCount, 1);
-      expect(ledger.totals.single.totalCount, 1);
-      expect(ledger.openDebtCount, 1, reason: 'it is still open money');
-    });
-
-    test('does not multiply a record by the number of people on it', () async {
-      final Person ahmed = await addPerson('أحمد');
-      final Person ali = await addPerson('علي');
-      final Person mohammed = await addPerson('محمد');
-      await sharedDinner(withPeople: <Person>[ahmed, ali, mohammed]);
-
-      // Each page states the record once, and the ledger — the only place the app
-      // adds records together — holds the same 1,500. There is no 4,500
-      // anywhere, and no page shows a fraction either.
-      for (final Person person in <Person>[ahmed, ali, mohammed]) {
-        final PersonLedger ledger = (await queries
-            .watchPersonLedger(person.id, dueSoonWindowDays: 7, asOf: today)
-            .first)!;
-        expect(
-          ledger.totals.single.owedToMeMinor,
-          150000,
-          reason: '${person.name} sees the record as one of their debts',
-        );
-      }
-
-      final int ledgerTotal = (await views()).fold<int>(
-        0,
-        (int sum, DebtView v) => sum + v.remainingMinor,
+      final List<Debt> created = await dinnerFor(
+        withPeople: <Person>[ahmed, ali],
       );
-      expect(ledgerTotal, 150000);
-    });
-
-    test('counts it once on each page of the people directory too', () async {
-      final Person ahmed = await addPerson('أحمد');
-      final Person ali = await addPerson('علي');
-      final Person salem = await addPerson('سالم');
-      await sharedDinner(withPeople: <Person>[ahmed, ali]);
-
-      // Salem's own debt, so the directory also holds a one-person record.
-      await service.createDebt(
-        DebtDraft(
-          direction: DebtDirection.owedToMe,
-          personIds: <String>[salem.id],
-          title: 'سلفة',
-          principalMinor: 100000,
-          currency: AppCurrency.inr,
-          issuedAt: today,
-        ),
-      );
-
-      final List<PersonDirectoryEntry> directory = await queries
-          .watchPersonDirectory(dueSoonWindowDays: 7, asOf: today)
-          .first;
-      final Map<String, PersonDirectoryEntry> byId = <String, PersonDirectoryEntry>{
-        for (final PersonDirectoryEntry e in directory) e.person.id: e,
-      };
-
-      expect(byId[ahmed.id]!.totals.single.owedToMeMinor, 150000);
-      expect(byId[ali.id]!.totals.single.owedToMeMinor, 150000);
-      expect(byId[salem.id]!.totals.single.owedToMeMinor, 100000);
-
-      // The ledger is the aggregate view and counts each record once. Pages are
-      // views of one relationship each, so they can show the same record; what
-      // must never happen is the *ledger* counting it twice.
-      final int ledgerTotal = (await views()).fold<int>(
-        0,
-        (int sum, DebtView v) => sum + v.remainingMinor,
-      );
-      expect(ledgerTotal, 250000, reason: '1,500 + 1,000, each record once');
-    });
-
-    test('is one payment history and one remaining balance', () async {
-      final Person ahmed = await addPerson('أحمد');
-      final Person ali = await addPerson('علي');
-      final Person mohammed = await addPerson('محمد');
-      final Debt debt = await sharedDinner(
-        withPeople: <Person>[ahmed, ali, mohammed],
+      final Debt ahmedDebt = created.firstWhere(
+        (Debt d) => d.personIds.single == ahmed.id,
       );
 
       await service.recordPayment(
-        debt.id,
+        ahmedDebt.id,
+        PaymentDraft(amountMinor: 150000, paidAt: today),
+      );
+
+      final List<DebtView> all = await views();
+      expect(all, hasLength(2));
+      final DebtView settled = all.firstWhere(
+        (DebtView v) => v.debt.id == ahmedDebt.id,
+      );
+      expect(settled.remainingMinor, 0);
+      expect(settled.isSettled, isTrue);
+      final DebtView open =
+          all.firstWhere((DebtView v) => v.debt.id != ahmedDebt.id);
+      expect(open.remainingMinor, 150000);
+      expect(open.isOpen, isTrue);
+
+      final PersonLedger aliLedger = (await queries
+          .watchPersonLedger(ali.id, dueSoonWindowDays: 7, asOf: today)
+          .first)!;
+      expect(aliLedger.debts.single.remainingMinor, 150000);
+      expect(aliLedger.openDebtCount, 1);
+    });
+
+    test('a partial payment touches only its own record', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final List<Debt> created = await dinnerFor(
+        withPeople: <Person>[ahmed, ali],
+      );
+      final Debt ahmedDebt = created.firstWhere(
+        (Debt d) => d.personIds.single == ahmed.id,
+      );
+
+      await service.recordPayment(
+        ahmedDebt.id,
         PaymentDraft(amountMinor: 50000, paidAt: today),
       );
 
-      final List<Payment> payments = await service.payments.forDebt(debt.id);
-      expect(payments, hasLength(1), reason: 'a payment is against the record');
-      expect(payments.single.amountMinor, 50000);
-
-      final DebtView view = (await views()).single;
-      expect(view.paidMinor, 50000);
-      expect(view.remainingMinor, 100000);
+      final List<DebtView> all = await views();
+      final DebtView paid = all.firstWhere(
+        (DebtView v) => v.debt.id == ahmedDebt.id,
+      );
+      expect(paid.paidMinor, 50000);
+      expect(paid.remainingMinor, 100000);
+      final DebtView untouched =
+          all.firstWhere((DebtView v) => v.debt.id != ahmedDebt.id);
+      expect(untouched.paidMinor, 0);
+      expect(untouched.remainingMinor, 150000);
     });
+  });
 
+  group('validation', () {
     test('names nobody and is refused rather than stored', () async {
       await expectLater(
-        () => service.createDebt(
+        () => service.createDebts(
           DebtDraft(
             direction: DebtDirection.iOwe,
             title: 'بلا شخص',
@@ -267,11 +281,11 @@ void main() {
       expect(await db.debtsDao.getAll(), isEmpty);
     });
 
-    test('drops a repeated person instead of linking them twice', () async {
+    test('drops a repeated person instead of recording them twice', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
 
-      final Debt debt = await service.createDebt(
+      final List<Debt> created = await service.createDebts(
         DebtDraft(
           direction: DebtDirection.iOwe,
           personIds: <String>[ahmed.id, ali.id, ahmed.id, '  '],
@@ -281,14 +295,19 @@ void main() {
         ),
       );
 
-      expect(debt.personIds, <String>[ahmed.id, ali.id]);
-      expect(await db.debtsDao.participantsFor(debt.id), hasLength(2));
+      expect(created, hasLength(2));
+      expect(
+        created.map((Debt d) => d.personIds.single).toSet(),
+        <String>{ahmed.id, ali.id},
+      );
+      expect(await db.debtsDao.getAll(), hasLength(2));
     });
 
-    test('refuses to link a person who does not exist, writing nothing', () async {
+    test('refuses to link a person who does not exist, writing nothing',
+        () async {
       await addPerson('أحمد');
       await expectLater(
-        () => service.createDebt(
+        () => service.createDebts(
           DebtDraft(
             direction: DebtDirection.iOwe,
             personIds: <String>['does-not-exist'],
@@ -306,12 +325,292 @@ void main() {
     });
   });
 
+  group('legacy shared debts', () {
+    test('still load as one row naming everyone', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Person mohammed = await addPerson('محمد');
+
+      final Debt debt = await legacyDinner(
+        withPeople: <Person>[ahmed, ali, mohammed],
+      );
+
+      expect(await db.debtsDao.getAll(), hasLength(1));
+      expect(
+        await db.debtsDao.participantsFor(debt.id),
+        <String>[ahmed.id, ali.id, mohammed.id],
+      );
+      expect(debt.isShared, isTrue);
+    });
+
+    test('refuse new payments, writing nothing', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Debt debt = await legacyDinner(
+        withPeople: <Person>[ahmed, ali],
+      );
+
+      await expectLater(
+        () => service.recordPayment(
+          debt.id,
+          PaymentDraft(amountMinor: 150000, paidAt: today),
+        ),
+        throwsA(isA<SharedDebtPaymentBlockedException>()),
+      );
+      expect(await service.payments.forDebt(debt.id), isEmpty);
+      final DebtView view = (await views()).single;
+      expect(view.remainingMinor, 150000);
+      expect(view.isOpen, isTrue);
+    });
+
+    test('refuse corrected payments too', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Debt debt = await legacyDinner(
+        withPeople: <Person>[ahmed, ali],
+      );
+      final Payment payment = await recordLegacyPayment(
+        service,
+        debt,
+        amountMinor: 50000,
+        paidAt: today,
+      );
+
+      await expectLater(
+        () => service.updatePayment(
+          payment.id,
+          PaymentDraft(amountMinor: 60000, paidAt: today),
+        ),
+        throwsA(isA<SharedDebtPaymentBlockedException>()),
+      );
+      expect(
+        (await service.payments.forDebt(debt.id)).single.amountMinor,
+        50000,
+      );
+    });
+
+    test('split into independent debts, keeping the history on the first',
+        () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Person mohammed = await addPerson('محمد');
+      final Debt debt = await legacyDinner(
+        withPeople: <Person>[ahmed, ali, mohammed],
+      );
+      await recordLegacyPayment(
+        service,
+        debt,
+        amountMinor: 50000,
+        paidAt: today,
+      );
+
+      final List<Debt> split = await service.splitSharedDebt(debt.id);
+
+      expect(split, hasLength(3));
+      // The original row stays the first participant's debt, with its id and
+      // its payment history untouched.
+      expect(split.first.id, debt.id);
+      expect(split.first.personIds, <String>[ahmed.id]);
+      expect(
+        split.map((Debt d) => d.personIds.single).toList(),
+        <String>[ahmed.id, ali.id, mohammed.id],
+      );
+      for (final Debt single in split) {
+        expect(single.isShared, isFalse);
+        expect(single.principalMinor, 150000);
+        expect(single.title, 'فاتورة العشاء');
+        expect(single.direction, DebtDirection.owedToMe);
+        expect(single.currency, AppCurrency.inr);
+      }
+      final List<Payment> kept = await service.payments.forDebt(debt.id);
+      expect(kept, hasLength(1));
+      expect(kept.single.amountMinor, 50000);
+      for (final Debt single in split.skip(1)) {
+        expect(await service.payments.forDebt(single.id), isEmpty);
+      }
+
+      final List<DebtView> all = await views();
+      expect(all, hasLength(3));
+      expect(
+        all
+            .firstWhere((DebtView v) => v.debt.id == debt.id)
+            .remainingMinor,
+        100000,
+      );
+      for (final DebtView v in all.where((DebtView v) => v.debt.id != debt.id)) {
+        expect(v.remainingMinor, 150000);
+      }
+    });
+
+    test('splitting a single debt returns it unchanged', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final List<Debt> created = await dinnerFor(
+        withPeople: <Person>[ahmed],
+      );
+
+      final List<Debt> split =
+          await service.splitSharedDebt(created.single.id);
+
+      expect(split, hasLength(1));
+      expect(split.single.id, created.single.id);
+      expect(await db.debtsDao.getAll(), hasLength(1));
+    });
+
+    test('splitting a missing debt throws rather than writing', () async {
+      await expectLater(
+        () => service.splitSharedDebt('does-not-exist'),
+        throwsA(isA<StateError>()),
+      );
+    });
+
+    test('a split debt settles independently afterwards', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Debt debt = await legacyDinner(
+        withPeople: <Person>[ahmed, ali],
+      );
+      final List<Debt> split = await service.splitSharedDebt(debt.id);
+      final Debt aliDebt = split.firstWhere(
+        (Debt d) => d.personIds.single == ali.id,
+      );
+
+      await service.recordPayment(
+        aliDebt.id,
+        PaymentDraft(amountMinor: 150000, paidAt: today),
+      );
+
+      final List<DebtView> all = await views();
+      expect(
+        all.firstWhere((DebtView v) => v.debt.id == aliDebt.id).isSettled,
+        isTrue,
+      );
+      expect(
+        all.firstWhere((DebtView v) => v.debt.id == debt.id).isOpen,
+        isTrue,
+      );
+    });
+  });
+
+  group('refusing new shared pots', () {
+    test('widening a single debt to several people is refused', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final List<Debt> created = await dinnerFor(
+        withPeople: <Person>[ahmed],
+      );
+      final Debt debt = created.single;
+
+      await expectLater(
+        () => service.updateDebt(
+          debt.id,
+          DebtDraft(
+            direction: debt.direction,
+            personIds: <String>[ahmed.id, ali.id],
+            title: debt.title,
+            principalMinor: debt.principalMinor,
+            currency: debt.currency,
+            issuedAt: debt.issuedAt,
+          ),
+        ),
+        throwsA(isA<NewSharedDebtBlockedException>()),
+      );
+
+      // Nothing was written: the record still names Ahmed alone.
+      final Debt reloaded = (await service.debts.getById(debt.id))!;
+      expect(reloaded.personIds, <String>[ahmed.id]);
+      expect(reloaded.principalMinor, 150000);
+      expect(await db.debtsDao.getAll(), hasLength(1));
+    });
+
+    test('narrowing a legacy record down to one person stays allowed',
+        () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Debt debt = await legacyDinner(withPeople: <Person>[ahmed, ali]);
+      await recordLegacyPayment(
+        service,
+        debt,
+        amountMinor: 30000,
+        paidAt: today,
+      );
+
+      await service.updateDebt(
+        debt.id,
+        DebtDraft(
+          direction: debt.direction,
+          personIds: <String>[ahmed.id],
+          title: debt.title,
+          principalMinor: debt.principalMinor,
+          currency: debt.currency,
+          issuedAt: debt.issuedAt,
+        ),
+      );
+
+      final Debt reloaded = (await service.debts.getById(debt.id))!;
+      expect(reloaded.personIds, <String>[ahmed.id]);
+      expect(reloaded.isShared, isFalse);
+      final DebtView view = (await views()).single;
+      expect(view.paidMinor, 30000);
+      expect(view.remainingMinor, 120000);
+    });
+
+    test('maintaining a legacy record’s own participants stays allowed',
+        () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Person mohammed = await addPerson('محمد');
+      final Debt debt = await legacyDinner(withPeople: <Person>[ahmed, ali]);
+
+      await service.updateDebt(
+        debt.id,
+        DebtDraft(
+          direction: debt.direction,
+          personIds: <String>[ahmed.id, mohammed.id],
+          title: debt.title,
+          principalMinor: debt.principalMinor,
+          currency: debt.currency,
+          issuedAt: debt.issuedAt,
+        ),
+      );
+
+      expect(
+        (await service.debts.getById(debt.id))!.personIds,
+        <String>[ahmed.id, mohammed.id],
+      );
+    });
+
+    test('splitting a settled legacy record is refused', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final Debt debt = await legacyDinner(
+        withPeople: <Person>[ahmed, ali],
+      );
+      await recordLegacyPayment(
+        service,
+        debt,
+        amountMinor: 150000,
+        paidAt: today,
+      );
+
+      await expectLater(
+        () => service.splitSharedDebt(debt.id),
+        throwsA(isA<StateError>()),
+      );
+
+      // The settled pot is untouched: one row, still shared, still settled.
+      expect(await db.debtsDao.getAll(), hasLength(1));
+      final Debt reloaded = (await service.debts.getById(debt.id))!;
+      expect(reloaded.isShared, isTrue);
+      expect((await views()).single.isSettled, isTrue);
+    });
+  });
+
   group('editing the participants', () {
     test('adds and removes people without touching the debt', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
       final Person mohammed = await addPerson('محمد');
-      final Debt debt = await sharedDinner(withPeople: <Person>[ahmed, ali]);
+      final Debt debt = await legacyDinner(withPeople: <Person>[ahmed, ali]);
       // Stored as epoch milliseconds, so that is the precision to compare at.
       final int createdAt = debt.createdAt.millisecondsSinceEpoch;
 
@@ -339,10 +638,12 @@ void main() {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
       final Person mohammed = await addPerson('محمد');
-      final Debt debt = await sharedDinner(withPeople: <Person>[ahmed, ali]);
-      await service.recordPayment(
-        debt.id,
-        PaymentDraft(amountMinor: 30000, paidAt: today),
+      final Debt debt = await legacyDinner(withPeople: <Person>[ahmed, ali]);
+      await recordLegacyPayment(
+        service,
+        debt,
+        amountMinor: 30000,
+        paidAt: today,
       );
 
       await service.updateDebt(
@@ -366,7 +667,7 @@ void main() {
     test('re-points the one-value column at the first person left', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
-      final Debt debt = await sharedDinner(withPeople: <Person>[ahmed, ali]);
+      final Debt debt = await legacyDinner(withPeople: <Person>[ahmed, ali]);
       expect((await db.debtsDao.getById(debt.id))!.personId, ahmed.id);
 
       await db.debtsDao.removeParticipant(debt.id, ahmed.id);
@@ -377,7 +678,10 @@ void main() {
 
     test('refuses to leave a record with nobody on it', () async {
       final Person ahmed = await addPerson('أحمد');
-      final Debt debt = await sharedDinner(withPeople: <Person>[ahmed]);
+      final List<Debt> created = await dinnerFor(
+        withPeople: <Person>[ahmed],
+      );
+      final Debt debt = created.single;
 
       await expectLater(
         () => service.updateDebt(
@@ -400,14 +704,17 @@ void main() {
   group('saving twice and saving concurrently', () {
     test('two rapid edits leave one debt and no duplicated links', () async {
       final Person ahmed = await addPerson('أحمد');
-      final Person ali = await addPerson('علي');
-      final Debt debt = await sharedDinner(withPeople: <Person>[ahmed]);
+      await addPerson('علي');
+      final List<Debt> created = await dinnerFor(
+        withPeople: <Person>[ahmed],
+      );
+      final Debt debt = created.single;
 
       // The shape a double-tapped Save produces: the same draft applied twice,
       // overlapping, with no await between the calls.
       final DebtDraft draft = DebtDraft(
         direction: debt.direction,
-        personIds: <String>[ahmed.id, ali.id],
+        personIds: <String>[ahmed.id],
         title: debt.title,
         principalMinor: 200000,
         currency: debt.currency,
@@ -419,15 +726,47 @@ void main() {
       ]);
 
       expect(await db.debtsDao.getAll(), hasLength(1));
-      expect(await db.debtsDao.participantsFor(debt.id), hasLength(2));
+      expect(await db.debtsDao.participantsFor(debt.id), <String>[ahmed.id]);
       final DebtView view = (await views()).single;
       expect(view.debt.principalMinor, 200000);
+    });
+
+    test('two rapid widenings are both refused and write nothing', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final List<Debt> created = await dinnerFor(
+        withPeople: <Person>[ahmed],
+      );
+      final Debt debt = created.single;
+
+      final DebtDraft draft = DebtDraft(
+        direction: debt.direction,
+        personIds: <String>[ahmed.id, ali.id],
+        title: debt.title,
+        principalMinor: 200000,
+        currency: debt.currency,
+        issuedAt: debt.issuedAt,
+      );
+      await Future.wait<void>(<Future<void>>[
+        expectLater(
+          () => service.updateDebt(debt.id, draft),
+          throwsA(isA<NewSharedDebtBlockedException>()),
+        ),
+        expectLater(
+          () => service.updateDebt(debt.id, draft),
+          throwsA(isA<NewSharedDebtBlockedException>()),
+        ),
+      ]);
+
+      expect(await db.debtsDao.getAll(), hasLength(1));
+      expect(await db.debtsDao.participantsFor(debt.id), <String>[ahmed.id]);
+      expect((await views()).single.debt.principalMinor, 150000);
     });
 
     test('the stored one-value column always equals the first link', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
-      final Debt debt = await sharedDinner(withPeople: <Person>[ahmed, ali]);
+      final Debt debt = await legacyDinner(withPeople: <Person>[ahmed, ali]);
 
       Future<void> checkInvariant() async {
         final Map<String, List<String>> links =
@@ -451,11 +790,11 @@ void main() {
   });
 
   group('removing a person', () {
-    test('takes them off a shared record and keeps the rest', () async {
+    test('takes them off a legacy shared record and keeps the rest', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
       final Person mohammed = await addPerson('محمد');
-      final Debt debt = await sharedDinner(
+      final Debt debt = await legacyDinner(
         withPeople: <Person>[ahmed, ali, mohammed],
       );
 
@@ -470,7 +809,7 @@ void main() {
     test('keeps a single-person debt’s money but unlinks it', () async {
       final Person ahmed = await addPerson('أحمد');
       await addPerson('سالم');
-      final Debt debt = await service.createDebt(
+      final List<Debt> created = await service.createDebts(
         DebtDraft(
           direction: DebtDirection.iOwe,
           personIds: <String>[ahmed.id],
@@ -480,6 +819,7 @@ void main() {
           issuedAt: today,
         ),
       );
+      final Debt debt = created.single;
 
       await service.deletePerson(ahmed.id);
 
@@ -492,7 +832,7 @@ void main() {
     test('leaves no links behind for the person who is gone', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
-      await sharedDinner(withPeople: <Person>[ahmed, ali]);
+      await legacyDinner(withPeople: <Person>[ahmed, ali]);
       await service.deletePerson(ahmed.id);
 
       final Map<String, List<String>> links = await db.debtsDao.allParticipants();
@@ -507,12 +847,13 @@ void main() {
   });
 
   group('merging two people', () {
-    test('moves the links without duplicating a shared record', () async {
+    test('moves the links without duplicating a legacy shared record',
+        () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
       final Person duplicate = await addPerson('أحمد ٢');
 
-      final Debt shared = await sharedDinner(
+      final Debt shared = await legacyDinner(
         withPeople: <Person>[ahmed, ali],
       );
       await service.createDebt(
@@ -539,12 +880,14 @@ void main() {
   });
 
   group('notifications', () {
-    test('one record produces one reminder, not one per participant', () async {
+    test('one legacy record produces one reminder, not one per participant',
+        () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
       final Person mohammed = await addPerson('محمد');
       final DateTime due = addDays(today, 3);
-      final Debt debt = await service.createDebt(
+      final Debt debt = await createLegacySharedDebt(
+        service,
         DebtDraft(
           direction: DebtDirection.owedToMe,
           personIds: <String>[ahmed.id, ali.id, mohammed.id],
@@ -575,19 +918,60 @@ void main() {
       expect(
         forTheDebt,
         hasLength(1),
-        reason: 'three participants on one record is still one thing to be '
-            'reminded about',
+        reason: 'three participants on one legacy record is still one thing '
+            'to be reminded about',
       );
       expect(forTheDebt.single.payload, 'debt:${debt.id}');
+    });
+
+    test('fanned-out debts remind once per record', () async {
+      final Person ahmed = await addPerson('أحمد');
+      final Person ali = await addPerson('علي');
+      final DateTime due = addDays(today, 3);
+      final List<Debt> created = await service.createDebts(
+        DebtDraft(
+          direction: DebtDirection.owedToMe,
+          personIds: <String>[ahmed.id, ali.id],
+          title: 'فاتورة العشاء',
+          principalMinor: 150000,
+          currency: AppCurrency.inr,
+          issuedAt: today,
+          dueAt: due,
+          reminderLeads: const <ReminderLead>[ReminderLead.oneDayBefore],
+        ),
+      );
+
+      final List<NotificationIntent> intents = NotificationPlanner.plan(
+        debts: await views(),
+        obligations: const <ObligationInstance>[],
+        reminders: const <Reminder>[],
+        settings: AppSettings.initial.copyWith(
+          defaultCurrency: AppCurrency.inr,
+        ),
+        now: today,
+      );
+
+      final Set<String?> payloads = <String?>{
+        for (final NotificationIntent i in intents
+            .where((NotificationIntent i) =>
+                i.kind == NotificationKind.debtDueSoon ||
+                i.kind == NotificationKind.debtDueToday))
+          i.payload,
+      };
+      expect(
+        payloads,
+        <String?>{'debt:${created[0].id}', 'debt:${created[1].id}'},
+        reason: 'two independent records remind independently',
+      );
     });
   });
 
   group('the report', () {
-    test('counts a shared debt once, whatever the number of people', () async {
+    test('counts every independent debt', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
       final Person mohammed = await addPerson('محمد');
-      await sharedDinner(withPeople: <Person>[ahmed, ali, mohammed]);
+      await dinnerFor(withPeople: <Person>[ahmed, ali, mohammed]);
 
       final MonthlyReport report = await queries
           .watchMonthlyReport(
@@ -599,17 +983,17 @@ void main() {
           )
           .first;
 
-      expect(report.activeDebts, 1, reason: 'one record, three participants');
-      expect(report.openOwedToMeMinor, 150000);
-      expect(report.newDebtMinor, 150000);
+      expect(report.activeDebts, 3, reason: 'three records, three people');
+      expect(report.openOwedToMeMinor, 450000);
+      expect(report.newDebtMinor, 450000);
     });
   });
 
   group('the statement and the report', () {
-    test('prints a multi-person record as an ordinary line, once', () async {
+    test('prints a person’s own records, each once', () async {
       final Person ahmed = await addPerson('أحمد');
       final Person ali = await addPerson('علي');
-      await sharedDinner(withPeople: <Person>[ahmed, ali]);
+      await dinnerFor(withPeople: <Person>[ahmed, ali]);
       await service.createDebt(
         DebtDraft(
           direction: DebtDirection.owedToMe,
@@ -640,8 +1024,8 @@ void main() {
         now: today,
       );
 
-      // Ahmed's statement is Ahmed's page in print: both records are his, each
-      // counted once — 1,500 + 1,000, never 1,500 three times.
+      // Ahmed's statement is Ahmed's page in print: his own dinner record plus
+      // his loan — 1,500 + 1,000. Ali's record is not his and is not printed.
       expect(data.totalMinor, 250000);
       expect(data.debts, hasLength(2));
 

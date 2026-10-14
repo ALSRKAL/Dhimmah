@@ -393,6 +393,43 @@ class AppLocalizationsAr extends AppLocalizations {
   String get debtCreated => 'تم إنشاء الدين';
 
   @override
+  String debtsCreatedCount(int count) {
+    return 'تم إنشاء $count ديون مستقلة';
+  }
+
+  @override
+  String get legacySharedTitle => 'دين مشترك قديم يحتاج مراجعة';
+
+  @override
+  String get legacySharedBody =>
+      'هذا الدين مسجّل على عدة أشخاص معاً بالنظام القديم. تسديد دفعة عليه سيُصفّر رصيد الجميع معاً، لذلك تم إيقاف السداد مؤقتاً. راجع الدفعات السابقة ثم حوّله إلى ديون مستقلة، وسيبقى سجل الدفعات على دين الشخص الأول.';
+
+  @override
+  String get legacySharedSplit => 'تحويل إلى ديون مستقلة';
+
+  @override
+  String get legacySharedSplitConfirmTitle => 'تحويل الدين المشترك؟';
+
+  @override
+  String get legacySharedSplitConfirmBody =>
+      'سيتم إنشاء دين مستقل بنفس المبلغ لكل شخص، وتبقى الدفعات السابقة مسجّلة على دين الشخص الأول. هل تريد المتابعة؟';
+
+  @override
+  String get legacySharedSplitDone => 'تم التحويل إلى ديون مستقلة';
+
+  @override
+  String get legacySharedPayBlocked =>
+      'السداد موقوف على الدين المشترك القديم. راجع الدفعات ثم حوّله إلى ديون مستقلة أولاً.';
+
+  @override
+  String get legacySharedSettledBody =>
+      'هذا الدين المشترك القديم مُسدَّد بالكامل، وسجله وسجل دفعاته محفوظان للمراجعة.';
+
+  @override
+  String get debtFormSharedBlocked =>
+      'لا يمكن إضافة شخص آخر أثناء تعديل الدين. أنشئ ديناً جديداً لكل شخص إضافي.';
+
+  @override
   String get debtFormEdit => 'تعديل الدين';
 
   @override

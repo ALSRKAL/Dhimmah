@@ -220,6 +220,12 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
                 : localizations.recordSaved,
         icon: _settles ? Icons.check_circle_outline : Icons.payments_outlined,
       );
+    } on SharedDebtPaymentBlockedException {
+      // A legacy shared debt refuses new and corrected payments until it is
+      // split: the sheet stays open on the amount, saying why it did not save.
+      if (!mounted) return;
+      setState(() => _busy = false);
+      AppFeedback.error(context, localizations.legacySharedPayBlocked);
     } on Object {
       if (!mounted) return;
       setState(() => _busy = false);

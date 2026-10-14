@@ -13,18 +13,18 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../support/app_harness.dart';
 
-/// One record, several people — as each of them sees it.
+/// One debt per person — as each of them sees it.
 ///
-/// A debt linked to three people is one record, and every one of them is linked
-/// to the whole of it. What each of their pages shows is that person's side of
-/// the record: one of their own debts, in full, with the ordinary row, the
-/// ordinary hero figure and no indication that anyone else is on it. There is no
-/// "shared" heading, badge, banner or note anywhere, and no page names another
-/// participant.
+/// Naming three people when recording a debt creates three independent
+/// records, one per participant, each with the full amount. What each of their
+/// pages shows is that person's own record: the ordinary row, the ordinary
+/// hero figure and no indication that anyone else was named alongside them.
+/// There is no "shared" heading, badge, banner or note anywhere, and no page
+/// names another participant.
 ///
-/// The amounts are pinned here as well as in `test/data/multi_person_debt_test`,
-/// because the failure this guards against is a display regression: the record
-/// shown three times as 1,500 and totalled as 4,500.
+/// Settling one record leaves the others alone: a full payment from one
+/// participant's page used to zero everyone at once, which is the bug this
+/// file pins shut at the widget level.
 void main() {
   late AppDatabase db;
 
@@ -39,15 +39,17 @@ void main() {
   late Person ahmed;
   late Person khalid;
   late Person maryam;
-  late String debtId;
+  late String ahmedDebtId;
+  late String khalidDebtId;
+  late String maryamDebtId;
 
-  /// 1,500 owed to three people at once — one record.
+  /// 1,500 owed by three people — one independent record apiece.
   Future<void> seed(WidgetTester tester) async {
     final LedgerService service = buildService(db);
     ahmed = await service.createPerson(const PersonDraft(name: first));
     khalid = await service.createPerson(const PersonDraft(name: second));
     maryam = await service.createPerson(const PersonDraft(name: third));
-    final Debt debt = await service.createDebt(
+    final List<Debt> created = await service.createDebts(
       DebtDraft(
         direction: DebtDirection.iOwe,
         personIds: <String>[ahmed.id, khalid.id, maryam.id],
@@ -57,7 +59,12 @@ void main() {
         issuedAt: dateOnly(DateTime.now()),
       ),
     );
-    debtId = debt.id;
+    String idFor(String personId) => created
+        .firstWhere((Debt d) => d.personIds.single == personId)
+        .id;
+    ahmedDebtId = idFor(ahmed.id);
+    khalidDebtId = idFor(khalid.id);
+    maryamDebtId = idFor(maryam.id);
     await pumpDhimmah(tester, db: db);
   }
 
@@ -111,7 +118,7 @@ void main() {
           if (name != keep) name,
       ];
 
-  testWidgets('every participant sees the record, and none of the others',
+  testWidgets('every participant sees only their own record, and none of the others',
       (WidgetTester tester) async {
     await seed(tester);
 
@@ -123,7 +130,7 @@ void main() {
       expect(
         find.text(debtTitle),
         findsOneWidget,
-        reason: '$name should see the record itself',
+        reason: '$name should see their own record itself',
       );
       expect(
         find.textContaining('1,500'),
@@ -163,57 +170,92 @@ void main() {
     }
   });
 
-  testWidgets('no page and no total multiplies the record',
+  testWidgets('each page states its own record, and the ledger holds all three',
       (WidgetTester tester) async {
     await seed(tester);
 
-    // The dashboard: one record, so 1,500 — never three times it.
+    // The dashboard: three independent records of 1,500 — 4,500 in total.
     expect(find.textContaining('1,500'), findsWidgets);
-    expect(find.textContaining('4,500'), findsNothing);
+    expect(find.textContaining('4,500'), findsWidgets);
 
-    // Each page states the same 1,500, and none of them states 4,500.
+    // Each page states the same 1,500 for its own record.
     for (final String name in <String>[first, second, third]) {
       await openPerson(tester, name);
       expect(find.textContaining('1,500'), findsWidgets);
-      expect(find.textContaining('4,500'), findsNothing);
       await back(tester);
     }
 
-    expect(await db.debtsDao.getAll(), hasLength(1),
-        reason: 'one debt, whatever the page count');
-    final Debt record = (await buildService(db).debts.getById(debtId))!;
-    expect(record.principalMinor, 150000);
-    expect(record.personIds, <String>[ahmed.id, khalid.id, maryam.id]);
+    expect(await db.debtsDao.getAll(), hasLength(3),
+        reason: 'one debt per person');
+    for (final Debt record in await buildService(db).debts.getAll()) {
+      expect(record.principalMinor, 150000);
+      expect(record.personIds, hasLength(1));
+    }
   });
 
-  testWidgets('one payment is one payment: the record falls for all of them',
+  testWidgets('a payment settles only its own record',
       (WidgetTester tester) async {
     await seed(tester);
 
     await buildService(db).recordPayment(
-      debtId,
+      ahmedDebtId,
       PaymentDraft(amountMinor: 50000, paidAt: dateOnly(DateTime.now())),
     );
     await settle(tester);
 
-    for (final String name in <String>[first, second, third]) {
+    // Ahmed's page: 500 paid off his own record, 1,000 left.
+    await openPerson(tester, first);
+    expect(
+      find.textContaining('1,000'),
+      findsWidgets,
+      reason: 'Ahmed sees the 500 paid off his own record',
+    );
+    await back(tester);
+
+    // Everyone else still owes the full 1,500.
+    for (final String name in <String>[second, third]) {
       await openPerson(tester, name);
       expect(
-        find.textContaining('1,000'),
+        find.textContaining('1,500'),
         findsWidgets,
-        reason: '$name sees the same 500 paid off the same record',
+        reason: '$name still owes the full amount',
       );
       await back(tester);
     }
 
     expect(
-      await db.debtsDao.getPaymentsForDebt(debtId),
+      await db.debtsDao.getPaymentsForDebt(ahmedDebtId),
       hasLength(1),
       reason: 'a payment belongs to the record, not to a person on it',
     );
+    expect(await db.debtsDao.getPaymentsForDebt(khalidDebtId), isEmpty);
+    expect(await db.debtsDao.getPaymentsForDebt(maryamDebtId), isEmpty);
   });
 
-  testWidgets('editing from one participant’s page edits the one record',
+  testWidgets('a full payment settles only its own record',
+      (WidgetTester tester) async {
+    await seed(tester);
+
+    await buildService(db).recordPayment(
+      ahmedDebtId,
+      PaymentDraft(amountMinor: 150000, paidAt: dateOnly(DateTime.now())),
+    );
+    await settle(tester);
+
+    final LedgerService service = buildService(db);
+    expect((await service.debts.getById(ahmedDebtId))!.closedAt, isNotNull);
+    expect((await service.debts.getById(khalidDebtId))!.closedAt, isNull);
+    expect((await service.debts.getById(maryamDebtId))!.closedAt, isNull);
+
+    // The others still see their open 1,500.
+    for (final String name in <String>[second, third]) {
+      await openPerson(tester, name);
+      expect(find.textContaining('1,500'), findsWidgets);
+      await back(tester);
+    }
+  });
+
+  testWidgets('editing from one participant’s page edits only that record',
       (WidgetTester tester) async {
     await seed(tester);
     await openPerson(tester, first);
@@ -226,8 +268,8 @@ void main() {
 
     // The form knows who the record is with, and says so rather than asking.
     expect(find.widgetWithText(InputChip, first), findsOneWidget);
-    expect(find.widgetWithText(InputChip, second), findsOneWidget);
-    expect(find.widgetWithText(InputChip, third), findsOneWidget);
+    expect(find.widgetWithText(InputChip, second), findsNothing);
+    expect(find.widgetWithText(InputChip, third), findsNothing);
 
     await tester.enterText(
       find.descendant(
@@ -240,35 +282,43 @@ void main() {
     await tester.tap(find.text('حفظ التعديلات'));
     await settle(tester);
 
-    // Still one record, same id, same three people, new amount.
-    expect(await db.debtsDao.getAll(), hasLength(1));
-    final Debt record = (await buildService(db).debts.getById(debtId))!;
-    expect(record.id, debtId, reason: 'edited, not recreated');
-    expect(record.principalMinor, 200000);
-    expect(
-      await db.debtsDao.participantsFor(debtId),
-      <String>[ahmed.id, khalid.id, maryam.id],
-    );
+    // Still three records, same ids, new amount on Ahmed's only.
+    expect(await db.debtsDao.getAll(), hasLength(3));
+    final LedgerService service = buildService(db);
+    expect((await service.debts.getById(ahmedDebtId))!.principalMinor, 200000);
+    expect((await service.debts.getById(khalidDebtId))!.principalMinor, 150000);
+    expect((await service.debts.getById(maryamDebtId))!.principalMinor, 150000);
 
-    // And every page shows the new amount, because there is one record.
-    for (final String name in <String>[first, second, third]) {
+    await openPerson(tester, first);
+    expect(find.textContaining('2,000'), findsWidgets);
+    await back(tester);
+
+    for (final String name in <String>[second, third]) {
       await openPerson(tester, name);
-      expect(find.textContaining('2,000'), findsWidgets);
+      expect(find.textContaining('1,500'), findsWidgets);
+      expect(find.textContaining('2,000'), findsNothing);
       await back(tester);
     }
   });
 
-  testWidgets('unlinking one person leaves the record for the rest',
+  testWidgets('removing one person leaves everyone else’s record alone',
       (WidgetTester tester) async {
     await seed(tester);
 
     await buildService(db).deletePerson(khalid.id);
     await settle(tester);
 
-    expect(await db.debtsDao.getAll(), hasLength(1), reason: 'the record stays');
+    // The rows stay: Khalid's keeps its money but names nobody, the rest are
+    // untouched.
+    expect(await db.debtsDao.getAll(), hasLength(3),
+        reason: 'the records stay');
     expect(
-      await db.debtsDao.participantsFor(debtId),
-      <String>[ahmed.id, maryam.id],
+      (await buildService(db).debts.getById(ahmedDebtId))!.personIds,
+      <String>[ahmed.id],
+    );
+    expect(
+      (await buildService(db).debts.getById(maryamDebtId))!.personIds,
+      <String>[maryam.id],
     );
 
     await openPerson(tester, first);
@@ -295,6 +345,9 @@ void main() {
       await back(tester);
     }
 
-    expect(await db.debtsDao.participantsFor(debtId), hasLength(3));
+    final LedgerService service = buildService(db);
+    for (final Debt record in await service.debts.getAll()) {
+      expect(record.personIds, hasLength(1));
+    }
   });
 }

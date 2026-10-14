@@ -66,15 +66,16 @@ void main() {
       },
     );
 
-    // A ledger with the shapes that must survive: a shared record, a payment, a
-    // recurring commitment with its periods, and both scripts.
+    // A ledger with the shapes that must survive: a legacy shared record, a
+    // payment, a recurring commitment with its periods, and both scripts.
     final Person ahmed = await service.createPerson(
       const PersonDraft(name: 'أحمد محمد عبدالرحمن'),
     );
     final Person maryam = await service.createPerson(
       const PersonDraft(name: 'Maryam Hassan'),
     );
-    final Debt shared = await service.createDebt(
+    final Debt shared = await createLegacySharedDebt(
+      service,
       DebtDraft(
         direction: DebtDirection.owedToMe,
         personIds: <String>[ahmed.id, maryam.id],
@@ -85,9 +86,11 @@ void main() {
         dueAt: addDays(today, 3),
       ),
     );
-    await service.recordPayment(
-      shared.id,
-      PaymentDraft(amountMinor: 50000, paidAt: today),
+    await recordLegacyPayment(
+      service,
+      shared,
+      amountMinor: 50000,
+      paidAt: today,
     );
     await service.createObligation(
       ObligationDraft(

@@ -78,7 +78,9 @@ void main() {
     final Person ali = await service.createPerson(const PersonDraft(name: 'علي'));
     final Person mohammed =
         await service.createPerson(const PersonDraft(name: 'محمد'));
-    await service.createDebt(
+    // A legacy shared row: the export names everyone on one record.
+    await createLegacySharedDebt(
+      service,
       DebtDraft(
         direction: DebtDirection.owedToMe,
         personIds: <String>[ahmed.id, ali.id, mohammed.id],

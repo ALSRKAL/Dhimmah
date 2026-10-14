@@ -173,6 +173,23 @@
   "debtArchived": "تمت الأرشفة",
   "debtClosed": "تم إغلاق الدين",
   "debtCreated": "تم إنشاء الدين",
+  "debtsCreatedCount": "تم إنشاء {count} ديون مستقلة",
+  "@debtsCreatedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "legacySharedTitle": "دين مشترك قديم يحتاج مراجعة",
+  "legacySharedBody": "هذا الدين مسجّل على عدة أشخاص معاً بالنظام القديم. تسديد دفعة عليه سيُصفّر رصيد الجميع معاً، لذلك تم إيقاف السداد مؤقتاً. راجع الدفعات السابقة ثم حوّله إلى ديون مستقلة، وسيبقى سجل الدفعات على دين الشخص الأول.",
+  "legacySharedSplit": "تحويل إلى ديون مستقلة",
+  "legacySharedSplitConfirmTitle": "تحويل الدين المشترك؟",
+  "legacySharedSplitConfirmBody": "سيتم إنشاء دين مستقل بنفس المبلغ لكل شخص، وتبقى الدفعات السابقة مسجّلة على دين الشخص الأول. هل تريد المتابعة؟",
+  "legacySharedSplitDone": "تم التحويل إلى ديون مستقلة",
+  "legacySharedPayBlocked": "السداد موقوف على الدين المشترك القديم. راجع الدفعات ثم حوّله إلى ديون مستقلة أولاً.",
+  "legacySharedSettledBody": "هذا الدين المشترك القديم مُسدَّد بالكامل، وسجله وسجل دفعاته محفوظان للمراجعة.",
+  "debtFormSharedBlocked": "لا يمكن إضافة شخص آخر أثناء تعديل الدين. أنشئ ديناً جديداً لكل شخص إضافي.",
   "debtFormEdit": "تعديل الدين",
   "debtFormNewIOwe": "دين عليّ",
   "debtFormNewOwedToMe": "دين لي",

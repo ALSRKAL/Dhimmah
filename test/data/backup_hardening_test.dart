@@ -938,7 +938,8 @@ void main() {
       final Person khalid = await addPerson('خالد');
       final Person mariam = await addPerson('مريم');
 
-      final shared = await service.createDebt(
+      final shared = await createLegacySharedDebt(
+        service,
         DebtDraft(
           direction: DebtDirection.owedToMe,
           personIds: <String>[ahmed.id, khalid.id, mariam.id],
@@ -949,9 +950,11 @@ void main() {
           dueAt: addDays(today, -2),
         ),
       );
-      await service.recordPayment(
-        shared.id,
-        PaymentDraft(amountMinor: 50000, paidAt: addDays(today, -5)),
+      await recordLegacyPayment(
+        service,
+        shared,
+        amountMinor: 50000,
+        paidAt: addDays(today, -5),
       );
       final settled = await service.createDebt(
         DebtDraft(
@@ -1075,7 +1078,8 @@ void main() {
     test('search finds the restored records by every participant', () async {
       final Person ahmed = await addPerson('أحمد الحربي');
       final Person mariam = await addPerson('مريم القاسم');
-      await service.createDebt(
+      await createLegacySharedDebt(
+        service,
         DebtDraft(
           direction: DebtDirection.owedToMe,
           personIds: <String>[ahmed.id, mariam.id],

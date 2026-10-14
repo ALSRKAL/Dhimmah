@@ -94,7 +94,7 @@ void main() {
     final List<Debt> migrated = await debts.getAll();
     expect(
       migrated.where((Debt debt) => debt.personIds.isNotEmpty),
-      hasLength(8),
+      hasLength(9),
       reason: 'every seeded debt was recorded with a person',
     );
 
@@ -108,7 +108,7 @@ void main() {
     final List<DebtView> views = await queries
         .watchDebtViews(dueSoonWindowDays: 7, asOf: asOf)
         .first;
-    expect(views, hasLength(8));
+    expect(views, hasLength(9));
     expect(
       views.any((DebtView v) => v.status == DebtLifecycleStatus.overdue),
       isTrue,

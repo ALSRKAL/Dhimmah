@@ -221,39 +221,145 @@ class LedgerService {
     return normalised;
   }
 
-  Future<Debt> createDebt(DebtDraft draft) async {
+  Future<List<Debt>> createDebts(DebtDraft draft) async {
     _requireValidAmount(draft.principalMinor, 'debt principal');
     final List<String> personIds = _requireParticipants(draft.personIds);
     final DateTime now = clock();
-    final Debt debt = Debt(
-      id: newId(),
-      personIds: personIds,
-      direction: draft.direction,
-      title: draft.title.trim(),
-      principalMinor: draft.principalMinor,
-      currency: draft.currency,
-      issuedAt: dateOnly(draft.issuedAt),
-      dueAt: draft.dueAt == null ? null : dateOnly(draft.dueAt!),
-      note: _blankToNull(draft.note),
-      reminderLeads: ReminderLead.sorted(draft.reminderLeads),
-      recurrence: draft.recurrence,
-      recurrenceInterval: draft.recurrenceInterval,
-      recurrenceEndAt:
-          draft.recurrenceEndAt == null ? null : dateOnly(draft.recurrenceEndAt!),
-      createdAt: now,
-      updatedAt: now,
-    );
-    await debts.save(debt);
-    await _log(
-      type: ActivityType.debtCreated,
-      entityType: RelatedEntityType.debt,
-      entityId: debt.id,
-      title: await _displayNameFor(debt),
-      amountMinor: debt.principalMinor,
-      currency: debt.currency,
-    );
+    // One independent debt per participant, each carrying the full amount.
+    //
+    // Naming several people is a shortcut for recording the same debt with
+    // each of them — not a pot they share. A shared pot meant a full payment
+    // from one participant's page settled everyone at once, which is the bug
+    // this replaces. Every record below names exactly one person, so settling
+    // one record can never touch another's balance.
+    //
+    // All rows and their feed entries are one write: a failure part-way must
+    // not leave half the group recorded.
+    final List<Debt> created = await _db.transaction(() async {
+      final List<Debt> out = <Debt>[];
+      for (final String personId in personIds) {
+        final Debt debt = Debt(
+          id: newId(),
+          personIds: <String>[personId],
+          direction: draft.direction,
+          title: draft.title.trim(),
+          principalMinor: draft.principalMinor,
+          currency: draft.currency,
+          issuedAt: dateOnly(draft.issuedAt),
+          dueAt: draft.dueAt == null ? null : dateOnly(draft.dueAt!),
+          note: _blankToNull(draft.note),
+          reminderLeads: ReminderLead.sorted(draft.reminderLeads),
+          recurrence: draft.recurrence,
+          recurrenceInterval: draft.recurrenceInterval,
+          recurrenceEndAt: draft.recurrenceEndAt == null
+              ? null
+              : dateOnly(draft.recurrenceEndAt!),
+          createdAt: now,
+          updatedAt: now,
+        );
+        await debts.save(debt);
+        await _log(
+          type: ActivityType.debtCreated,
+          entityType: RelatedEntityType.debt,
+          entityId: debt.id,
+          title: await _displayNameFor(debt),
+          amountMinor: debt.principalMinor,
+          currency: debt.currency,
+        );
+        out.add(debt);
+      }
+      return out;
+    });
     await refreshNotifications();
-    return debt;
+    return created;
+  }
+
+  Future<Debt> createDebt(DebtDraft draft) async {
+    // Kept for the callers that record exactly one debt: with a single
+    // participant this is unchanged, and with several it records one
+    // independent debt per participant and hands back the first, so no caller
+    // can silently recreate the shared pot. Prefer [createDebts] when the
+    // count matters.
+    final List<Debt> created = await createDebts(draft);
+    return created.first;
+  }
+
+  /// Splits a legacy shared debt into one independent debt per participant.
+  ///
+  /// Old records made before the fan-out still exist as one row naming several
+  /// people, and payments are paused on them. This is the manual conversion the
+  /// user runs after reviewing the previous payments: the original row keeps
+  /// its id, its first participant and its whole payment history, while every
+  /// other participant gets a fresh debt with the same amount and terms but no
+  /// payments. Nothing is divided and no payment is moved — the user has
+  /// already seen them where they are.
+  Future<List<Debt>> splitSharedDebt(String debtId) async {
+    final Debt? existing = await debts.getById(debtId);
+    if (existing == null) {
+      throw StateError('Cannot split a debt that no longer exists');
+    }
+    if (!existing.isShared) return <Debt>[existing];
+    // A settled pot stays settled: splitting it would fabricate open balances
+    // for people who owe nothing. Only a record that still owes converts.
+    final List<Payment> history = await payments.forDebt(debtId);
+    if (DebtCalculator.remainingOf(
+          existing.principalMinor,
+          DebtCalculator.totalPaid(history),
+        ) <=
+        0) {
+      throw StateError(
+        'Cannot split a settled shared debt: its balance is already zero',
+      );
+    }
+    final DateTime now = clock();
+    final List<Debt> result = await _db.transaction(() async {
+      final Debt first = existing.copyWith(
+        personIds: <String>[existing.personIds.first],
+        updatedAt: now,
+      );
+      await debts.save(first);
+      await _log(
+        type: ActivityType.debtUpdated,
+        entityType: RelatedEntityType.debt,
+        entityId: first.id,
+        title: await _displayNameFor(first),
+        amountMinor: first.principalMinor,
+        currency: first.currency,
+      );
+      final List<Debt> out = <Debt>[first];
+      for (final String personId in existing.personIds.skip(1)) {
+        final Debt debt = Debt(
+          id: newId(),
+          personIds: <String>[personId],
+          direction: existing.direction,
+          title: existing.title,
+          principalMinor: existing.principalMinor,
+          currency: existing.currency,
+          issuedAt: existing.issuedAt,
+          dueAt: existing.dueAt,
+          note: existing.note,
+          reminderLeads: existing.reminderLeads,
+          recurrence: existing.recurrence,
+          recurrenceInterval: existing.recurrenceInterval,
+          recurrenceEndAt: existing.recurrenceEndAt,
+          createdAt: now,
+          updatedAt: now,
+        );
+        await debts.save(debt);
+        await _log(
+          type: ActivityType.debtCreated,
+          entityType: RelatedEntityType.debt,
+          entityId: debt.id,
+          title: await _displayNameFor(debt),
+          amountMinor: debt.principalMinor,
+          currency: debt.currency,
+        );
+        out.add(debt);
+      }
+      return out;
+    });
+    await refreshNotifications();
+    return result;
   }
 
   Future<void> updateDebt(String id, DebtDraft draft) async {
@@ -266,6 +372,14 @@ class LedgerService {
     final bool found = await _db.transaction(() async {
       final Debt? existing = await debts.getById(id);
       if (existing == null) return false;
+
+      // Widening a single record to several people would recreate the shared
+      // pot the fan-out removed, so it is refused before anything is written.
+      // Maintaining a legacy record's own participants — or narrowing it down
+      // to one person — stays allowed.
+      if (!existing.isShared && personIds.length > 1) {
+        throw const NewSharedDebtBlockedException();
+      }
 
       // The record is edited, never replaced: the same id, the same created-at
       // and the same payment history. Only the fields the form owns are written.
@@ -439,6 +553,12 @@ class LedgerService {
           'Cannot record a payment for a debt that no longer exists',
         );
       }
+      // A legacy shared debt names several people on one pot: any payment on
+      // it would settle everyone at once. New payments are refused until the
+      // user splits it into independent debts after reviewing its history.
+      if (debt.isShared) {
+        throw SharedDebtPaymentBlockedException(debtId);
+      }
       final DateTime now = clock();
       final Payment payment = Payment(
         id: newId(),
@@ -472,6 +592,14 @@ class LedgerService {
     final bool found = await _db.transaction(() async {
       final Payment? existing = await payments.getById(id);
       if (existing == null) return false;
+      // Correcting a payment on a legacy shared debt moves everyone's balance
+      // together, exactly like a new one would — so it waits for the split too.
+      final String? debtId = existing.debtId;
+      final Debt? debt =
+          debtId == null ? null : await debts.getById(debtId);
+      if (debt != null && debt.isShared) {
+        throw SharedDebtPaymentBlockedException(debtId!);
+      }
       await payments.save(
         existing.copyWith(
           amountMinor: draft.amountMinor,
@@ -479,12 +607,10 @@ class LedgerService {
           note: _blankToNull(draft.note),
         ),
       );
-      final String? debtId = existing.debtId;
-      if (debtId != null) {
-        final Debt? debt = await debts.getById(debtId);
+      if (debt != null) {
         // A corrected amount can be the one that pays the debt off, and it
         // closes the debt exactly as a new payment would.
-        if (debt != null) await _settleIfPaid(debt);
+        await _settleIfPaid(debt);
       }
       return true;
     });
@@ -1212,7 +1338,7 @@ class LedgerService {
     if (summary != null) {
       await _recordArmedSummary(summary, composed, result, current);
     }
-    await _deliverPendingSummary(current, now, asOf, activeComposer);
+    await _deliverPendingSummary(now, asOf, activeComposer);
     return result;
   }
 
@@ -1442,12 +1568,21 @@ class LedgerService {
   /// The figures need the whole ledger, so they are computed only once the cheap
   /// test says a summary is actually owed — otherwise every save in the app
   /// would read every record to work out that nothing was due.
+  ///
+  /// Settings are read again here rather than taken from the pass, because the
+  /// pass may have just handed a summary to the phone. That write is what marks
+  /// a month as done, and a check made against the snapshot from before it could
+  /// not see it — so the same pass armed this month's summary *and* caught up
+  /// the one that had gone past, and the user was sent two month-end
+  /// notifications for one save. Every pass in the arm window arms the same
+  /// summary, so this is the check that has to be made against what has actually
+  /// been recorded, not against what was true when the pass began.
   Future<void> _deliverPendingSummary(
-    AppSettings current,
     DateTime now,
     DateTime asOf,
     NotificationComposer composer,
   ) async {
+    final AppSettings current = await settings.get();
     final DateTime? month =
         NotificationPlanner.catchUpSummaryMonth(settings: current, now: now);
     if (month == null) return;
@@ -1474,6 +1609,10 @@ class LedgerService {
     // the catch-up's moment is its month's: a summary that is delivered twice
     // replaces itself instead of stacking up.
     await notifications.showNow(composer.compose(catchUp, _summaryId(catchUp)));
+    // Recorded straight after it is fired, and before anything else can be
+    // written, so the mark that stops a second delivery is in place as soon as
+    // this one exists. A later pass — a settings change, a resume, the next
+    // save — reads it and does not send it again.
     await _recordSummaryHandedOver(month);
     await _log(
       type: ActivityType.monthSummaryGenerated,
@@ -1634,6 +1773,37 @@ class LedgerService {
   /// Text used when sharing a debt, kept here so the app and its notifications
   /// describe a record the same way.
   static Money money(int minor, AppCurrency currency) => Money(minor, currency);
+}
+
+/// A new or corrected payment was refused on a legacy shared debt.
+///
+/// One row naming several people is one pot: any payment on it settles
+/// everyone at once. The user must split the record into independent debts
+/// first, after reviewing its history.
+class SharedDebtPaymentBlockedException implements Exception {
+  const SharedDebtPaymentBlockedException(this.debtId);
+
+  final String debtId;
+
+  @override
+  String toString() =>
+      'SharedDebtPaymentBlockedException(legacy shared debt $debtId '
+      'refuses new payments; split it into independent debts first)';
+}
+
+/// An edit that would turn a single debt into a shared pot was refused.
+///
+/// One row naming several people is one pot, so widening a record's
+/// participants recreates the bug the fan-out removed: a later payment would
+/// settle everyone at once. Narrowing a legacy record down to one person stays
+/// allowed, and so does maintaining a legacy record's own participants.
+class NewSharedDebtBlockedException implements Exception {
+  const NewSharedDebtBlockedException();
+
+  @override
+  String toString() =>
+      'NewSharedDebtBlockedException(an edit must not link a single debt to '
+      'several people; record a new debt per person instead)';
 }
 
 /// Everything needed to undo a delete.

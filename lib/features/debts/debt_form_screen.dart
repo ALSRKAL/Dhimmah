@@ -612,19 +612,35 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
 
     try {
       final LedgerService service = ref.read(ledgerServiceProvider);
+      int createdCount = 1;
       if (_isEditing) {
         await service.updateDebt(widget.debtId!, draft);
       } else {
-        await service.createDebt(draft);
+        // One independent debt per participant, each with the full amount:
+        // settling one person's record never touches another's.
+        createdCount = (await service.createDebts(draft)).length;
       }
       if (!mounted) return;
       _saved = true;
       AppFeedback.info(
         context,
         _explainWhereItWent(localizations, direction, personIds) ??
-            (_isEditing ? localizations.debtUpdated : localizations.debtCreated),
+            (_isEditing
+                ? localizations.debtUpdated
+                : createdCount > 1
+                    ? localizations.debtsCreatedCount(createdCount)
+                    : localizations.debtCreated),
       );
       context.pop();
+    } on NewSharedDebtBlockedException {
+      // Widening this record to several people would recreate the shared pot,
+      // so the save is refused and the form stays open on what was chosen.
+      if (!mounted) return;
+      setState(() {
+        _busy = false;
+        _peopleError = localizations.debtFormSharedBlocked;
+      });
+      AppFeedback.error(context, localizations.debtFormSharedBlocked);
     } on Object {
       if (!mounted) return;
       setState(() => _busy = false);

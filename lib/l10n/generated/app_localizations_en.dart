@@ -388,6 +388,43 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debtCreated => 'Debt created';
 
   @override
+  String debtsCreatedCount(int count) {
+    return 'Created $count separate debts';
+  }
+
+  @override
+  String get legacySharedTitle => 'Legacy shared debt needs review';
+
+  @override
+  String get legacySharedBody =>
+      'This debt is registered on several people together under the old system. A payment on it would zero everyone\'s balance together, so payments are paused for now. Review the previous payments, then split it into separate debts; the payment history stays on the first person\'s debt.';
+
+  @override
+  String get legacySharedSplit => 'Split into separate debts';
+
+  @override
+  String get legacySharedSplitConfirmTitle => 'Split the shared debt?';
+
+  @override
+  String get legacySharedSplitConfirmBody =>
+      'A separate debt with the same amount will be created for each person, and previous payments stay recorded on the first person\'s debt. Do you want to continue?';
+
+  @override
+  String get legacySharedSplitDone => 'Split into separate debts';
+
+  @override
+  String get legacySharedPayBlocked =>
+      'Payments are paused on this legacy shared debt. Review the payments, then split it into separate debts first.';
+
+  @override
+  String get legacySharedSettledBody =>
+      'This legacy shared debt is fully settled. Its record and payment history are kept for review.';
+
+  @override
+  String get debtFormSharedBlocked =>
+      'Adding another person while editing is not allowed. Create a new debt for each additional person.';
+
+  @override
   String get debtFormEdit => 'Edit debt';
 
   @override

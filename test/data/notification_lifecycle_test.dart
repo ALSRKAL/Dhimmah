@@ -328,7 +328,8 @@ void main() {
     final Person khalid = await addPerson('خالد');
     final Person maryam = await addPerson('مريم');
 
-    final Debt debt = await service.createDebt(
+    final Debt debt = await createLegacySharedDebt(
+      service,
       DebtDraft(
         direction: DebtDirection.owedToMe,
         personIds: <String>[ahmed.id, khalid.id, maryam.id],

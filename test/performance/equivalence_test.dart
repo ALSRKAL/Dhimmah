@@ -133,11 +133,12 @@ void main() {
       await expectSameViews(queries, service, today);
     });
 
-    test('for a record three people share', () async {
+    test('for a legacy record three people share', () async {
       final Person ali = await service.createPerson(const PersonDraft(name: 'علي'));
       final Person mohammed =
           await service.createPerson(const PersonDraft(name: 'محمد'));
-      final Debt shared = await service.createDebt(
+      final Debt shared = await createLegacySharedDebt(
+        service,
         DebtDraft(
           direction: DebtDirection.owedToMe,
           personIds: <String>[personId, ali.id, mohammed.id],
@@ -147,9 +148,11 @@ void main() {
           issuedAt: today,
         ),
       );
-      await service.recordPayment(
-        shared.id,
-        PaymentDraft(amountMinor: 50000, paidAt: addDays(today, -1)),
+      await recordLegacyPayment(
+        service,
+        shared,
+        amountMinor: 50000,
+        paidAt: addDays(today, -1),
       );
 
       await expectSameViews(queries, service, today);

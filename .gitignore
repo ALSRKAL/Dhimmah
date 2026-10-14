@@ -69,3 +69,13 @@ android/key.properties
 # control. `*.jks` already covers the key; this covers everything next to it,
 # including the plain-text password file, which no pattern above matched.
 Dhimmah-release-keys/
+
+# Tooling directories that belong to one machine, not to the app. `.playwright-mcp`
+# is the browser-automation session's cache and traces; `Dhimmah-icons-pipeline`
+# is a generated icon build workspace with its own toolchain. Neither is source,
+# and neither is referenced by the build or by a test, so a clone has no use for
+# them — but both are large enough that an accidental `git add .` would put
+# hundreds of megabytes of someone else's tooling into this repository's history,
+# where it cannot be cleanly removed afterwards.
+.playwright-mcp/
+Dhimmah-icons-pipeline/

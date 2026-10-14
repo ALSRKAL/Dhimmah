@@ -12,6 +12,7 @@ import 'package:dhimmah/core/notifications/notification_service.dart';
 import 'package:dhimmah/core/security/biometric_service.dart';
 import 'package:dhimmah/core/security/pin_service.dart';
 import 'package:dhimmah/core/utils/dates.dart';
+import 'package:dhimmah/core/utils/id_generator.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/data/repositories/activity_repository_impl.dart';
 import 'package:dhimmah/data/repositories/debt_repository_impl.dart';
@@ -23,11 +24,13 @@ import 'package:dhimmah/data/services/ledger_service.dart';
 import 'package:dhimmah/domain/entities/app_settings.dart';
 import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
+import 'package:dhimmah/domain/entities/payment.dart';
 import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/enums/obligation_enums.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
 import 'package:dhimmah/domain/enums/recurrence.dart';
+import 'package:dhimmah/domain/services/participant_rules.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
 
 import 'package:flutter/material.dart';
@@ -296,4 +299,70 @@ Future<ProviderContainer> pumpDhimmah(
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 400));
   return container;
+}
+
+/// Writes a legacy shared debt directly, bypassing the fan-out.
+///
+/// Since the fan-out, [LedgerService.createDebt] records one independent debt
+/// per participant and can no longer produce the old shape — one row naming
+/// several people. Tests that cover how the app *reads* such surviving rows
+/// (backups, exports, notifications, the review-and-split flow) build them
+/// with this instead, so the shape under test is explicit rather than a
+/// leftover of the old creation path.
+Future<Debt> createLegacySharedDebt(
+  LedgerService service,
+  DebtDraft draft,
+) async {
+  final List<String> personIds = ParticipantRules.normalise(draft.personIds);
+  final DateTime now = DateTime.now();
+  final String note = draft.note?.trim() ?? '';
+  final Debt debt = Debt(
+    id: newId(),
+    personIds: personIds,
+    direction: draft.direction,
+    title: draft.title.trim(),
+    principalMinor: draft.principalMinor,
+    currency: draft.currency,
+    issuedAt: dateOnly(draft.issuedAt),
+    dueAt: draft.dueAt == null ? null : dateOnly(draft.dueAt!),
+    note: note.isEmpty ? null : note,
+    reminderLeads: ReminderLead.sorted(draft.reminderLeads),
+    recurrence: draft.recurrence,
+    recurrenceInterval: draft.recurrenceInterval,
+    recurrenceEndAt:
+        draft.recurrenceEndAt == null ? null : dateOnly(draft.recurrenceEndAt!),
+    createdAt: now,
+    updatedAt: now,
+  );
+  await service.debts.save(debt);
+  // As if written by the old build, which refreshed after every write.
+  await service.refreshNotifications();
+  return debt;
+}
+
+/// Records a payment row directly on a legacy shared debt.
+///
+/// [LedgerService.recordPayment] refuses new payments on such rows until they
+/// are split, so histories that must already exist for the tests that read
+/// them (backups, exports, equivalence) are written with this instead. Partial
+/// payments never touched the closing stamp, so the stored state matches what
+/// the service would have left behind.
+Future<Payment> recordLegacyPayment(
+  LedgerService service,
+  Debt debt, {
+  required int amountMinor,
+  required DateTime paidAt,
+}) async {
+  final Payment payment = Payment(
+    id: newId(),
+    debtId: debt.id,
+    personId: debt.personId,
+    amountMinor: amountMinor,
+    currency: debt.currency,
+    paidAt: dateOnly(paidAt),
+    createdAt: DateTime.now(),
+  );
+  await service.payments.save(payment);
+  await service.refreshNotifications();
+  return payment;
 }

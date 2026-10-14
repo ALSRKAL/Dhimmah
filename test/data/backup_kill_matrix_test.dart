@@ -466,7 +466,8 @@ Future<void> _seed(LedgerService service, DateTime today) async {
       await service.createPerson(const PersonDraft(name: 'أحمد'));
   final Person maryam =
       await service.createPerson(const PersonDraft(name: 'مريم'));
-  final shared = await service.createDebt(
+  final shared = await createLegacySharedDebt(
+    service,
     DebtDraft(
       direction: DebtDirection.owedToMe,
       personIds: <String>[ahmed.id, maryam.id],
@@ -477,9 +478,11 @@ Future<void> _seed(LedgerService service, DateTime today) async {
       dueAt: addDays(today, 3),
     ),
   );
-  await service.recordPayment(
-    shared.id,
-    PaymentDraft(amountMinor: 50000, paidAt: today),
+  await recordLegacyPayment(
+    service,
+    shared,
+    amountMinor: 50000,
+    paidAt: today,
   );
   await service.createDebt(
     DebtDraft(

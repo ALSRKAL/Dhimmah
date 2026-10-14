@@ -173,6 +173,23 @@
   "debtArchived": "Archived",
   "debtClosed": "Debt closed",
   "debtCreated": "Debt created",
+  "debtsCreatedCount": "Created {count} separate debts",
+  "@debtsCreatedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "legacySharedTitle": "Legacy shared debt needs review",
+  "legacySharedBody": "This debt is registered on several people together under the old system. A payment on it would zero everyone's balance together, so payments are paused for now. Review the previous payments, then split it into separate debts; the payment history stays on the first person's debt.",
+  "legacySharedSplit": "Split into separate debts",
+  "legacySharedSplitConfirmTitle": "Split the shared debt?",
+  "legacySharedSplitConfirmBody": "A separate debt with the same amount will be created for each person, and previous payments stay recorded on the first person's debt. Do you want to continue?",
+  "legacySharedSplitDone": "Split into separate debts",
+  "legacySharedPayBlocked": "Payments are paused on this legacy shared debt. Review the payments, then split it into separate debts first.",
+  "legacySharedSettledBody": "This legacy shared debt is fully settled. Its record and payment history are kept for review.",
+  "debtFormSharedBlocked": "Adding another person while editing is not allowed. Create a new debt for each additional person.",
   "debtFormEdit": "Edit debt",
   "debtFormNewIOwe": "Debt I owe",
   "debtFormNewOwedToMe": "Debt owed to me",

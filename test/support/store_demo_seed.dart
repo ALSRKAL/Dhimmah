@@ -49,7 +49,7 @@ import 'package:dhimmah/l10n/generated/app_localizations.dart';
 /// in a currency the seed never writes.
 const ({int people, int debts, int payments, int obligations}) storeDemoShape = (
   people: 5,
-  debts: 8,
+  debts: 9,
   payments: 3,
   obligations: 4,
 );
@@ -173,10 +173,10 @@ Future<void> seedStoreDemoData(
     ),
   );
 
-  // One record, two people: each of them reads it on their own page as an
-  // ordinary debt of theirs, which is how the app has always behaved. No due
-  // date, so it also carries the "ongoing" state.
-  await service.createDebt(
+  // The same expenses with two people: one independent debt apiece, each
+  // reading on its own page as an ordinary debt. No due date, so they also
+  // carry the "ongoing" state.
+  await service.createDebts(
     DebtDraft(
       direction: DebtDirection.iOwe,
       personIds: <String>[mohammed.id, ali.id],

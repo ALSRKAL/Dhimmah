@@ -244,6 +244,13 @@ class _DetailBody extends StatelessWidget {
         AppSpacing.massive,
       ),
       children: <Widget>[
+        // A legacy shared debt names several people on one pot, so a payment
+        // on it would settle everyone at once. The notice stays until the user
+        // splits the record into independent debts.
+        if (view.debt.isShared) ...<Widget>[
+          _LegacySharedCard(view: view),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         _BalanceCard(view: view),
         const SizedBox(height: AppSpacing.lg),
         _FactsCard(view: view),
@@ -513,6 +520,51 @@ class _BottomAction extends ConsumerWidget {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
 
+    // Payments are paused on a legacy shared debt: recording one here would
+    // settle every participant at once. The split replaces the payment action
+    // until the record is independent debts — except on a settled record,
+    // where there is nothing left to split: its history just stays readable.
+    if (view.debt.isShared && view.isSettled) {
+      return const SizedBox.shrink();
+    }
+    if (view.debt.isShared) {
+      return SafeArea(
+        minimum: const EdgeInsets.fromLTRB(
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.md,
+        ),
+        child: Row(
+          children: <Widget>[
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: () => _split(context, ref),
+                icon: const Icon(Icons.call_split, size: 20),
+                label: Text(localizations.legacySharedSplit),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            IconButton.outlined(
+              tooltip: localizations.actionShare,
+              onPressed: () async {
+                final ShareService service = ShareService(
+                  localizations: localizations,
+                  formatting: context.formatting,
+                );
+                await service.shareText(service.debtSummary(view));
+              },
+              icon: const Icon(Icons.ios_share, size: 20),
+              style: IconButton.styleFrom(
+                minimumSize: const Size(52, 52),
+                side: BorderSide(color: palette.borderStrong),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return SafeArea(
       minimum: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
@@ -545,6 +597,96 @@ class _BottomAction extends ConsumerWidget {
             style: IconButton.styleFrom(
               minimumSize: const Size(52, 52),
               side: BorderSide(color: palette.borderStrong),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Converts the legacy shared record into independent debts, after the user
+  /// has reviewed its payment history shown above.
+  Future<void> _split(BuildContext context, WidgetRef ref) async {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext dialogContext) => AlertDialog(
+        title: Text(localizations.legacySharedSplitConfirmTitle),
+        content: Text(localizations.legacySharedSplitConfirmBody),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(
+              MaterialLocalizations.of(dialogContext).cancelButtonLabel,
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(localizations.legacySharedSplit),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    try {
+      await ref.read(ledgerServiceProvider).splitSharedDebt(view.debt.id);
+    } on Object {
+      if (!context.mounted) return;
+      AppFeedback.error(context, localizations.somethingWentWrong);
+      return;
+    }
+    if (!context.mounted) return;
+    // The original row keeps its id for the first participant, so this screen
+    // now shows that person's independent debt; the streams rebuild it.
+    ref.invalidate(debtDetailProvider(view.debt.id));
+    AppFeedback.info(
+      context,
+      localizations.legacySharedSplitDone,
+      icon: Icons.check_circle_outline,
+    );
+  }
+}
+
+/// The notice on a legacy shared debt: why payments are paused and what to do.
+class _LegacySharedCard extends StatelessWidget {
+  const _LegacySharedCard({required this.view});
+
+  final DebtView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final AppPalette palette = context.palette;
+    final ThemeData theme = Theme.of(context);
+
+    return AppCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(
+            Icons.warning_amber_outlined,
+            size: 20,
+            color: palette.dueSoon,
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  localizations.legacySharedTitle,
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(color: palette.dueSoon),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  view.isSettled
+                      ? localizations.legacySharedSettledBody
+                      : localizations.legacySharedBody,
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
             ),
           ),
         ],

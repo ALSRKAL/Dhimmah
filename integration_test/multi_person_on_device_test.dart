@@ -66,8 +66,8 @@ void main() {
     final Person khalid = await service.createPerson(const PersonDraft(name: second));
     final Person maryam = await service.createPerson(const PersonDraft(name: third));
 
-    // 1,500 owed to three people at once: one record, three links.
-    final Debt dinner = await service.createDebt(
+    // 1,500 owed to three people at once: one independent record apiece.
+    final List<Debt> dinners = await service.createDebts(
       DebtDraft(
         direction: DebtDirection.iOwe,
         personIds: <String>[ahmed.id, khalid.id, maryam.id],
@@ -76,6 +76,9 @@ void main() {
         currency: AppCurrency.inr,
         issuedAt: today,
       ),
+    );
+    final Debt dinner = dinners.firstWhere(
+      (Debt d) => d.personIds.single == ahmed.id,
     );
     await service.createDebt(
       DebtDraft(
@@ -142,24 +145,34 @@ void main() {
       print('DEVICE $name: record shown, nobody else named');
     }
 
-    // One payment on the one record: every page shows the same 1,000 left.
+    // One payment on Ahmed's own record: his page shows 1,000 left, the
+    // others still owe the full 1,500.
     await service.recordPayment(
       dinner.id,
       PaymentDraft(amountMinor: 50000, paidAt: today),
     );
     await tester.pumpAndSettle();
 
-    for (final String name in <String>[first, second, third]) {
+    await openPerson(first);
+    expect(
+      find.textContaining('1,000'),
+      findsWidgets,
+      reason: 'Ahmed sees his own record fall by his payment',
+    );
+    for (final String name in <String>[second, third]) {
       await openPerson(name);
       expect(
-        find.textContaining('1,000'),
+        find.textContaining('1,500'),
         findsWidgets,
-        reason: '$name sees the same record fall by the same payment',
+        reason: '$name still owes the full amount',
       );
     }
 
-    expect(await db.debtsDao.getAll(), hasLength(2));
-    expect(await db.debtsDao.participantsFor(dinner.id), hasLength(3));
+    expect(await db.debtsDao.getAll(), hasLength(4));
+    expect(
+      (await service.debts.getById(dinner.id))!.personIds,
+      <String>[ahmed.id],
+    );
 
     for (final MapEntry<String, List<int>> entry in build.entries) {
       // ignore: avoid_print

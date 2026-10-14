@@ -333,12 +333,17 @@ void main() {
       await settle(tester);
 
       final List<DebtRow> stored = await db.debtsDao.getAll();
-      expect(stored, hasLength(1), reason: 'one debt, not one per person');
-      // The order is the order they were chosen in: Ali was re-added last.
-      expect(
-        await db.debtsDao.participantsFor(stored.single.id),
-        <String>[ahmed.id, mohammed.id, ali.id],
-      );
+      expect(stored, hasLength(3), reason: 'one debt per person, in full');
+      // One participant per record, in the order they were chosen in: Ali was
+      // re-added last.
+      final List<String> singletons = <String>[
+        for (final DebtRow row in stored)
+          (await db.debtsDao.participantsFor(row.id)).single,
+      ];
+      expect(singletons.toSet(), <String>{ahmed.id, mohammed.id, ali.id});
+      for (final DebtRow row in stored) {
+        expect(row.principalMinor, 150000);
+      }
     });
 
     testWidgets('the picker finds a name typed without its hamza',
@@ -476,12 +481,18 @@ void main() {
       await tester.tap(find.text('حفظ الدين'));
       await settle(tester);
 
-      final DebtRow stored = (await db.debtsDao.getAll()).single;
-      expect(
-        await db.debtsDao.participantsFor(stored.id),
-        <String>[ahmed.id, ali.id],
-      );
-      expect(stored.direction, DebtDirection.owedToMe);
+      final List<DebtRow> stored = await db.debtsDao.getAll();
+      // One independent debt per participant, each with the full amount.
+      expect(stored, hasLength(2));
+      final List<String> singletons = <String>[
+        for (final DebtRow row in stored)
+          (await db.debtsDao.participantsFor(row.id)).single,
+      ];
+      expect(singletons.toSet(), <String>{ahmed.id, ali.id});
+      for (final DebtRow row in stored) {
+        expect(row.direction, DebtDirection.owedToMe);
+        expect(row.principalMinor, 60000);
+      }
     });
   });
 

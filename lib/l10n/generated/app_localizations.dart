@@ -764,6 +764,66 @@ abstract class AppLocalizations {
   /// **'تم إنشاء الدين'**
   String get debtCreated;
 
+  /// No description provided for @debtsCreatedCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم إنشاء {count} ديون مستقلة'**
+  String debtsCreatedCount(int count);
+
+  /// No description provided for @legacySharedTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين مشترك قديم يحتاج مراجعة'**
+  String get legacySharedTitle;
+
+  /// No description provided for @legacySharedBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الدين مسجّل على عدة أشخاص معاً بالنظام القديم. تسديد دفعة عليه سيُصفّر رصيد الجميع معاً، لذلك تم إيقاف السداد مؤقتاً. راجع الدفعات السابقة ثم حوّله إلى ديون مستقلة، وسيبقى سجل الدفعات على دين الشخص الأول.'**
+  String get legacySharedBody;
+
+  /// No description provided for @legacySharedSplit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحويل إلى ديون مستقلة'**
+  String get legacySharedSplit;
+
+  /// No description provided for @legacySharedSplitConfirmTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'تحويل الدين المشترك؟'**
+  String get legacySharedSplitConfirmTitle;
+
+  /// No description provided for @legacySharedSplitConfirmBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'سيتم إنشاء دين مستقل بنفس المبلغ لكل شخص، وتبقى الدفعات السابقة مسجّلة على دين الشخص الأول. هل تريد المتابعة؟'**
+  String get legacySharedSplitConfirmBody;
+
+  /// No description provided for @legacySharedSplitDone.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم التحويل إلى ديون مستقلة'**
+  String get legacySharedSplitDone;
+
+  /// No description provided for @legacySharedPayBlocked.
+  ///
+  /// In ar, this message translates to:
+  /// **'السداد موقوف على الدين المشترك القديم. راجع الدفعات ثم حوّله إلى ديون مستقلة أولاً.'**
+  String get legacySharedPayBlocked;
+
+  /// No description provided for @legacySharedSettledBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الدين المشترك القديم مُسدَّد بالكامل، وسجله وسجل دفعاته محفوظان للمراجعة.'**
+  String get legacySharedSettledBody;
+
+  /// No description provided for @debtFormSharedBlocked.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يمكن إضافة شخص آخر أثناء تعديل الدين. أنشئ ديناً جديداً لكل شخص إضافي.'**
+  String get debtFormSharedBlocked;
+
   /// No description provided for @debtFormEdit.
   ///
   /// In ar, this message translates to:

@@ -168,7 +168,8 @@ void main() {
     final Person maryam = await service.createPerson(
       const PersonDraft(name: 'Maryam Hassan'),
     );
-    await service.createDebt(
+    await createLegacySharedDebt(
+      service,
       DebtDraft(
         direction: DebtDirection.owedToMe,
         personIds: <String>[ahmed.id, khalid.id, maryam.id],

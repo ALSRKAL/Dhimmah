@@ -35,17 +35,15 @@ void main() {
   const String debtTitle = 'قرض سيارة';
 
   late String personId;
-  late String secondPersonId;
 
   Future<void> seed(WidgetTester tester) async {
     final Person person = await buildService(db).createPerson(
       const PersonDraft(name: personName),
     );
-    final Person second = await buildService(db).createPerson(
+    await buildService(db).createPerson(
       const PersonDraft(name: secondName),
     );
     personId = person.id;
-    secondPersonId = second.id;
     await buildService(db).createDebt(
       DebtDraft(
         direction: DebtDirection.iOwe,
@@ -177,7 +175,7 @@ void main() {
       expect(find.textContaining('انتقل الدين إلى'), findsOneWidget);
     });
 
-    testWidgets('the people, adding one', (WidgetTester tester) async {
+    testWidgets('the people, refusing a second one', (WidgetTester tester) async {
       await seed(tester);
       await openEditForm(tester);
 
@@ -185,8 +183,8 @@ void main() {
       // file was written for.
       expect(find.widgetWithText(InputChip, personName), findsOneWidget);
 
-      // The form scrolls; bring the control onto the glass first, the way a
-      // user does after the description field moved it down.
+      // Widening the record to a second person would recreate the shared pot,
+      // so the form offers the control but refuses the save.
       await reveal(tester, find.text('إضافة شخص'));
       await tester.tap(find.text('إضافة شخص'));
       await settle(tester);
@@ -199,23 +197,45 @@ void main() {
       await settle(tester);
       await tester.tap(find.text('تم'));
       await settle(tester);
+      expect(find.widgetWithText(InputChip, personName), findsOneWidget);
+      expect(find.widgetWithText(InputChip, secondName), findsOneWidget);
       await save(tester);
 
+      // Refused, and the form stays open saying why.
+      expect(
+        find.text('لا يمكن إضافة شخص آخر أثناء تعديل الدين. '
+            'أنشئ ديناً جديداً لكل شخص إضافي.'),
+        findsWidgets,
+        reason: 'the refusal is said on the field and in the message',
+      );
+      expect(find.text('حفظ التعديلات'), findsOneWidget);
       expect(
         (await reloaded()).personIds,
-        <String>[personId, secondPersonId],
-        reason: 'the existing person is kept and the new one added',
+        <String>[personId],
+        reason: 'a refused save writes nothing',
       );
 
-      // And the pair survives a second edit of something else entirely.
-      await tester.tap(find.byIcon(Icons.edit_outlined));
+      // Dropping the extra person saves as usual. The chip is brought onto
+      // the glass first: the refusal message covers the bottom of the list.
+      await tester.ensureVisible(
+        find.widgetWithText(InputChip, secondName).first,
+      );
       await settle(tester);
-      await typeAmount(tester, '30000');
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(InputChip, secondName),
+          matching: find.byTooltip('مسح'),
+        ),
+      );
+      await settle(tester);
+      expect(find.widgetWithText(InputChip, secondName), findsNothing,
+          reason: 'the extra person is dropped');
       await save(tester);
 
       final Debt after = await reloaded();
-      expect(after.personIds, <String>[personId, secondPersonId]);
-      expect(after.principalMinor, 3000000);
+      expect(after.personIds, <String>[personId]);
+      expect(find.text('حفظ التعديلات'), findsNothing,
+          reason: 'the save went through and the form closed');
     });
 
     testWidgets('nothing at all', (WidgetTester tester) async {
