@@ -126,7 +126,13 @@ abstract interface class NotificationGateway {
   /// Cancels one scheduled notification. Never touches what is on screen.
   Future<void> cancel(int id);
 
-  /// Cancels everything scheduled. Never touches what is on screen.
+  /// Cancels everything this app has scheduled, and clears what it has posted.
+  ///
+  /// Deliberately the whole package rather than the pending list: a pending list
+  /// that has lost an entry still leaves its alarm registered in `AlarmManager`.
+  /// It also clears the notifications already on screen, which is the one moment
+  /// that costs nothing — a notification the user has switched off arriving
+  /// tomorrow is worse than one the user never saw.
   Future<void> cancelAllPending();
 
   /// The device's current timezone name, for detecting a change.
@@ -236,7 +242,21 @@ class FlutterLocalNotificationsGateway implements NotificationGateway {
           channelIds[entry.key]!,
           entry.value.name,
           description: entry.value.body,
-          importance: entry.key == NotificationTier.now
+          // The two tiers that are about something the user has to act on get a
+          // high-importance channel: the reminder that is due, and the app's own
+          // problem — a backup that cannot be written, a folder whose permission
+          // was taken back. They are separate channels rather than one loud
+          // channel precisely because they are separate kinds of news, so a user
+          // who finds the backup alerts noisy can quieten them without also
+          // quietening their reminders.
+          //
+          // Importance is fixed by Android when the channel is created and the
+          // value passed per notification afterwards is ignored, so this is the
+          // only place it can be set. `alert` used to fall through to the default
+          // branch here while [NotificationTier.alert] asked for high, which
+          // left a failure that loses the user's data arriving silently.
+          importance: entry.key == NotificationTier.now ||
+                  entry.key == NotificationTier.alert
               ? Importance.high
               : Importance.defaultImportance,
         ),
@@ -366,11 +386,22 @@ class FlutterLocalNotificationsGateway implements NotificationGateway {
   Future<void> cancelAllPending() async {
     if (!supported) return;
     try {
-      // `cancelAll` would also clear the notifications already on screen, which
-      // is the user's history, not ours to wipe. This cancels only the future.
-      await _plugin.cancelAllPendingNotifications();
+      // `cancelAll`, not `cancelAllPendingNotifications`.
+      //
+      // Only `cancelAll` also goes through `NotificationManager.cancelAll()`,
+      // which drops every alarm and every posted notification the package is
+      // responsible for — including anything the plugin's own stored list has
+      // lost track of. A pending list short by one entry is exactly how a
+      // reminder the user has switched off keeps arriving anyway.
+      //
+      // It also clears the notifications already on screen. That used to be the
+      // reason this deliberately spared the shade, and for an ordinary rebuild
+      // that restraint is right. Switching reminders off is the exception: the
+      // armed set is about to be thrown away, and a notification that outlives
+      // the switch is a worse outcome than a lost one.
+      await _plugin.cancelAll();
     } on Object {
-      // Ignored.
+      // Ignored: a failed cancel is retried by the next reconciliation.
     }
   }
 
