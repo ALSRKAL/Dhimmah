@@ -1,0 +1,238 @@
+# Strict data-safety guard for Dhimmah.
+#
+# Dhimmah is local-first and published on Google Play with real users. The SQLite
+# file on a phone is the only copy of that person's records, so this pipeline
+# treats "may a released build lose data" as the thing that must never regress —
+# above style, above lint, above new features.
+#
+# The gate is deliberately layered so that a cheap, specific violation fails in
+# under a second with a readable message, before the expensive jobs run.
+
+name: ci_strict_guard
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A new push to the same branch makes the previous run irrelevant; do not burn
+# minutes on a superseded commit.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: Data-safety guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.7'
+          channel: stable
+          cache: true
+
+      - name: Cache pub
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool
+          key: ${{ runner.os }}-pub-${{ hashFiles('pubspec.lock') }}
+          restore-keys: ${{ runner.os }}-pub-
+
+      # ---------------------------------------------------------------------
+      # 1. Static safety guard.
+      #
+      # These are invariants that have already shipped to users' phones. Each
+      # one silently breaks real data if it moves, and none of them is something
+      # a reviewer reliably spots in a diff — so they are checked mechanically.
+      # ---------------------------------------------------------------------
+      - name: Static safety guard
+        run: |
+          set -euo pipefail
+          fail=0
+
+          # -- applicationId -------------------------------------------------
+          # Changing it publishes the update as a different app. Every existing
+          # install keeps its data, which then no app can reach.
+          gradle_file=""
+          for candidate in android/app/build.gradle.kts android/app/build.gradle; do
+            [ -f "$candidate" ] && gradle_file="$candidate" && break
+          done
+          if [ -z "$gradle_file" ]; then
+            echo "::error::no android/app/build.gradle[.kts] found; cannot verify applicationId."
+            fail=1
+          else
+            actual_app_id="$(grep -oE 'applicationId *= *"[^"]+"' "$gradle_file" \
+                              | head -1 | sed 's/.*"\(.*\)"/\1/')"
+            if [ "$actual_app_id" != "com.dhimmah.dhimmah" ]; then
+              echo "::error::applicationId is '$actual_app_id', expected 'com.dhimmah.dhimmah'."
+              echo "::error::Changing it ships the update as a different app; existing installs keep their data unreachable."
+              fail=1
+            else
+              echo "OK  applicationId = $actual_app_id ($gradle_file)"
+            fi
+          fi
+
+          # -- destructiveFallback -------------------------------------------
+          # Drift's fallback drops every table and recreates an empty database.
+          if grep -rn "destructiveFallback" lib/ ; then
+            echo "::error::destructiveFallback found in lib/. It wipes every table on upgrade."
+            fail=1
+          else
+            echo "OK  no destructiveFallback in lib/"
+          fi
+
+          # -- SCHEDULE_EXACT_ALARM ------------------------------------------
+          # Restricted by Play policy and deliberately not used: the app schedules
+          # with inexactAllowWhileIdle on purpose. Adding it risks a store takedown
+          # of the shipping app.
+          #
+          # Matched on the permission element, not the bare word: the manifest
+          # carries a comment explaining that this permission is *not* used, and a
+          # plain grep for the name would fail every build on its own rationale.
+          if grep -nE '<uses-permission[^>]*SCHEDULE_EXACT_ALARM' android/app/src/main/AndroidManifest.xml ; then
+            echo "::error::SCHEDULE_EXACT_ALARM must not be requested."
+            echo "::error::It is Play-policy-restricted and this app does not need exact alarms."
+            fail=1
+          else
+            echo "OK  no SCHEDULE_EXACT_ALARM permission in the manifest"
+          fi
+
+          # -- notification identity -----------------------------------------
+          # _identity() feeds the 31-bit FNV-1a that is the Android notification
+          # id. Changing it strands every alarm already armed on a user's phone:
+          # the app can no longer cancel them by id.
+          if grep -q "intent.when.toIso8601String()" lib/core/notifications/notification_composer.dart ; then
+            echo "OK  notification _identity() still derives from payload|kind|when"
+          else
+            echo "::error::_identity() in notification_composer.dart no longer matches the shipped form."
+            echo "::error::Existing alarms can never be cancelled by their new id. Raise this with the developer."
+            fail=1
+          fi
+
+          # -- drop/delete on the upgrade path --------------------------------
+          # Catches a hand-rolled migration that drops a table instead of moving
+          # data across. AppDatabase.clearAllData() is user-initiated and allowed;
+          # onUpgrade is not.
+          if sed -n '/onUpgrade:/,/beforeOpen:/p' lib/data/database/app_database.dart \
+               | grep -iE "drop table|delete\(" ; then
+            echo "::error::onUpgrade drops or deletes. An upgrade must only add and backfill."
+            fail=1
+          else
+            echo "OK  onUpgrade adds and backfills only"
+          fi
+
+          if [ "$fail" -ne 0 ]; then
+            echo ""
+            echo "Data-safety guard failed. See the ::error:: annotations above."
+            exit 1
+          fi
+          echo ""
+          echo "Static safety guard passed."
+
+      # ---------------------------------------------------------------------
+      # 2. Strict static analysis.
+      # ---------------------------------------------------------------------
+      - name: Analyze
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      # ---------------------------------------------------------------------
+      # 3. Zero data-loss gate.
+      #
+      # Run as its own step, before the full suite, so a data-loss failure is
+      # unambiguous rather than buried in 900 lines of test output.
+      #
+      # migration_test.dart is the only file that actually executes onUpgrade.
+      # legacy_upgrade_safety_test.dart builds a current v5 in-memory database
+      # and never migrates, despite its name.
+      # ---------------------------------------------------------------------
+      - name: Seed the legacy database fixture
+        run: |
+          # backward_compatibility_test.dart reads build/demo/dhimmah_v2.sqlite and
+          # markTestSkipped()s itself when it is absent — on a clean checkout that
+          # would make the data-loss gate silently vacuous. Produce it first.
+          flutter test test/tool/seed_demo_data_test.dart
+          test -f build/demo/dhimmah_v2.sqlite \
+            || { echo "::error::fixture build/demo/dhimmah_v2.sqlite was not produced."; exit 1; }
+          echo "OK  legacy fixture present"
+
+      - name: Zero data-loss gate (a skip fails the build)
+        run: |
+          set -o pipefail
+          flutter test \
+            test/data/migration_test.dart \
+            test/data/backward_compatibility_test.dart \
+            test/data/legacy_upgrade_safety_test.dart \
+            test/data/backup_round_trip_test.dart \
+            test/data/backup_hardening_test.dart \
+            test/data/backup_kill_matrix_test.dart 2>&1 | tee /tmp/data-loss-gate.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "::error::the zero data-loss gate failed (exit $status)."
+            exit 1
+          fi
+
+          # A skipped test means the guarantee was not actually exercised. The
+          # final line reads "+81:" when everything ran and "+79 ~2:" when two
+          # were skipped, so the tilde is the signal.
+          summary="$(tail -1 /tmp/data-loss-gate.log)"
+          echo "gate summary: ${summary}"
+          if echo "$summary" | grep -q "All tests skipped"; then
+            echo "::error::the data-loss gate skipped everything. A skip is not a pass."
+            exit 1
+          fi
+          if echo "$summary" | grep -qE "[0-9]+ ~[0-9]+"; then
+            echo "::error::tests were skipped inside the data-loss gate: ${summary}"
+            echo "::error::Find which fixture is missing and make the test fail loudly instead."
+            exit 1
+          fi
+          echo "OK  data-loss gate green, nothing skipped"
+
+      # ---------------------------------------------------------------------
+      # 4. Full regression suite.
+      # ---------------------------------------------------------------------
+      - name: Full test suite
+        run: flutter test
+
+      # ---------------------------------------------------------------------
+      # 5. Confirm the notification contract still holds.
+      #
+      # Notification ids are the one value already committed to users' phones.
+      # A change to _identity() passes every functional test while stranding every
+      # alarm already scheduled, so re-assert the stability contract explicitly.
+      # ---------------------------------------------------------------------
+      - name: Notification identity and routing
+        run: |
+          flutter test \
+            test/core/notifications/ \
+            test/domain/notification_planner_test.dart \
+            test/data/notification_lifecycle_test.dart \
+            test/data/reminder_plan_test.dart \
+            test/widget/notification_routes_test.dart
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Data-safety gate"
+            echo
+            echo "* applicationId, destructiveFallback, SCHEDULE_EXACT_ALARM and"
+            echo "  _identity() are checked statically on every push."
+            echo "* migration_test.dart executes onUpgrade; the rest of the data-loss"
+            echo "  gate covers backup round-trip, hardening and kill-matrix."
+            echo "* A skipped data-loss test fails the build."
+          } >> "$GITHUB_STEP_SUMMARY"
