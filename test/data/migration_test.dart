@@ -36,9 +36,19 @@ void main() {
   /// version set back. The tables are otherwise identical, which is exactly what
   /// makes this a faithful fixture rather than a hand-written approximation of
   /// one.
+  ///
+  /// Every removal is conditional on the version that introduced the object, so
+  /// the fixture is the shape a phone at that version would really hold. Dropping
+  /// `debt_people` unconditionally used to build a version 4 file that no phone
+  /// ever had — one missing the link table — and because `from < 3` is false at
+  /// version 4 the upgrade never recreated it, so the file reached
+  /// `user_version = 5` without the table. The version 4 assertions were about
+  /// settings and language, so they passed regardless.
   Future<void> downgrade(AppDatabase db, int version) async {
-    await db.customStatement('DROP TABLE debt_people');
-    await db.customStatement('DROP INDEX IF EXISTS idx_debt_people_person');
+    if (version < 3) {
+      await db.customStatement('DROP TABLE debt_people');
+      await db.customStatement('DROP INDEX IF EXISTS idx_debt_people_person');
+    }
     if (version < 4) {
       await db.customStatement(
         'ALTER TABLE settings DROP COLUMN backup_auto_enabled',
@@ -210,6 +220,72 @@ void main() {
           .firstWhere((Debt d) => d.id == 'd3');
       expect(bankDebt.personIds, isEmpty);
       expect(bankDebt.title, 'قرض البنك', reason: 'still readable');
+    });
+  });
+
+  group('a version 3 or 4 file, which already has the link table', () {
+    // `from < 3` is false for both, so the upgrade creates nothing: it must
+    // leave the link table exactly as the old build left it. Before `downgrade()`
+    // was made conditional these fixtures had the table dropped and never
+    // recreated, so nothing here was actually being proved.
+    for (final int version in <int>[3, 4]) {
+      test('version $version keeps every link row it was holding', () async {
+        final File file = await oldDatabase(version);
+        final AppDatabase db = await open(file);
+        addTearDown(db.close);
+
+        final Map<String, List<String>> links =
+            await db.debtsDao.allParticipants();
+        expect(links['d1'], <String>['p1']);
+        expect(links['d2'], <String>['p2']);
+        expect(await db.debtsDao.allParticipantRows(), hasLength(2));
+
+        // And the records still read the same through the current model.
+        final List<Debt> debts = await DebtRepositoryImpl(db).getAll();
+        final Debt d1 = debts.firstWhere((Debt d) => d.id == 'd1');
+        expect(d1.personIds, <String>['p1']);
+        expect(d1.principalMinor, 150000);
+        expect(d1.note, 'ملاحظة d1');
+        expect(await db.debtsDao.getPaymentsForDebt('d1'), hasLength(1));
+      });
+    }
+
+    test('the index on the link table is still in place after version 4',
+        () async {
+      final File file = await oldDatabase(4);
+      final AppDatabase db = await open(file);
+      addTearDown(db.close);
+
+      final List<QueryRow> indexes = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'index' "
+            "AND tbl_name = 'debt_people'",
+          )
+          .get();
+      expect(
+        indexes.map((QueryRow row) => row.read<String>('name')),
+        contains('idx_debt_people_person'),
+        reason: 'a version 4 file shipped with this index; an upgrade must not drop it',
+      );
+    });
+
+    test('version 3 also gains the column and the language it was missing',
+        () async {
+      final File file = await oldDatabase(3);
+      final AppDatabase db = await open(file);
+      addTearDown(db.close);
+
+      // `from < 4` added this column, and `from < 5` moved the language on.
+      final List<QueryRow> columns = await db
+          .customSelect('PRAGMA table_info(settings)')
+          .get();
+      expect(
+        columns.map((QueryRow row) => row.read<String>('name')),
+        contains('backup_auto_enabled'),
+      );
+      final Setting settings = (await db.settingsDao.get())!;
+      expect(settings.backupAutoEnabled, isNotNull);
+      expect(settings.languagePreference, LanguagePreference.system);
     });
   });
 
