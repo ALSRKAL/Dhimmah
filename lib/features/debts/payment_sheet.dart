@@ -129,6 +129,11 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
             controller: _amountController,
             autofocus: !isEditing,
             onChanged: (int minor) => setState(() => _amountMinor = minor),
+            // What is on screen cannot be money, so the figure this sheet would
+            // save is dropped rather than kept. Keeping the last accepted value
+            // is how a form comes to store one number while the field shows
+            // another — and `_save` refuses zero, so the save is refused too.
+            onRejected: () => setState(() => _amountMinor = 0),
           ),
           const SizedBox(height: AppSpacing.sm),
           Align(

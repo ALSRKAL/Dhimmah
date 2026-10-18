@@ -421,6 +421,13 @@ class _IncomeFormState extends ConsumerState<_IncomeForm> {
                 _amountMinor = minor;
                 _amountError = null;
               }),
+              // Same contract as the obligation form: the field is showing
+              // something that is not money, so the amount this form would save
+              // is cleared rather than left at its last accepted figure.
+              onRejected: () => setState(() {
+                _amountMinor = null;
+                _amountError = localizations.validationInvalidAmount;
+              }),
             ),
             const SizedBox(height: AppSpacing.md),
             CurrencyField(
@@ -487,6 +494,11 @@ class _IncomeFormState extends ConsumerState<_IncomeForm> {
 
   Future<void> _save() async {
     final AppLocalizations localizations = AppLocalizations.of(context);
+    // The sheet disables its primary while `_busy`, but that reaches the button
+    // through a rebuild, so a second tap dispatched before the next frame runs
+    // this body again — and creating an income is not idempotent: the second run
+    // records a second income. The flag is the guard.
+    if (_busy) return;
     final int? amount = _amountMinor;
     setState(() {
       _amountError = amount == null || !isAmountWithinRange(amount)

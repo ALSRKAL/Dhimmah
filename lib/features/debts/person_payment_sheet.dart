@@ -421,6 +421,12 @@ class _PersonPaymentSheetState extends ConsumerState<PersonPaymentSheet> {
 
   Future<void> _save() async {
     final AppLocalizations localizations = AppLocalizations.of(context);
+    // Checked here and not only in `canSave`. The button is disabled while
+    // `_busy`, but it learns that from a rebuild, and a second tap dispatched
+    // before the next frame reaches the *old* widget and runs this again —
+    // writing the same money into the ledger twice. The flag is the guard; the
+    // disabled button is only how the user is told about it.
+    if (_busy) return;
     if (!isAmountWithinRange(_amountMinor)) {
       AppFeedback.error(context, localizations.validationInvalidAmount);
       return;

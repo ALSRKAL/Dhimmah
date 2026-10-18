@@ -151,6 +151,37 @@ void main() {
     expect(row.closedAt, isNull, reason: '1,000 is open again');
   });
 
+  testWidgets('a figure the field refuses is never saved as the one before it',
+      (WidgetTester tester) async {
+    // The field stops calling back once what is typed cannot be money, and it
+    // says so on its own. The sheet has to *drop* the last figure it accepted at
+    // the same moment: keeping it is how a form stores 5,000 while the field is
+    // showing an amount no ledger could hold.
+    final String debtId = await seed(tester, paidMinor: 500000);
+    await openDebt(tester);
+    await openCorrection(tester);
+
+    await tester.enterText(amountInput(), '2500');
+    await settle(tester);
+    expect(amountText(tester), '2500');
+
+    // Past the ceiling of a single amount (a billion major units).
+    await tester.enterText(amountInput(), '9999999999999');
+    await settle(tester);
+    expect(find.text('المبلغ كبير جدًا.'), findsOneWidget,
+        reason: 'the field itself reports it');
+
+    await tester.tap(find.text('حفظ الدفعة'));
+    await settle(tester);
+
+    expect(
+      await storedAmounts(debtId),
+      <int>[500000],
+      reason: 'the corrected 2,500 was already refused; nothing was written, '
+          'and in particular not the 5,000 still on the record',
+    );
+  });
+
   testWidgets('pay in full writes the amount it will save into the field',
       (WidgetTester tester) async {
     final String debtId = await seed(tester, paidMinor: 250000);

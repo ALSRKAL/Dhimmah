@@ -157,6 +157,14 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
                 _amountMinor = minor;
                 _amountError = null;
               }),
+              // The field is showing something that is not money, so the value
+              // this form would save is cleared as well as reported. Without it
+              // the form keeps its last accepted figure and saves a number the
+              // user cannot see.
+              onRejected: () => setState(() {
+                _amountMinor = null;
+                _amountError = localizations.validationInvalidAmount;
+              }),
             ),
             const SizedBox(height: AppSpacing.md),
             CurrencyField(

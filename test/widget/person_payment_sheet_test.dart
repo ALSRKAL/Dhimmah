@@ -248,6 +248,111 @@ void main() {
     expect(find.textContaining('يتبقى'), findsOneWidget);
   });
 
+  testWidgets('excluding every debt leaves nothing to save, and says so',
+      (WidgetTester tester) async {
+    await debt(title: 'الأول', rupees: 1000, dueInDays: 1);
+    await debt(title: 'الثاني', rupees: 2000, dueInDays: 2);
+    await openSheet(tester);
+
+    // Both out. The ceiling is what remains payable, so it is now zero.
+    await tester.tap(find.byType(Checkbox).at(0));
+    await tester.pump();
+    await tester.tap(find.byType(Checkbox).at(1));
+    await tester.pump();
+
+    // An excluded row says so in place of a share, which is also where a share
+    // would have been drawn had one been computed.
+    expect(find.text('مستثنى'), findsNWidgets(2));
+    expect(find.textContaining('إجمالي المستحق:'), findsOneWidget);
+    expect(find.text('يُسدَّد بالكامل'), findsNothing);
+
+    // The shortcuts are fractions of that ceiling, so they set nothing rather
+    // than dividing by zero or filling in a share of a debt that is excluded.
+    await tester.tap(find.text('50%'));
+    await tester.pump();
+    expect(fieldText(tester), '0.00');
+
+    // And there is nothing to save: the button is drawn, and disabled.
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, 'حفظ الدفعة'))
+          .onPressed,
+      isNull,
+      reason: 'a payment that reaches no debt must not be writable',
+    );
+
+    await tap(tester, 'حفظ الدفعة');
+    expect(
+      await balances(),
+      <String, int>{'الأول': 100000, 'الثاني': 200000},
+      reason: 'nothing was written',
+    );
+  });
+
+  testWidgets('a shortcut lands on an exact number of minor units',
+      (WidgetTester tester) async {
+    // 1,126.50 split four ways is not a whole number of paise. The field takes
+    // major units and the ledger stores minor ones, so a shortcut that rounded
+    // twice — once into the field and once out of it — would save a different
+    // number from the one on screen.
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[ahmed.id],
+        title: 'فاصلة',
+        principalMinor: 112650,
+        currency: AppCurrency.inr,
+        issuedAt: today,
+        dueAt: addDays(today, 1),
+      ),
+    );
+    await openSheet(tester);
+
+    await tap(tester, '25%');
+    expect(fieldText(tester), '281.62', reason: '112650 ~/ 4 = 28162');
+
+    await tap(tester, '50%');
+    expect(fieldText(tester), '563.25', reason: '112650 ~/ 2 = 56325');
+
+    await tap(tester, 'حفظ الدفعة');
+    expect(
+      await balances(),
+      <String, int>{'فاصلة': 112650 - 56325},
+      reason: 'the number that was on screen is the number that was stored',
+    );
+  });
+
+  testWidgets('the smallest odd amount keeps every minor unit',
+      (WidgetTester tester) async {
+    // One rupee and one paisa: the case where a rounding slip is one paisa and
+    // would otherwise never be noticed.
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[ahmed.id],
+        title: 'فلس',
+        principalMinor: 101,
+        currency: AppCurrency.inr,
+        issuedAt: today,
+        dueAt: addDays(today, 1),
+      ),
+    );
+    await openSheet(tester);
+
+    await tap(tester, '50%');
+    expect(fieldText(tester), '0.50');
+
+    await tap(tester, '25%');
+    expect(fieldText(tester), '0.25');
+
+    await tap(tester, 'حفظ الدفعة');
+    expect(
+      await balances(),
+      <String, int>{'فلس': 101 - 25},
+      reason: '25 paise, not 24 and not 26',
+    );
+  });
+
   testWidgets('an excluded debt is still excluded when the payment is saved',
       (WidgetTester tester) async {
     await debt(title: 'الأول', rupees: 1000, dueInDays: 1);
