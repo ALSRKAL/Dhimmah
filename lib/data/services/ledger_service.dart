@@ -633,10 +633,31 @@ class LedgerService {
   /// when it is missing: undo takes that period away, so redo has to bring it
   /// back. `_spawnNextRecurrence` refuses to build a period that is already
   /// recorded, so a period that survived the undo is never duplicated.
+  ///
+  /// Both links the row carries can have been deleted while the undo was still
+  /// on screen, and re-inserting a link to nobody used to abort the whole undo
+  /// with a foreign-key error thrown out of a callback:
+  ///
+  /// * a payment whose **record** is gone is not written at all. There is
+  ///   nothing left to file the money against, and a row no read reaches — every
+  ///   balance, report and statement walks the records — would be invisible data
+  ///   rather than a restored payment. The user's later deletion of the record
+  ///   supersedes the undo, exactly as it does in [deletePaymentsBatch].
+  /// * a payment whose **person** is gone comes back without them, which is the
+  ///   state deleting that person left the debt's other payments in: the money
+  ///   is real and the record it belongs to is still there.
   Future<void> restorePaymentRecord(Payment payment) async {
     await _db.transaction(() async {
-      await payments.save(payment);
       final String? debtId = payment.debtId;
+      if (debtId != null && await debts.getById(debtId) == null) return;
+
+      Payment toRestore = payment;
+      final String? payer = toRestore.personId;
+      if (payer != null && await people.getById(payer) == null) {
+        toRestore = toRestore.copyWith(personId: null);
+      }
+      await payments.save(toRestore);
+
       if (debtId == null) return;
       final Debt? debt = await debts.getById(debtId);
       if (debt == null) return;
