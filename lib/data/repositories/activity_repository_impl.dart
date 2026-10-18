@@ -49,6 +49,10 @@ class ActivityRepositoryImpl implements ActivityRepository {
   }
 
   @override
+  Future<List<ActivityEntry>> createdFrom(String parentId) async =>
+      _toEntities(await _db.activityDao.createdFrom(parentId));
+
+  @override
   Future<void> add(ActivityEntry entry) =>
       _db.activityDao.insert(entry.toRow());
 

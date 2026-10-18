@@ -161,7 +161,7 @@ class LedgerService {
   Future<void> setPersonArchived(String id, {required bool archived}) async {
     final Person? existing = await people.getById(id);
     if (existing == null) return;
-    await people.setArchived(id, archived: archived);
+    await people.setArchived(id, archived: archived, now: clock());
     await _log(
       type: archived ? ActivityType.debtArchived : ActivityType.debtReopened,
       entityType: RelatedEntityType.person,
@@ -433,8 +433,9 @@ class LedgerService {
       );
       // A changed balance can change whether a closing stamp is still correct —
       // and lowering the amount to what has already been paid closes the debt
-      // exactly as a final payment would, next period included.
-      await _settleIfPaid(updated);
+      // exactly as a final payment would, next period included. Raising it past
+      // what has been paid reopens the debt, and takes that next period back.
+      await _applyClosureOutcome(updated);
       return true;
     });
     if (!found) return;
@@ -444,7 +445,7 @@ class LedgerService {
   Future<void> setDebtArchived(String id, bool archived) async {
     final Debt? existing = await debts.getById(id);
     if (existing == null) return;
-    await debts.setArchived(id, archived: archived);
+    await debts.setArchived(id, archived: archived, now: clock());
     await _log(
       type: archived ? ActivityType.debtArchived : ActivityType.debtReopened,
       entityType: RelatedEntityType.debt,
@@ -585,7 +586,7 @@ class LedgerService {
         amountMinor: payment.amountMinor,
         currency: payment.currency,
       );
-      await _settleIfPaid(debt);
+      await _applyClosureOutcome(debt);
       return payment;
     });
 
@@ -614,9 +615,10 @@ class LedgerService {
         ),
       );
       if (debt != null) {
-        // A corrected amount can be the one that pays the debt off, and it
-        // closes the debt exactly as a new payment would.
-        await _settleIfPaid(debt);
+        // A corrected amount can be the one that pays the debt off, or the one
+        // that means it was never paid off. Both directions are handled by the
+        // same path a new payment uses.
+        await _applyClosureOutcome(debt);
       }
       return true;
     });
@@ -626,17 +628,19 @@ class LedgerService {
 
   /// Puts a deleted payment back, used by the undo on the payments list.
   ///
-  /// Only the stamp is brought back in line: the debt's closing was announced
-  /// when the payment was first recorded, and its next period, if it has one,
-  /// already exists.
+  /// The closing is not announced a second time — it was announced when the
+  /// payment was first recorded — but the next period it created *is* restored
+  /// when it is missing: undo takes that period away, so redo has to bring it
+  /// back. `_spawnNextRecurrence` refuses to build a period that is already
+  /// recorded, so a period that survived the undo is never duplicated.
   Future<void> restorePaymentRecord(Payment payment) async {
     await _db.transaction(() async {
       await payments.save(payment);
       final String? debtId = payment.debtId;
-      if (debtId != null) {
-        final Debt? debt = await debts.getById(debtId);
-        if (debt != null) await _syncClosedStamp(debt);
-      }
+      if (debtId == null) return;
+      final Debt? debt = await debts.getById(debtId);
+      if (debt == null) return;
+      await _applyClosureOutcome(debt, announce: false);
     });
     await refreshNotifications();
   }
@@ -650,7 +654,10 @@ class LedgerService {
       if (debtId != null) {
         final Debt? debt = await debts.getById(debtId);
         if (debt != null) {
-          await _syncClosedStamp(debt);
+          // Deleting money cannot close a debt, so this only ever reopens one —
+          // and reopens it *with* the period the closing had created taken back,
+          // or the person is left owing the money twice.
+          await _applyClosureOutcome(debt);
           await _log(
             type: ActivityType.paymentDeleted,
             entityType: RelatedEntityType.debt,
@@ -671,9 +678,12 @@ class LedgerService {
   ///
   /// This is the single place that decides whether a debt is closed, so the
   /// stamp can never disagree with the payments that justify it. It also says
-  /// whether *this* call is the one that closed it, which is the only moment
-  /// the closing may be announced or a recurring debt's next period created.
-  Future<({Debt debt, bool justClosed})> _syncClosedStamp(Debt debt) async {
+  /// whether *this* call is the one that closed it — which is the only moment
+  /// the closing may be announced or a recurring debt's next period created —
+  /// and, when the call is the one that *reopens* it, the stamp it carried,
+  /// which is what dates the period that has to be taken back.
+  Future<({Debt debt, bool justClosed, DateTime? reopenedFrom})>
+      _syncClosedStamp(Debt debt) async {
     final List<Payment> history = await payments.forDebt(debt.id);
     final int remaining = DebtCalculator.remainingOf(
       debt.principalMinor,
@@ -684,37 +694,111 @@ class LedgerService {
     if (shouldBeClosed && debt.closedAt == null) {
       final Debt updated = debt.copyWith(closedAt: clock(), updatedAt: clock());
       await debts.save(updated);
-      return (debt: updated, justClosed: true);
+      return (debt: updated, justClosed: true, reopenedFrom: null);
     }
     if (!shouldBeClosed && debt.closedAt != null) {
+      final DateTime wasClosedAt = debt.closedAt!;
       final Debt updated = debt.copyWith(closedAt: null, updatedAt: clock());
       await debts.save(updated);
-      return (debt: updated, justClosed: false);
+      return (debt: updated, justClosed: false, reopenedFrom: wasClosedAt);
     }
-    return (debt: debt, justClosed: false);
+    return (debt: debt, justClosed: false, reopenedFrom: null);
   }
 
-  /// Everything that follows a change to what a debt owes: the stamp, and —
-  /// only when this write is the one that closed it — the feed entry and a
-  /// recurring debt's next period.
+  /// Everything that follows a change to what a debt owes, in both directions.
   ///
-  /// A payment, a corrected payment and a lowered amount can each be what pays
-  /// a debt off, and they used to disagree: only a new payment announced the
-  /// closing or created the next period, and it did so again when a debt that
-  /// was already closed received another payment.
-  Future<void> _settleIfPaid(Debt debt) async {
-    final ({Debt debt, bool justClosed}) closing = await _syncClosedStamp(debt);
-    if (!closing.justClosed) return;
-    final Debt settled = closing.debt;
-    await _log(
-      type: ActivityType.debtClosed,
-      entityType: RelatedEntityType.debt,
-      entityId: settled.id,
-      title: await _displayNameFor(settled),
-      amountMinor: settled.principalMinor,
-      currency: settled.currency,
+  /// Forward — a debt that is now paid off is closed, announced, and given the
+  /// next period of its recurrence. Backward — a debt that is no longer paid off
+  /// is reopened, and the next period that the closing created is taken back
+  /// with it, because that period exists only because the debt was thought
+  /// settled. Leaving it behind was a real defect: undoing a payment on a
+  /// monthly record reopened that month *and* kept the following month, so the
+  /// person owed the money twice.
+  ///
+  /// A payment, a corrected payment, a lowered amount and a deleted payment can
+  /// each be what pays a debt off or what stops it being paid off, and they used
+  /// to disagree; now there is one path and they cannot.
+  ///
+  /// [announce] is false for an undo/redo of a payment whose closing was already
+  /// announced: the second pass must restore the period without writing the
+  /// "debt closed" line into the feed a second time.
+  ///
+  /// Returns how many created periods were *left in place* because money had
+  /// already been applied to them, so the caller can say so rather than let the
+  /// difference pass silently.
+  Future<int> _applyClosureOutcome(Debt debt, {bool announce = true}) async {
+    final ({Debt debt, bool justClosed, DateTime? reopenedFrom}) closing =
+        await _syncClosedStamp(debt);
+
+    if (closing.justClosed) {
+      if (announce) {
+        await _log(
+          type: ActivityType.debtClosed,
+          entityType: RelatedEntityType.debt,
+          entityId: closing.debt.id,
+          title: await _displayNameFor(closing.debt),
+          amountMinor: closing.debt.principalMinor,
+          currency: closing.debt.currency,
+        );
+      }
+      await _spawnNextRecurrence(closing.debt);
+      return 0;
+    }
+
+    final DateTime? reopenedFrom = closing.reopenedFrom;
+    if (reopenedFrom == null) return 0;
+    return _revertSpawnedFollowUp(
+      periodId: closing.debt.id,
+      closureStamp: reopenedFrom,
     );
-    await _spawnNextRecurrence(settled);
+  }
+
+  /// Takes back the next period of a recurring debt when the closing that
+  /// created it is undone.
+  ///
+  /// The period is found through the link its creation recorded (the activity
+  /// entry's `detail` holds the period it came from), never by looking for a
+  /// record that merely matches a title and a date: a user can type a duplicate
+  /// title, and deleting their record would be silent data loss. A period
+  /// created by a build before that link existed therefore simply is not found,
+  /// and is left where it is — the older, quieter failure rather than a guess.
+  ///
+  /// Three guards keep a record that is in use:
+  ///
+  /// * it carries money — the applied payment would have nowhere to live;
+  /// * it was closed itself, so its own next period may already exist and taking
+  ///   it away would orphan that one;
+  /// * the user archived it, which is a decision about the record, not a
+  ///   consequence of the closing.
+  ///
+  /// A record that was created *before* the closing cannot be its consequence
+  /// and is left too. Returns how many were left for those reasons.
+  Future<int> _revertSpawnedFollowUp({
+    required String periodId,
+    required DateTime closureStamp,
+  }) async {
+    int leftInPlace = 0;
+    for (final ActivityEntry entry in await activity.createdFrom(periodId)) {
+      final String? followUpId = entry.entityId;
+      if (followUpId == null) continue;
+      final Debt? followUp = await debts.getById(followUpId);
+      if (followUp == null) continue;
+      if (followUp.archivedAt != null ||
+          followUp.closedAt != null ||
+          followUp.createdAt.isBefore(closureStamp) ||
+          (await payments.forDebt(followUpId)).isNotEmpty) {
+        leftInPlace++;
+        continue;
+      }
+      // Nothing refers to it: no payment, no link, no closing. Its own feed goes
+      // with it, exactly as a deleted record's does, so the timeline is not left
+      // pointing at a row that is gone — and no "deleted" line is written,
+      // because the entry that would explain it ("this period was created")
+      // is the one being removed, and the user's own undo is already in the feed.
+      await activity.deleteForEntity(RelatedEntityType.debt, followUpId);
+      await debts.delete(followUpId);
+    }
+    return leftInPlace;
   }
 
   /// Creates the next period of a recurring debt once the current one is settled.
@@ -768,6 +852,10 @@ class LedgerService {
       title: await _displayNameFor(followUp),
       amountMinor: followUp.principalMinor,
       currency: followUp.currency,
+      // The period this one came out of. It is the only record of the
+      // relationship between the two, and it is what lets an undo find the
+      // period again and take it back with the closing that created it.
+      detail: settled.id,
     );
   }
 
@@ -847,7 +935,7 @@ class LedgerService {
         // The single decider of closure, exactly as a hand-recorded payment
         // uses it — so a debt settled here is closed, announced, and given its
         // next period if it recurs, by the same code path as any other.
-        await _settleIfPaid(debt);
+        await _applyClosureOutcome(debt);
         out.add(payment);
       }
       return out;
@@ -865,11 +953,16 @@ class LedgerService {
   /// split if the app stopped in the middle.
   ///
   /// Each affected debt's closing stamp is brought back in line, exactly as
-  /// [deletePayment] does it, and one `paymentDeleted` entry is written per debt
-  /// carrying the total that came off it.
-  Future<void> deletePaymentsBatch(List<String> paymentIds) async {
-    if (paymentIds.isEmpty) return;
-    await _db.transaction(() async {
+  /// [deletePayment] does it — including taking back a recurring debt's next
+  /// period when the undo is what reopens it — and one `paymentDeleted` entry is
+  /// written per debt carrying the total that came off it.
+  ///
+  /// Returns how many of those next periods had to be left in place because
+  /// money had already been applied to them, so the caller can say so instead of
+  /// quietly leaving a balance the user did not expect.
+  Future<int> deletePaymentsBatch(List<String> paymentIds) async {
+    if (paymentIds.isEmpty) return 0;
+    final int leftInPlace = await _db.transaction(() async {
       final Map<String, int> removedByDebt = <String, int>{};
       for (final String id in paymentIds) {
         final Payment? existing = await payments.getById(id);
@@ -880,10 +973,12 @@ class LedgerService {
         removedByDebt[debtId] = (removedByDebt[debtId] ?? 0) + existing.amountMinor;
       }
 
+      int left = 0;
       for (final MapEntry<String, int> entry in removedByDebt.entries) {
         final Debt? debt = await debts.getById(entry.key);
         if (debt == null) continue;
-        await _syncClosedStamp(debt);
+        // Deleting money cannot close a debt, so this only ever reopens one.
+        left += await _applyClosureOutcome(debt);
         await _log(
           type: ActivityType.paymentDeleted,
           entityType: RelatedEntityType.debt,
@@ -893,8 +988,10 @@ class LedgerService {
           currency: debt.currency,
         );
       }
+      return left;
     });
     await refreshNotifications();
+    return leftInPlace;
   }
 
   /// A person's open debts on one side of the ledger, in one currency, as views.
@@ -1066,7 +1163,7 @@ class LedgerService {
   Future<void> setObligationArchived(String id, bool archived) async {
     final Obligation? existing = await obligations.getById(id);
     if (existing == null) return;
-    await obligations.setArchived(id, archived: archived);
+    await obligations.setArchived(id, archived: archived, now: clock());
     await _log(
       type: archived ? ActivityType.debtArchived : ActivityType.debtReopened,
       entityType: RelatedEntityType.obligation,
@@ -1171,7 +1268,7 @@ class LedgerService {
   Future<void> setIncomeArchived(String id, bool archived) async {
     final Income? existing = await incomes.getById(id);
     if (existing == null) return;
-    await incomes.setArchived(id, archived: archived);
+    await incomes.setArchived(id, archived: archived, now: clock());
     await _log(
       type: archived ? ActivityType.incomeArchived : ActivityType.incomeRestored,
       entityType: RelatedEntityType.income,
@@ -1264,7 +1361,7 @@ class LedgerService {
       // paying its last period had concluded.
       final Obligation? stored = await obligations.getById(id);
       if (stored != null && stored.isArchived) {
-        await obligations.setArchived(id, archived: false);
+        await obligations.setArchived(id, archived: false, now: clock());
       }
       // Only a payment is announced as removed: re-opening a skipped period
       // used to add "payment deleted" to the feed, with an amount nobody paid.
@@ -1338,7 +1435,7 @@ class LedgerService {
         ObligationSchedule.rollForward(obligation.copyWith(nextDueAt: latest));
     if (next == null) {
       if (obligation.isArchived) return;
-      await obligations.setArchived(obligationId, archived: true);
+      await obligations.setArchived(obligationId, archived: true, now: clock());
       await _log(
         type: ActivityType.debtArchived,
         entityType: RelatedEntityType.obligation,
@@ -2018,6 +2115,7 @@ class LedgerService {
     String? entityId,
     int? amountMinor,
     AppCurrency? currency,
+    String? detail,
   }) async {
     await activity.add(
       ActivityEntry(
@@ -2028,6 +2126,7 @@ class LedgerService {
         title: title,
         amountMinor: amountMinor,
         currency: currency,
+        detail: detail,
         occurredAt: clock(),
       ),
     );

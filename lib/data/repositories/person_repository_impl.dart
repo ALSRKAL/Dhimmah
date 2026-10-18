@@ -34,11 +34,15 @@ class PersonRepositoryImpl implements PersonRepository {
   Future<void> save(Person person) => _db.peopleDao.upsert(person.toRow());
 
   @override
-  Future<void> setArchived(String id, {required bool archived}) {
+  Future<void> setArchived(
+    String id, {
+    required bool archived,
+    required DateTime now,
+  }) {
     return _db.peopleDao.setArchived(
       id,
-      archived ? DateTime.now() : null,
-      DateTime.now(),
+      archived ? now : null,
+      now,
     );
   }
 

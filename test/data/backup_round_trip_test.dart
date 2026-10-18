@@ -11,9 +11,11 @@ import 'package:dhimmah/data/services/backup_restore_service.dart';
 import 'package:dhimmah/data/services/backup_service.dart';
 import 'package:dhimmah/data/services/ledger_service.dart';
 import 'package:dhimmah/domain/entities/app_settings.dart';
+import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
 import 'package:dhimmah/domain/entities/income.dart';
 import 'package:dhimmah/domain/entities/obligation.dart';
+import 'package:dhimmah/domain/entities/payment.dart';
 import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/enums/obligation_enums.dart';
@@ -701,6 +703,136 @@ void main() {
     expect(archived.frequency, original.frequency);
     expect(archived.dayOfMonth, original.dayOfMonth);
     expect(archived.note, original.note);
+  });
+
+  test('a person-level split and its incomes survive both restore modes',
+      () async {
+    // One amount against a person, spread over two debts: the write that
+    // produces several payment rows at once, each on its own debt. Restoring it
+    // has to bring back the *split*, not one lump — the debts it belongs to are
+    // part of what the rows mean.
+    final Person ahmed = await service.createPerson(
+      const PersonDraft(name: 'أحمد'),
+    );
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[ahmed.id],
+        title: 'الأول',
+        principalMinor: 100000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -10),
+        dueAt: addDays(today, -1),
+      ),
+    );
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[ahmed.id],
+        title: 'الثاني',
+        principalMinor: 200000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -10),
+        dueAt: addDays(today, 30),
+      ),
+    );
+    final List<Payment> split = await service.recordPersonPayment(
+      PersonPaymentDraft(
+        personId: ahmed.id,
+        direction: DebtDirection.iOwe,
+        currency: AppCurrency.inr,
+        amountMinor: 150000,
+        paidAt: today,
+        note: 'سداد موزّع',
+      ),
+    );
+    expect(split, hasLength(2),
+        reason: 'the split is the case under test; one row would prove nothing');
+    await datasetE();
+    final ({File file, ParsedBackup backup}) written =
+        await backups.create(kind: BackupKind.manual);
+
+    /// What each debt still owes, read through the records rather than the file.
+    Future<Map<String, int>> remaining() async {
+      final List<Debt> debts = await service.debts.forPerson(ahmed.id);
+      final Map<String, int> out = <String, int>{};
+      for (final Debt debt in debts) {
+        final int paid = (await service.payments.forDebt(debt.id))
+            .fold<int>(0, (int sum, Payment p) => sum + p.amountMinor);
+        out[debt.title] = debt.principalMinor - paid;
+      }
+      return out;
+    }
+
+    /// The split as the database holds it: amount per debt, by title.
+    Future<Map<String, int>> shares() async {
+      final Map<String, String> titleById = <String, String>{
+        for (final Debt debt in await service.debts.forPerson(ahmed.id))
+          debt.id: debt.title,
+      };
+      final Map<String, int> out = <String, int>{};
+      for (final PaymentRow row in await db.debtsDao.getAllPayments()) {
+        final String? debtId = row.debtId;
+        if (debtId == null) continue;
+        out[titleById[debtId] ?? debtId] =
+            (out[titleById[debtId] ?? debtId] ?? 0) + row.amountMinor;
+      }
+      return out;
+    }
+
+    final Map<String, int> expectedRemaining = <String, int>{
+      'الأول': 0,
+      'الثاني': 150000,
+    };
+    final Map<String, int> expectedShares = <String, int>{
+      'الأول': 100000,
+      'الثاني': 50000,
+    };
+    expect(await remaining(), expectedRemaining);
+    expect(await shares(), expectedShares);
+
+    // --- Replace: everything goes, everything in the file arrives ----------
+    await wipe();
+    await restores.apply(
+      backup: written.backup,
+      mode: RestoreMode.replace,
+      takeSafetySnapshot: false,
+    );
+    expect(await shares(), expectedShares,
+        reason: 'the split came back row for row, on its own debts');
+    expect(await remaining(), expectedRemaining);
+    expect(await db.incomesDao.getAll(), hasLength(2));
+
+    // --- Merge into an empty ledger: the same rows, reached the other way --
+    await wipe();
+    final RestoreReport merged = await restores.apply(
+      backup: written.backup,
+      mode: RestoreMode.merge,
+      takeSafetySnapshot: false,
+    );
+    expect(merged.inserted, greaterThan(0));
+    expect(await shares(), expectedShares);
+    expect(await remaining(), expectedRemaining);
+    expect(
+      await db.incomesDao.getAll(),
+      hasLength(2),
+      reason: 'a merge inserts incomes like any other table, keyed by id',
+    );
+
+    // --- Merge the same file again: nothing new, nothing rewritten --------
+    final Map<String, Map<String, String>> afterFirstMerge = await state();
+    final RestoreReport again = await restores.apply(
+      backup: await backups.read(written.file.path),
+      mode: RestoreMode.merge,
+      takeSafetySnapshot: false,
+    );
+    expect(again.inserted, 0, reason: 'every id was already here');
+    expect(again.replaced, 0);
+    expect(
+      await state(),
+      afterFirstMerge,
+      reason: 'a second merge of one file changes nothing anywhere',
+    );
   });
 
   test('a file from a newer schema is refused, not guessed at', () async {

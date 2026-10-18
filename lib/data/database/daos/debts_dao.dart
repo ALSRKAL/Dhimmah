@@ -295,16 +295,6 @@ class DebtsDao extends DatabaseAccessor<AppDatabase> with _$DebtsDaoMixin {
     );
   }
 
-  /// Stamps or clears the moment the balance reached zero.
-  Future<void> setClosedAt(String id, DateTime? closedAt, DateTime updatedAt) {
-    return (update(debts)..where((t) => t.id.equals(id))).write(
-      DebtsCompanion(
-        closedAt: Value<DateTime?>(closedAt),
-        updatedAt: Value<DateTime>(updatedAt),
-      ),
-    );
-  }
-
   Future<int> deleteById(String id) =>
       (delete(debts)..where((t) => t.id.equals(id))).go();
 

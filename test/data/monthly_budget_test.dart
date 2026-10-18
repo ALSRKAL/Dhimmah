@@ -129,6 +129,55 @@ void main() {
       expect(before.incomeMinor, 0);
     });
 
+    test('an income that has not started yet counts for nothing', () async {
+      // The salary is recorded now but begins next month — a raise starting in
+      // November, entered in September so it is not forgotten. It must not pay
+      // into a month it has not reached, and it must pay into its own month.
+      final DateTime nextMonth = DateTime(now.year, now.month + 1);
+      await service.createIncome(
+        IncomeDraft(
+          name: 'الراتب الجديد',
+          amountMinor: 500000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.monthly,
+          startAt: DateTime(nextMonth.year, nextMonth.month),
+          dayOfMonth: 25,
+        ),
+      );
+
+      expect((await budget()).incomeMinor, 0,
+          reason: 'this month is before the schedule begins');
+      expect(
+        (await budget(year: nextMonth.year, month: nextMonth.month)).incomeMinor,
+        500000,
+        reason: 'and its own month carries it',
+      );
+    });
+
+    test('the day the user chose decides the month, not the day it was typed',
+        () async {
+      // A salary that lands on the 5th but was only entered on the 20th. The
+      // schedule is the start *month* on the chosen day, so September carries
+      // its own 5th — the alternative would silently shift the salary to the
+      // 20th for as long as nobody looked. Pinned because it is the boundary
+      // where "the day it lands on" and "the day it started" disagree, and the
+      // figure a month shows depends on which one wins.
+      await service.createIncome(
+        IncomeDraft(
+          name: 'الراتب',
+          amountMinor: 400000,
+          currency: AppCurrency.inr,
+          frequency: RecurrenceFrequency.monthly,
+          startAt: DateTime(now.year, now.month, 20),
+          dayOfMonth: 5,
+        ),
+      );
+
+      expect((await budget()).incomeMinor, 400000,
+          reason: 'the start month counts, on the chosen day');
+      expect((await budget(month: now.month - 1)).incomeMinor, 0);
+    });
+
     test('two sources add up, and an archived one stops counting', () async {
       await service.createIncome(
         IncomeDraft(
@@ -299,13 +348,11 @@ void main() {
 
     test('an archived commitment stops counting from the day it was archived',
         () async {
-      // The archive stamp is `DateTime.now()` inside the repository, not the
-      // service's injected clock, so this scenario is anchored to the real today
-      // and looks at a period a month beyond it — which is after the archive
-      // moment in every run rather than only on the day this was written.
-      final DateTime realToday = dateOnly(DateTime.now());
-      service = buildService(db, clock: DateTime.now);
-      final DateTime nextMonth = DateTime(realToday.year, realToday.month + 1);
+      // The archive stamp comes from the same injected clock as everything else
+      // the service writes, so the month this scenario names is the month it
+      // reads: a period after `now` on the calendar, and after the archive
+      // moment by construction.
+      final DateTime nextMonth = DateTime(now.year, now.month + 1);
 
       final Obligation rent = await service.createObligation(
         ObligationDraft(

@@ -29,7 +29,7 @@ abstract interface class PersonRepository {
 
   Future<void> save(Person person);
 
-  Future<void> setArchived(String id, {required bool archived});
+  Future<void> setArchived(String id, {required bool archived, required DateTime now});
 
   Future<void> delete(String id);
 
@@ -54,10 +54,9 @@ abstract interface class DebtRepository {
   /// Replaces who a record is with, leaving every other field alone.
   Future<void> setParticipants(String debtId, List<String> personIds);
 
-  Future<void> setArchived(String id, {required bool archived});
+  Future<void> setArchived(String id, {required bool archived, required DateTime now});
 
   /// Stamps or clears the moment the balance reached zero.
-  Future<void> setClosed(String id, DateTime? closedAt);
 
   Future<void> reassignPerson(String fromPersonId, String? toPersonId);
 
@@ -96,7 +95,7 @@ abstract interface class ObligationRepository {
 
   Future<void> save(Obligation obligation);
 
-  Future<void> setArchived(String id, {required bool archived});
+  Future<void> setArchived(String id, {required bool archived, required DateTime now});
 
   Future<void> delete(String id);
 
@@ -152,7 +151,7 @@ abstract interface class IncomeRepository {
 
   Future<void> save(Income income);
 
-  Future<void> setArchived(String id, {required bool archived});
+  Future<void> setArchived(String id, {required bool archived, required DateTime now});
 
   Future<void> delete(String id);
 }
@@ -194,6 +193,12 @@ abstract interface class ActivityRepository {
   Future<List<ActivityEntry>> recent({int limit});
 
   Future<List<ActivityEntry>> forEntity(RelatedEntityType type, String id);
+
+  /// The records created as a consequence of [parentId].
+  ///
+  /// Found by the link the writer recorded in the entry's `detail`, so it names
+  /// a record this app created rather than one the user typed.
+  Future<List<ActivityEntry>> createdFrom(String parentId);
 
   Future<void> add(ActivityEntry entry);
 

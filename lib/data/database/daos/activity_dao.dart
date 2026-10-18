@@ -54,8 +54,33 @@ class ActivityDao extends DatabaseAccessor<AppDatabase>
         .watch();
   }
 
-  Stream<List<ActivityEntryRow>> watchAll() {
+  /// The records that were created *from* one record, found by the parent id
+  /// its writer left in `detail`.
+  ///
+  /// This is how a consequence is found again later — a recurring debt's next
+  /// period, which exists only because the period before it was settled — so an
+  /// undo can take the consequence back with the cause. It is a *recorded* link
+  /// rather than a search for a matching title and date, because a duplicate
+  /// title is something a user can type and deleting their record would be
+  /// silent data loss.
+  ///
+  /// Narrow on purpose: only one type of entry is ever a parent link, so a
+  /// future use of `detail` for something else cannot be mistaken for one.
+  Future<List<ActivityEntryRow>> createdFrom(String parentId) {
     return (select(activityEntries)
+          ..where(
+            (t) =>
+                t.type.equalsValue(ActivityType.debtCreated) &
+                t.entityType.equalsValue(RelatedEntityType.debt) &
+                t.detail.equals(parentId),
+          )
+          ..orderBy(<OrderingTerm Function($ActivityEntriesTable)>[
+            (t) => OrderingTerm.asc(t.occurredAt),
+          ]))
+        .get();
+  }
+
+  Stream<List<ActivityEntryRow>> watchAll() {    return (select(activityEntries)
           ..orderBy(<OrderingTerm Function($ActivityEntriesTable)>[
             (t) => OrderingTerm.desc(t.occurredAt),
           ]))

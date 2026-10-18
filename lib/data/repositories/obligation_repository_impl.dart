@@ -37,11 +37,15 @@ class ObligationRepositoryImpl implements ObligationRepository {
       _db.obligationsDao.upsert(obligation.toRow());
 
   @override
-  Future<void> setArchived(String id, {required bool archived}) {
+  Future<void> setArchived(
+    String id, {
+    required bool archived,
+    required DateTime now,
+  }) {
     return _db.obligationsDao.setArchivedAt(
       id,
-      archived ? DateTime.now() : null,
-      DateTime.now(),
+      archived ? now : null,
+      now,
     );
   }
 

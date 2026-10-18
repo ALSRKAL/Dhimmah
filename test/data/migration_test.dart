@@ -478,7 +478,7 @@ void main() {
 
       // Archiving keeps the row and stamps the day, which is what lets a month
       // an income covered go on reading correctly after it stops.
-      await incomes.setArchived(income.id, archived: true);
+      await incomes.setArchived(income.id, archived: true, now: today);
       expect(await incomes.getAll(), hasLength(1));
       expect((await incomes.getAll()).single.archivedAt, isNotNull);
       expect(await incomes.getAll(includeArchived: false), isEmpty);
@@ -564,6 +564,27 @@ void main() {
     /// the version being aimed at had not been given yet.
     Future<void> fillEveryTable(AppDatabase db) async {
       await seed(db);
+
+      // A record that names nobody and carries nothing optional. Every upgrade
+      // path has to keep it: `_backfillDebtPeople` selects `WHERE person_id IS
+      // NOT NULL`, so a NULL there is the case that proves the backfill filters
+      // rather than inserts a link to nobody. The other NULLs are the columns a
+      // step might have written through without noticing.
+      await db.debtsDao.upsert(
+        DebtRow(
+          id: 'd3',
+          direction: DebtDirection.owedToMe,
+          title: 'بلا شخص',
+          principalMinor: 90000,
+          currencyCode: 'INR',
+          issuedAt: today,
+          reminderLeads: const <ReminderLead>[],
+          recurrence: RecurrenceFrequency.none,
+          recurrenceInterval: 0,
+          createdAt: today,
+          updatedAt: today,
+        ),
+      );
 
       await db.into(db.obligations).insert(
             ObligationRow(

@@ -81,17 +81,17 @@ class DebtRepositoryImpl implements DebtRepository {
       _db.debtsDao.setParticipants(debtId, personIds);
 
   @override
-  Future<void> setArchived(String id, {required bool archived}) {
+  Future<void> setArchived(
+    String id, {
+    required bool archived,
+    required DateTime now,
+  }) {
     return _db.debtsDao.setArchivedAt(
       id,
-      archived ? DateTime.now() : null,
-      DateTime.now(),
+      archived ? now : null,
+      now,
     );
   }
-
-  @override
-  Future<void> setClosed(String id, DateTime? closedAt) =>
-      _db.debtsDao.setClosedAt(id, closedAt, DateTime.now());
 
   @override
   Future<void> reassignPerson(String fromPersonId, String? toPersonId) =>

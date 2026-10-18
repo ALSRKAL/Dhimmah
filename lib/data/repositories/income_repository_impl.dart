@@ -34,8 +34,11 @@ class IncomeRepositoryImpl implements IncomeRepository {
   Future<void> save(Income income) => _db.incomesDao.upsert(income.toRow());
 
   @override
-  Future<void> setArchived(String id, {required bool archived}) {
-    final DateTime now = DateTime.now();
+  Future<void> setArchived(
+    String id, {
+    required bool archived,
+    required DateTime now,
+  }) {
     return _db.incomesDao.setArchivedAt(id, archived ? now : null, now);
   }
 
