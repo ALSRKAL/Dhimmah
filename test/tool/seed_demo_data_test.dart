@@ -36,6 +36,13 @@ void main() {
     if (previous.existsSync()) await previous.delete();
     await db.customStatement('VACUUM INTO ?', <Object?>[previous.path]);
     final AppDatabase old = AppDatabase(NativeDatabase(previous));
+    // Everything this build added to the schema, removed from the copy, in the
+    // reverse of the order it was introduced. A fixture that kept any of it
+    // would fail the migration on "already exists" / "duplicate column" and
+    // prove nothing — and `incomes` fails loudest of all, because the version 6
+    // step creates the table.
+    await old.customStatement('DROP TABLE incomes');
+    await old.customStatement('DROP INDEX IF EXISTS idx_incomes_archived');
     await old.customStatement('DROP TABLE debt_people');
     await old.customStatement('DROP INDEX IF EXISTS idx_debt_people_person');
     // Version 4 added the auto-backup switch to settings, so the copy has to

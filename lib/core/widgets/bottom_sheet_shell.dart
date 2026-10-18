@@ -172,15 +172,24 @@ class AppSheet extends StatelessWidget {
 }
 
 /// Opens [child] as a modal sheet with the standard constraints.
+///
+/// [useRootNavigator] lifts the sheet above the app shell rather than above the
+/// current tab. It matters for a sheet opened *from* a shell destination: the
+/// shell's add button is a sibling of the tab's navigator, so it paints over
+/// whatever the tab pushes — including the sheet's own primary button, whose
+/// right-hand end it then covers. A sheet that carries an action along its
+/// bottom edge asks for the root navigator and gets the screen to itself.
 Future<T?> showAppSheet<T>(
   BuildContext context, {
   required Widget child,
   bool isScrollControlled = true,
+  bool useRootNavigator = false,
 }) {
   return showModalBottomSheet<T>(
     context: context,
     isScrollControlled: isScrollControlled,
     useSafeArea: true,
+    useRootNavigator: useRootNavigator,
     builder: (BuildContext context) => child,
   );
 }

@@ -2,6 +2,7 @@ import '../../core/money/currency.dart';
 import '../entities/activity_entry.dart';
 import '../entities/app_settings.dart';
 import '../entities/debt.dart';
+import '../entities/income.dart';
 import '../entities/monthly_summary.dart';
 import '../entities/obligation.dart';
 import '../entities/payment.dart';
@@ -121,8 +122,39 @@ abstract interface class ObligationRepository {
   /// Period keys already materialised for an obligation.
   Future<Set<String>> existingPeriodKeys(String obligationId);
 
+  /// Every period falling inside a window, whatever its state.
+  ///
+  /// The settled ones included: "paid so far this month" is half of what the
+  /// budget reports, and a read that kept only the open periods could not answer
+  /// it.
+  Future<List<ObligationOccurrence>> periodsBetween({
+    required DateTime from,
+    required DateTime to,
+  });
+
   /// The due date of the last period materialised, or null when there is none.
   Future<DateTime?> latestPeriodDue(String obligationId);
+}
+
+/// Recurring income — the counterpart of [ObligationRepository].
+///
+/// Deliberately much smaller: there is no occurrence table behind it, so there
+/// is nothing to materialise, extend, roll forward or settle. An income is a
+/// schedule, and reading it is walking that schedule.
+abstract interface class IncomeRepository {
+  Stream<List<Income>> watchAll({bool includeArchived});
+
+  Future<List<Income>> getAll({bool includeArchived});
+
+  Future<Income?> getById(String id);
+
+  Stream<Income?> watchById(String id);
+
+  Future<void> save(Income income);
+
+  Future<void> setArchived(String id, {required bool archived});
+
+  Future<void> delete(String id);
 }
 
 abstract interface class ReminderRepository {

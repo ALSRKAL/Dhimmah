@@ -158,6 +158,18 @@ abstract class AppLocalizations {
   /// **'تعديل'**
   String get actionEdit;
 
+  /// No description provided for @actionSharePdf.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركة كشف حساب PDF'**
+  String get actionSharePdf;
+
+  /// No description provided for @actionShareText.
+  ///
+  /// In ar, this message translates to:
+  /// **'مشاركة كنص سريع'**
+  String get actionShareText;
+
   /// No description provided for @actionEnable.
   ///
   /// In ar, this message translates to:
@@ -259,6 +271,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'تم استيراد بيانات'**
   String get activityImported;
+
+  /// No description provided for @activityIncomeArchived.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت أرشفة مصدر دخل'**
+  String get activityIncomeArchived;
+
+  /// No description provided for @activityIncomeCreated.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُضيف مصدر دخل'**
+  String get activityIncomeCreated;
+
+  /// No description provided for @activityIncomeDeleted.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف مصدر دخل'**
+  String get activityIncomeDeleted;
+
+  /// No description provided for @activityIncomeRestored.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت استعادة مصدر دخل'**
+  String get activityIncomeRestored;
+
+  /// No description provided for @activityIncomeUpdated.
+  ///
+  /// In ar, this message translates to:
+  /// **'حُدّث مصدر دخل'**
+  String get activityIncomeUpdated;
 
   /// No description provided for @activityMonthSummary.
   ///
@@ -457,6 +499,96 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'هذا المكان يحفظ كل شيء عليّ ولي، ويذكّرني بما يجب أن أدفعه وما يجب أن أستلمه.'**
   String get brandPromise;
+
+  /// No description provided for @budgetAddIncome.
+  ///
+  /// In ar, this message translates to:
+  /// **'إضافة دخل'**
+  String get budgetAddIncome;
+
+  /// No description provided for @budgetConsumed.
+  ///
+  /// In ar, this message translates to:
+  /// **'{percent} من دخل هذا الشهر تذهب للالتزامات'**
+  String budgetConsumed(String percent);
+
+  /// No description provided for @budgetEmptyBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'أضف راتبك أو دخلك الشهري لتعرف كم يتبقى لك بعد الالتزامات.'**
+  String get budgetEmptyBody;
+
+  /// No description provided for @budgetEmptyTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'ما المتبقي من راتبك؟'**
+  String get budgetEmptyTitle;
+
+  /// No description provided for @budgetManageIncome.
+  ///
+  /// In ar, this message translates to:
+  /// **'إدارة الدخل'**
+  String get budgetManageIncome;
+
+  /// No description provided for @budgetNoObligations.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد التزامات مستحقة هذا الشهر.'**
+  String get budgetNoObligations;
+
+  /// No description provided for @budgetOverCommitted.
+  ///
+  /// In ar, this message translates to:
+  /// **'الالتزامات تتجاوز الدخل هذا الشهر'**
+  String get budgetOverCommitted;
+
+  /// No description provided for @budgetOverdueLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'منها متأخر'**
+  String get budgetOverdueLabel;
+
+  /// No description provided for @budgetPaidLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفعت منها'**
+  String get budgetPaidLabel;
+
+  /// No description provided for @budgetRemaining.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتبقي من الدخل'**
+  String get budgetRemaining;
+
+  /// No description provided for @budgetThisMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'هذا الشهر'**
+  String get budgetThisMonth;
+
+  /// No description provided for @budgetTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الراتب والالتزامات'**
+  String get budgetTitle;
+
+  /// No description provided for @budgetTotalIncome.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الدخل'**
+  String get budgetTotalIncome;
+
+  /// No description provided for @budgetTotalObligations.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي الالتزامات'**
+  String get budgetTotalObligations;
+
+  /// No description provided for @budgetUnpaidLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'متبقٍ دفعه'**
+  String get budgetUnpaidLabel;
 
   /// No description provided for @categoryHousing.
   ///
@@ -770,6 +902,132 @@ abstract class AppLocalizations {
   /// **'تم إنشاء {count} ديون مستقلة'**
   String debtsCreatedCount(int count);
 
+  /// No description provided for @dueQuickMonth.
+  ///
+  /// In ar, this message translates to:
+  /// **'بعد شهر'**
+  String get dueQuickMonth;
+
+  /// No description provided for @dueQuickMonthEnd.
+  ///
+  /// In ar, this message translates to:
+  /// **'نهاية الشهر'**
+  String get dueQuickMonthEnd;
+
+  /// No description provided for @dueQuickNone.
+  ///
+  /// In ar, this message translates to:
+  /// **'بلا تاريخ'**
+  String get dueQuickNone;
+
+  /// No description provided for @dueQuickWeek.
+  ///
+  /// In ar, this message translates to:
+  /// **'بعد أسبوع'**
+  String get dueQuickWeek;
+
+  /// No description provided for @fieldIncomeName.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم الدخل'**
+  String get fieldIncomeName;
+
+  /// No description provided for @fieldIncomeNameHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثال: الراتب الشهري'**
+  String get fieldIncomeNameHint;
+
+  /// No description provided for @incomeArchivedToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت أرشفة مصدر الدخل'**
+  String get incomeArchivedToast;
+
+  /// No description provided for @incomeDeleteBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'لن تتأثر السجلات الأخرى.'**
+  String get incomeDeleteBody;
+
+  /// No description provided for @incomeDeleteTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف مصدر الدخل؟'**
+  String get incomeDeleteTitle;
+
+  /// No description provided for @incomeDeletedToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'تم حذف مصدر الدخل'**
+  String get incomeDeletedToast;
+
+  /// No description provided for @incomeFollowsStartDay.
+  ///
+  /// In ar, this message translates to:
+  /// **'يتبع يومَ تاريخ البداية'**
+  String get incomeFollowsStartDay;
+
+  /// No description provided for @incomeManageEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يوجد دخل مسجل بعد.'**
+  String get incomeManageEmpty;
+
+  /// No description provided for @incomeManageTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'مصادر الدخل'**
+  String get incomeManageTitle;
+
+  /// No description provided for @incomePresetAllowance.
+  ///
+  /// In ar, this message translates to:
+  /// **'مكافأة دراسية'**
+  String get incomePresetAllowance;
+
+  /// No description provided for @incomePresetExtra.
+  ///
+  /// In ar, this message translates to:
+  /// **'دخل إضافي'**
+  String get incomePresetExtra;
+
+  /// No description provided for @incomePresetFreelance.
+  ///
+  /// In ar, this message translates to:
+  /// **'عمل حر'**
+  String get incomePresetFreelance;
+
+  /// No description provided for @incomePresetSalary.
+  ///
+  /// In ar, this message translates to:
+  /// **'راتب شهري'**
+  String get incomePresetSalary;
+
+  /// No description provided for @incomeRestoredToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'تمت استعادة مصدر الدخل'**
+  String get incomeRestoredToast;
+
+  /// No description provided for @incomeSheetEdit.
+  ///
+  /// In ar, this message translates to:
+  /// **'تعديل الدخل'**
+  String get incomeSheetEdit;
+
+  /// No description provided for @incomeSheetNew.
+  ///
+  /// In ar, this message translates to:
+  /// **'دخل جديد'**
+  String get incomeSheetNew;
+
+  /// No description provided for @incomeTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدخل'**
+  String get incomeTitle;
+
   /// No description provided for @legacySharedTitle.
   ///
   /// In ar, this message translates to:
@@ -877,6 +1135,132 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'سيُحذف الدين، ويمكنك التراجع خلال ثوانٍ.'**
   String get deleteUndoableBody;
+
+  /// No description provided for @personPaymentAllocation.
+  ///
+  /// In ar, this message translates to:
+  /// **'التوزيع'**
+  String get personPaymentAllocation;
+
+  /// No description provided for @personPaymentEmpty.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا توجد ديون مفتوحة في هذا الاتجاه.'**
+  String get personPaymentEmpty;
+
+  /// No description provided for @personPaymentExcluded.
+  ///
+  /// In ar, this message translates to:
+  /// **'مستثنى'**
+  String get personPaymentExcluded;
+
+  /// No description provided for @personPaymentLeftoverCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{ولا يتغيّر غيره} =1{ويتغيّر دين آخر} =2{ويتغيّر دينان آخران} few{وتتغيّر {count} ديون أخرى} other{ويتغيّر {count} دينًا آخر}}'**
+  String personPaymentLeftoverCount(int count);
+
+  /// No description provided for @personPaymentNoShare.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا يصله شيء'**
+  String get personPaymentNoShare;
+
+  /// No description provided for @personPaymentOrderOldest.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأقدم أولاً'**
+  String get personPaymentOrderOldest;
+
+  /// No description provided for @personPaymentOrderUrgent.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأكثر إلحاحاً'**
+  String get personPaymentOrderUrgent;
+
+  /// No description provided for @personPaymentOutstanding.
+  ///
+  /// In ar, this message translates to:
+  /// **'إجمالي المستحق: {amount}'**
+  String personPaymentOutstanding(String amount);
+
+  /// No description provided for @personPaymentOverCap.
+  ///
+  /// In ar, this message translates to:
+  /// **'المبلغ أكبر من المستحق ({amount}).'**
+  String personPaymentOverCap(String amount);
+
+  /// No description provided for @personPaymentPayAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'سداد الكل'**
+  String get personPaymentPayAll;
+
+  /// No description provided for @personPaymentQuickHalf.
+  ///
+  /// In ar, this message translates to:
+  /// **'50%'**
+  String get personPaymentQuickHalf;
+
+  /// No description provided for @personPaymentQuickQuarter.
+  ///
+  /// In ar, this message translates to:
+  /// **'25%'**
+  String get personPaymentQuickQuarter;
+
+  /// No description provided for @personPaymentRecordedToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{تم تسجيل دفعة} =2{تم تسجيل دفعتين} few{تم تسجيل {count} دفعات} other{تم تسجيل {count} دفعة}}'**
+  String personPaymentRecordedToast(int count);
+
+  /// No description provided for @personPaymentRowTakes.
+  ///
+  /// In ar, this message translates to:
+  /// **'{amount} من {total} · يتبقى {remaining}'**
+  String personPaymentRowTakes(String amount, String total, String remaining);
+
+  /// No description provided for @personPaymentSettledToast.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{وسُدّد دين واحد} =2{وسُدّد دينان} few{وسُدّد {count} ديون} other{وسُدّد {count} دينًا}}'**
+  String personPaymentSettledToast(int count);
+
+  /// No description provided for @personPaymentSettlingCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لن يُسدَّد أي دين} =1{سيُسدَّد دين واحد} =2{سيُسدَّد دينان} few{سيُسدَّد {count} ديون} other{سيُسدَّد {count} دينًا}}'**
+  String personPaymentSettlingCount(int count);
+
+  /// No description provided for @personPaymentSharedNotice.
+  ///
+  /// In ar, this message translates to:
+  /// **'يوجد دين مشترك قديم مع هذا الشخص. التوزيع التلقائي يستثنيه لأن دفعةً واحدة عليه تُصفّر رصيد الجميع، فحوّله إلى ديون مستقلة ليساهم هنا.'**
+  String get personPaymentSharedNotice;
+
+  /// No description provided for @personPaymentSide.
+  ///
+  /// In ar, this message translates to:
+  /// **'يُسدَّد على'**
+  String get personPaymentSide;
+
+  /// No description provided for @personPaymentWillSettle.
+  ///
+  /// In ar, this message translates to:
+  /// **'يُسدَّد بالكامل'**
+  String get personPaymentWillSettle;
+
+  /// No description provided for @personSettledBadge.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحساب مصفّى'**
+  String get personSettledBadge;
+
+  /// No description provided for @personSidesBreakdown.
+  ///
+  /// In ar, this message translates to:
+  /// **'لي {owedToMe} · عليّ {iOwe}'**
+  String personSidesBreakdown(String owedToMe, String iOwe);
 
   /// No description provided for @recordGone.
   ///

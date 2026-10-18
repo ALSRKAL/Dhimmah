@@ -39,6 +39,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get actionEdit => 'Edit';
 
   @override
+  String get actionSharePdf => 'Share as PDF statement';
+
+  @override
+  String get actionShareText => 'Share as quick text';
+
+  @override
   String get actionEnable => 'Enable';
 
   @override
@@ -88,6 +94,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get activityImported => 'Data imported';
+
+  @override
+  String get activityIncomeArchived => 'Income source archived';
+
+  @override
+  String get activityIncomeCreated => 'Income source added';
+
+  @override
+  String get activityIncomeDeleted => 'Income source deleted';
+
+  @override
+  String get activityIncomeRestored => 'Income source restored';
+
+  @override
+  String get activityIncomeUpdated => 'Income source updated';
 
   @override
   String get activityMonthSummary => 'Monthly summary generated';
@@ -193,6 +214,54 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get brandPromise =>
       'Everything you owe and everything you\'re owed, remembered for you.';
+
+  @override
+  String get budgetAddIncome => 'Add income';
+
+  @override
+  String budgetConsumed(String percent) {
+    return '$percent of this month\'s income goes to commitments';
+  }
+
+  @override
+  String get budgetEmptyBody =>
+      'Add your salary or monthly income to see what is left after your commitments.';
+
+  @override
+  String get budgetEmptyTitle => 'What is left of your salary?';
+
+  @override
+  String get budgetManageIncome => 'Manage income';
+
+  @override
+  String get budgetNoObligations => 'Nothing is due this month.';
+
+  @override
+  String get budgetOverCommitted => 'Commitments exceed income this month';
+
+  @override
+  String get budgetOverdueLabel => 'Of it, late';
+
+  @override
+  String get budgetPaidLabel => 'Paid so far';
+
+  @override
+  String get budgetRemaining => 'Left of your income';
+
+  @override
+  String get budgetThisMonth => 'This month';
+
+  @override
+  String get budgetTitle => 'Salary and commitments';
+
+  @override
+  String get budgetTotalIncome => 'Total income';
+
+  @override
+  String get budgetTotalObligations => 'Total commitments';
+
+  @override
+  String get budgetUnpaidLabel => 'Still to pay';
 
   @override
   String get categoryHousing => 'Housing';
@@ -393,6 +462,69 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get dueQuickMonth => 'In a month';
+
+  @override
+  String get dueQuickMonthEnd => 'End of month';
+
+  @override
+  String get dueQuickNone => 'No date';
+
+  @override
+  String get dueQuickWeek => 'In a week';
+
+  @override
+  String get fieldIncomeName => 'Income name';
+
+  @override
+  String get fieldIncomeNameHint => 'For example: monthly salary';
+
+  @override
+  String get incomeArchivedToast => 'Income archived';
+
+  @override
+  String get incomeDeleteBody => 'No other record is affected.';
+
+  @override
+  String get incomeDeleteTitle => 'Delete this income?';
+
+  @override
+  String get incomeDeletedToast => 'Income deleted';
+
+  @override
+  String get incomeFollowsStartDay => 'Follows the start date\'s day';
+
+  @override
+  String get incomeManageEmpty => 'No income recorded yet.';
+
+  @override
+  String get incomeManageTitle => 'Income sources';
+
+  @override
+  String get incomePresetAllowance => 'Student allowance';
+
+  @override
+  String get incomePresetExtra => 'Extra income';
+
+  @override
+  String get incomePresetFreelance => 'Freelance';
+
+  @override
+  String get incomePresetSalary => 'Monthly salary';
+
+  @override
+  String get incomeRestoredToast => 'Income restored';
+
+  @override
+  String get incomeSheetEdit => 'Edit income';
+
+  @override
+  String get incomeSheetNew => 'New income';
+
+  @override
+  String get incomeTitle => 'Income';
+
+  @override
   String get legacySharedTitle => 'Legacy shared debt needs review';
 
   @override
@@ -451,6 +583,112 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get deleteUndoableBody =>
       'The debt will be deleted. You can undo this for a few seconds.';
+
+  @override
+  String get personPaymentAllocation => 'Allocation';
+
+  @override
+  String get personPaymentEmpty => 'No open debts on this side.';
+
+  @override
+  String get personPaymentExcluded => 'Left out';
+
+  @override
+  String personPaymentLeftoverCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'and $count more change',
+      one: 'and one more changes',
+      zero: 'and nothing else changes',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get personPaymentNoShare => 'Nothing applied';
+
+  @override
+  String get personPaymentOrderOldest => 'Oldest first';
+
+  @override
+  String get personPaymentOrderUrgent => 'Most urgent';
+
+  @override
+  String personPaymentOutstanding(String amount) {
+    return 'Outstanding: $amount';
+  }
+
+  @override
+  String personPaymentOverCap(String amount) {
+    return 'That is more than is owed ($amount).';
+  }
+
+  @override
+  String get personPaymentPayAll => 'Pay all';
+
+  @override
+  String get personPaymentQuickHalf => '50%';
+
+  @override
+  String get personPaymentQuickQuarter => '25%';
+
+  @override
+  String personPaymentRecordedToast(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count payments recorded',
+      one: 'Payment recorded',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personPaymentRowTakes(String amount, String total, String remaining) {
+    return '$amount of $total · $remaining left';
+  }
+
+  @override
+  String personPaymentSettledToast(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'and $count debts settled',
+      one: 'and one debt settled',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personPaymentSettlingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count debts are settled',
+      one: 'One debt is settled',
+      zero: 'Nothing is settled',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get personPaymentSharedNotice =>
+      'There is a legacy shared record with this person. The split leaves it out, because one payment on it would clear everyone at once — convert it to independent debts and it takes part.';
+
+  @override
+  String get personPaymentSide => 'Applied to';
+
+  @override
+  String get personPaymentWillSettle => 'Settled in full';
+
+  @override
+  String get personSettledBadge => 'Account settled';
+
+  @override
+  String personSidesBreakdown(String owedToMe, String iOwe) {
+    return 'Owed to me $owedToMe · I owe $iOwe';
+  }
 
   @override
   String get recordGone => 'This record no longer exists.';

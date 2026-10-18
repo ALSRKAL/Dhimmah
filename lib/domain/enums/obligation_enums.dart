@@ -61,4 +61,7 @@ enum ReminderBucket { today, tomorrow, thisWeek, later, overdue, completed }
 enum ReminderStatus { upcoming, today, overdue, completed, dismissed }
 
 /// What a reminder, activity entry or notification points at.
-enum RelatedEntityType { none, debt, obligation, person, reminder, payment }
+///
+/// Stored by name, so the shipped values keep their spelling; `income` was
+/// appended with schema 6 and nothing before it moved.
+enum RelatedEntityType { none, debt, obligation, person, reminder, payment, income }

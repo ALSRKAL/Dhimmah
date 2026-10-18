@@ -213,6 +213,7 @@ class BackupService {
       final List<ObligationRow> obligations = await reader.obligations();
       final List<ObligationOccurrenceRow> occurrences =
           await reader.occurrences();
+      final List<IncomeRow> incomes = await reader.incomes();
       final List<ReminderRow> reminders = await reader.reminders();
       final List<MonthlySummaryRow> summaries = await reader.summaries();
       final List<ActivityEntryRow> activity =
@@ -226,6 +227,7 @@ class BackupService {
         'obligations': obligations.map(BackupCodec.obligation).toList(),
         'obligationOccurrences':
             occurrences.map(BackupCodec.occurrence).toList(),
+        'incomes': incomes.map(BackupCodec.income).toList(),
         'reminders': reminders.map(BackupCodec.reminder).toList(),
         'monthlySummaries': summaries.map(BackupCodec.summary).toList(),
         'activity': activity.map(BackupCodec.activity).toList(),

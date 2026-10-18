@@ -8,12 +8,14 @@ import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/data/read_models/ledger_queries.dart';
 import 'package:dhimmah/data/repositories/activity_repository_impl.dart';
 import 'package:dhimmah/data/repositories/debt_repository_impl.dart';
+import 'package:dhimmah/data/repositories/income_repository_impl.dart';
 import 'package:dhimmah/data/repositories/obligation_repository_impl.dart';
 import 'package:dhimmah/data/repositories/person_repository_impl.dart';
 import 'package:dhimmah/data/repositories/reminder_repository_impl.dart';
 import 'package:dhimmah/data/services/statement_service.dart';
 import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/entities/ledger_views.dart';
+import 'package:dhimmah/domain/entities/monthly_budget.dart';
 import 'package:dhimmah/domain/entities/obligation.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
@@ -65,12 +67,14 @@ void main() {
     final DebtRepositoryImpl debts = DebtRepositoryImpl(db);
     final PaymentRepositoryImpl payments = PaymentRepositoryImpl(db);
     final ObligationRepositoryImpl obligations = ObligationRepositoryImpl(db);
+    final IncomeRepositoryImpl incomes = IncomeRepositoryImpl(db);
     final LedgerQueries queries = LedgerQueries(
       database: db,
       people: people,
       debts: debts,
       payments: payments,
       obligations: obligations,
+      incomes: incomes,
       reminders: ReminderRepositoryImpl(db),
       activity: ActivityRepositoryImpl(db),
     );
@@ -87,6 +91,11 @@ void main() {
     expect(await debts.getAll(), hasLength(storeDemoShape.debts));
     expect(await payments.getAll(), hasLength(storeDemoShape.payments));
     expect(await obligations.getAll(), hasLength(storeDemoShape.obligations));
+
+    // The version 6 table was created by the upgrade and starts empty: a ledger
+    // written before incomes existed has no income recorded, and the app says so
+    // rather than inventing one or failing to open.
+    expect(await incomes.getAll(), isEmpty);
 
     // And the upgrade gave every debt its person: the app reads participants
     // from the link table, so a record that arrived without a link would look
@@ -122,6 +131,19 @@ void main() {
       asOf: asOf,
     );
     expect(attention, isNotEmpty);
+
+    // And the month's budget resolves off the upgraded file: no income, but the
+    // commitments that were already in it are all still counted.
+    final MonthlyBudget budget = await queries
+        .watchMonthlyBudget(
+          year: asOf.year,
+          month: asOf.month,
+          currency: storeDemoCurrency,
+        )
+        .first;
+    expect(budget.incomeMinor, 0);
+    expect(budget.remainingMinor, -budget.obligationsMinor);
+    expect(budget.isEmpty, budget.obligationsMinor == 0);
 
     // And a statement can be assembled from the old records.
     final PersonLedger? ledger = await queries

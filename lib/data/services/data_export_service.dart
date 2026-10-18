@@ -10,6 +10,7 @@ import '../../core/money/money.dart';
 import '../../core/utils/dates.dart';
 import '../../domain/entities/activity_entry.dart';
 import '../../domain/entities/debt.dart';
+import '../../domain/entities/income.dart';
 import '../../domain/entities/obligation.dart';
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/person.dart';
@@ -32,6 +33,7 @@ class DataExportService {
     required this.debts,
     required this.payments,
     required this.obligations,
+    required this.incomes,
     required this.reminders,
     required this.activity,
     required this.localizations,
@@ -42,6 +44,7 @@ class DataExportService {
   final DebtRepository debts;
   final PaymentRepository payments;
   final ObligationRepository obligations;
+  final IncomeRepository incomes;
   final ReminderRepository reminders;
   final ActivityRepository activity;
   final AppLocalizations localizations;
@@ -85,6 +88,7 @@ class DataExportService {
     final List<Obligation> obligationList = await obligations.getAll();
     final List<ObligationOccurrence> occurrenceList =
         await obligations.allOccurrences();
+    final List<Income> incomeList = await incomes.getAll();
     final List<Reminder> reminderList = await reminders.getAll();
     final List<ActivityEntry> activityList = await activity.recent(limit: 5000);
 
@@ -97,6 +101,7 @@ class DataExportService {
       'payments': paymentList.map(_payment).toList(),
       'obligations': obligationList.map(_obligation).toList(),
       'obligationOccurrences': occurrenceList.map(_occurrence).toList(),
+      'incomes': incomeList.map(_income).toList(),
       'reminders': reminderList.map(_reminder).toList(),
       'activity': activityList.map(_activity).toList(),
     };
@@ -175,6 +180,19 @@ class DataExportService {
         'paidAt': occurrence.paidAt == null ? null : toIsoDate(occurrence.paidAt!),
       };
 
+  Map<String, Object?> _income(Income income) => <String, Object?>{
+        'id': income.id,
+        'name': income.name,
+        'amountMinor': income.amountMinor,
+        'currency': income.currency.code,
+        'frequency': income.frequency.name,
+        'intervalCount': income.intervalCount,
+        'dayOfMonth': income.dayOfMonth,
+        'startAt': toIsoDate(income.startAt),
+        'note': income.note,
+        'archivedAt': income.archivedAt?.toIso8601String(),
+      };
+
   Map<String, Object?> _reminder(Reminder reminder) => <String, Object?>{
         'id': reminder.id,
         'title': reminder.title,
@@ -206,6 +224,7 @@ class DataExportService {
       for (final Debt debt in debtList) debt.id: debt,
     };
     final List<Payment> paymentList = await payments.getAll();
+    final List<Income> incomeList = await incomes.getAll();
 
     final StringBuffer buffer = StringBuffer();
     buffer.writeln(
@@ -232,6 +251,25 @@ class DataExportService {
           (debt.principalMinor / debt.currency.minorFactor).toStringAsFixed(2),
           debt.currency.code,
           _csvCell(debt.note ?? ''),
+        ].join(','),
+      );
+    }
+
+    for (final Income income in incomeList) {
+      buffer.writeln(
+        <String>[
+          toIsoDate(income.startAt),
+          // A rule rather than a movement, like a debt row above it — and named
+          // `incoming` so the direction column means the same thing on every
+          // line of the file.
+          'income',
+          '',
+          _csvCell(income.name),
+          'incoming',
+          (income.amountMinor / income.currency.minorFactor)
+              .toStringAsFixed(2),
+          income.currency.code,
+          _csvCell(income.note ?? ''),
         ].join(','),
       );
     }

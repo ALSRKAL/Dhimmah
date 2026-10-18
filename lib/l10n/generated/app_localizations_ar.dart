@@ -39,6 +39,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get actionEdit => 'تعديل';
 
   @override
+  String get actionSharePdf => 'مشاركة كشف حساب PDF';
+
+  @override
+  String get actionShareText => 'مشاركة كنص سريع';
+
+  @override
   String get actionEnable => 'تفعيل';
 
   @override
@@ -88,6 +94,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get activityImported => 'تم استيراد بيانات';
+
+  @override
+  String get activityIncomeArchived => 'تمت أرشفة مصدر دخل';
+
+  @override
+  String get activityIncomeCreated => 'أُضيف مصدر دخل';
+
+  @override
+  String get activityIncomeDeleted => 'تم حذف مصدر دخل';
+
+  @override
+  String get activityIncomeRestored => 'تمت استعادة مصدر دخل';
+
+  @override
+  String get activityIncomeUpdated => 'حُدّث مصدر دخل';
 
   @override
   String get activityMonthSummary => 'تم إنشاء الملخص الشهري';
@@ -190,6 +211,54 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get brandPromise =>
       'هذا المكان يحفظ كل شيء عليّ ولي، ويذكّرني بما يجب أن أدفعه وما يجب أن أستلمه.';
+
+  @override
+  String get budgetAddIncome => 'إضافة دخل';
+
+  @override
+  String budgetConsumed(String percent) {
+    return '$percent من دخل هذا الشهر تذهب للالتزامات';
+  }
+
+  @override
+  String get budgetEmptyBody =>
+      'أضف راتبك أو دخلك الشهري لتعرف كم يتبقى لك بعد الالتزامات.';
+
+  @override
+  String get budgetEmptyTitle => 'ما المتبقي من راتبك؟';
+
+  @override
+  String get budgetManageIncome => 'إدارة الدخل';
+
+  @override
+  String get budgetNoObligations => 'لا توجد التزامات مستحقة هذا الشهر.';
+
+  @override
+  String get budgetOverCommitted => 'الالتزامات تتجاوز الدخل هذا الشهر';
+
+  @override
+  String get budgetOverdueLabel => 'منها متأخر';
+
+  @override
+  String get budgetPaidLabel => 'دفعت منها';
+
+  @override
+  String get budgetRemaining => 'المتبقي من الدخل';
+
+  @override
+  String get budgetThisMonth => 'هذا الشهر';
+
+  @override
+  String get budgetTitle => 'الراتب والالتزامات';
+
+  @override
+  String get budgetTotalIncome => 'إجمالي الدخل';
+
+  @override
+  String get budgetTotalObligations => 'إجمالي الالتزامات';
+
+  @override
+  String get budgetUnpaidLabel => 'متبقٍ دفعه';
 
   @override
   String get categoryHousing => 'سكن';
@@ -398,6 +467,69 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get dueQuickMonth => 'بعد شهر';
+
+  @override
+  String get dueQuickMonthEnd => 'نهاية الشهر';
+
+  @override
+  String get dueQuickNone => 'بلا تاريخ';
+
+  @override
+  String get dueQuickWeek => 'بعد أسبوع';
+
+  @override
+  String get fieldIncomeName => 'اسم الدخل';
+
+  @override
+  String get fieldIncomeNameHint => 'مثال: الراتب الشهري';
+
+  @override
+  String get incomeArchivedToast => 'تمت أرشفة مصدر الدخل';
+
+  @override
+  String get incomeDeleteBody => 'لن تتأثر السجلات الأخرى.';
+
+  @override
+  String get incomeDeleteTitle => 'حذف مصدر الدخل؟';
+
+  @override
+  String get incomeDeletedToast => 'تم حذف مصدر الدخل';
+
+  @override
+  String get incomeFollowsStartDay => 'يتبع يومَ تاريخ البداية';
+
+  @override
+  String get incomeManageEmpty => 'لا يوجد دخل مسجل بعد.';
+
+  @override
+  String get incomeManageTitle => 'مصادر الدخل';
+
+  @override
+  String get incomePresetAllowance => 'مكافأة دراسية';
+
+  @override
+  String get incomePresetExtra => 'دخل إضافي';
+
+  @override
+  String get incomePresetFreelance => 'عمل حر';
+
+  @override
+  String get incomePresetSalary => 'راتب شهري';
+
+  @override
+  String get incomeRestoredToast => 'تمت استعادة مصدر الدخل';
+
+  @override
+  String get incomeSheetEdit => 'تعديل الدخل';
+
+  @override
+  String get incomeSheetNew => 'دخل جديد';
+
+  @override
+  String get incomeTitle => 'الدخل';
+
+  @override
   String get legacySharedTitle => 'دين مشترك قديم يحتاج مراجعة';
 
   @override
@@ -455,6 +587,120 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteUndoableBody => 'سيُحذف الدين، ويمكنك التراجع خلال ثوانٍ.';
+
+  @override
+  String get personPaymentAllocation => 'التوزيع';
+
+  @override
+  String get personPaymentEmpty => 'لا توجد ديون مفتوحة في هذا الاتجاه.';
+
+  @override
+  String get personPaymentExcluded => 'مستثنى';
+
+  @override
+  String personPaymentLeftoverCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'ويتغيّر $count دينًا آخر',
+      few: 'وتتغيّر $count ديون أخرى',
+      two: 'ويتغيّر دينان آخران',
+      one: 'ويتغيّر دين آخر',
+      zero: 'ولا يتغيّر غيره',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get personPaymentNoShare => 'لا يصله شيء';
+
+  @override
+  String get personPaymentOrderOldest => 'الأقدم أولاً';
+
+  @override
+  String get personPaymentOrderUrgent => 'الأكثر إلحاحاً';
+
+  @override
+  String personPaymentOutstanding(String amount) {
+    return 'إجمالي المستحق: $amount';
+  }
+
+  @override
+  String personPaymentOverCap(String amount) {
+    return 'المبلغ أكبر من المستحق ($amount).';
+  }
+
+  @override
+  String get personPaymentPayAll => 'سداد الكل';
+
+  @override
+  String get personPaymentQuickHalf => '50%';
+
+  @override
+  String get personPaymentQuickQuarter => '25%';
+
+  @override
+  String personPaymentRecordedToast(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'تم تسجيل $count دفعة',
+      few: 'تم تسجيل $count دفعات',
+      two: 'تم تسجيل دفعتين',
+      one: 'تم تسجيل دفعة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personPaymentRowTakes(String amount, String total, String remaining) {
+    return '$amount من $total · يتبقى $remaining';
+  }
+
+  @override
+  String personPaymentSettledToast(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'وسُدّد $count دينًا',
+      few: 'وسُدّد $count ديون',
+      two: 'وسُدّد دينان',
+      one: 'وسُدّد دين واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personPaymentSettlingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'سيُسدَّد $count دينًا',
+      few: 'سيُسدَّد $count ديون',
+      two: 'سيُسدَّد دينان',
+      one: 'سيُسدَّد دين واحد',
+      zero: 'لن يُسدَّد أي دين',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get personPaymentSharedNotice =>
+      'يوجد دين مشترك قديم مع هذا الشخص. التوزيع التلقائي يستثنيه لأن دفعةً واحدة عليه تُصفّر رصيد الجميع، فحوّله إلى ديون مستقلة ليساهم هنا.';
+
+  @override
+  String get personPaymentSide => 'يُسدَّد على';
+
+  @override
+  String get personPaymentWillSettle => 'يُسدَّد بالكامل';
+
+  @override
+  String get personSettledBadge => 'الحساب مصفّى';
+
+  @override
+  String personSidesBreakdown(String owedToMe, String iOwe) {
+    return 'لي $owedToMe · عليّ $iOwe';
+  }
 
   @override
   String get recordGone => 'هذا السجل لم يعد موجودًا.';

@@ -2,6 +2,9 @@
 ///
 /// The activity log is append-only: closing a debt never removes its history, so
 /// the user can always see how a balance got to where it is.
+///
+/// Values are stored by name in `activity_entries.type`, so the ones already
+/// shipped are frozen: they may be appended to, never renamed and never removed.
 enum ActivityType {
   debtCreated,
   debtUpdated,
@@ -17,6 +20,12 @@ enum ActivityType {
   obligationCreated,
   obligationPaid,
   obligationSkipped,
+  // Added with schema 6, beside the obligation entries they read like.
+  incomeCreated,
+  incomeUpdated,
+  incomeArchived,
+  incomeRestored,
+  incomeDeleted,
   reminderCreated,
   reminderCompleted,
   dataImported,
@@ -28,8 +37,16 @@ enum ActivityType {
       this == ActivityType.debtCreated ||
       this == ActivityType.paymentRecorded ||
       this == ActivityType.obligationPaid ||
-      this == ActivityType.debtClosed;
+      this == ActivityType.debtClosed ||
+      this == ActivityType.incomeCreated ||
+      this == ActivityType.incomeUpdated;
 
   /// Whether the entry should be tinted as a positive movement.
-  bool get isIncoming => this == ActivityType.paymentRecorded;
+  ///
+  /// An income belongs here and not beside the obligations: the money is
+  /// arriving, which is the one thing the tint says.
+  bool get isIncoming =>
+      this == ActivityType.paymentRecorded ||
+      this == ActivityType.incomeCreated ||
+      this == ActivityType.incomeUpdated;
 }

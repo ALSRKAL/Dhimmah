@@ -4,7 +4,9 @@ import '../../core/money/currency.dart';
 import '../../core/utils/dates.dart';
 import '../../domain/entities/activity_entry.dart';
 import '../../domain/entities/debt.dart';
+import '../../domain/entities/income.dart';
 import '../../domain/entities/ledger_views.dart';
+import '../../domain/entities/monthly_budget.dart';
 import '../../domain/entities/monthly_report.dart';
 import '../../domain/entities/obligation.dart';
 import '../../domain/entities/payment.dart';
@@ -13,7 +15,9 @@ import '../../domain/entities/reminder.dart';
 import '../../domain/enums/obligation_enums.dart';
 import '../../domain/repositories/repositories.dart';
 import '../../domain/services/debt_calculator.dart';
+import '../../domain/services/income_schedule.dart';
 import '../../domain/services/monthly_report_builder.dart';
+import '../../domain/services/obligation_period_rule.dart';
 import '../../domain/services/obligation_schedule.dart';
 import '../database/app_database.dart';
 import '../database/daos/debts_dao.dart';
@@ -38,6 +42,7 @@ class LedgerQueries {
     required this.debts,
     required this.payments,
     required this.obligations,
+    required this.incomes,
     required this.reminders,
     required this.activity,
   }) : _db = database;
@@ -47,6 +52,7 @@ class LedgerQueries {
   final DebtRepository debts;
   final PaymentRepository payments;
   final ObligationRepository obligations;
+  final IncomeRepository incomes;
   final ReminderRepository reminders;
   final ActivityRepository activity;
 
@@ -59,6 +65,7 @@ class LedgerQueries {
         _db.payments,
         _db.obligations,
         _db.obligationOccurrences,
+        _db.incomes,
         _db.reminders,
         _db.activityEntries,
       ];
@@ -250,6 +257,79 @@ class LedgerQueries {
             a.occurrence.dueAt.compareTo(b.occurrence.dueAt),
       );
       return instances;
+    });
+  }
+
+  /// One month's income against that month's commitments, for one currency.
+  ///
+  /// Re-emits on every write to any ledger table, so recording a payment, adding
+  /// an income or editing a commitment moves the card at once rather than on the
+  /// next visit to the screen.
+  ///
+  /// The two halves are derived differently on purpose, because the two things
+  /// are stored differently:
+  ///
+  /// * **Income** has no rows to read — nothing is stored when a salary arrives
+  ///   — so the month's figure is walked off the schedule by [IncomeSchedule].
+  /// * **Commitments** *do* have rows, and their state (paid, skipped, cancelled)
+  ///   only exists on those rows. So they are read from `obligation_occurrences`
+  ///   inside the month's window, and filtered by [ObligationPeriodRule] — the
+  ///   same rule the monthly report uses, which is what keeps the two screens
+  ///   from reporting different figures for one month.
+  Stream<MonthlyBudget> watchMonthlyBudget({
+    required int year,
+    required int month,
+    required AppCurrency currency,
+  }) {
+    return _watch(() async {
+      final DateTime monthStart = DateTime(year, month);
+      final DateTime monthEnd = DateTime(year, month + 1, 0);
+
+      final List<Income> activeIncomes = await incomes.getAll(
+        includeArchived: false,
+      );
+      int incomeMinor = 0;
+      int incomeCount = 0;
+      for (final Income income in activeIncomes) {
+        if (income.currency != currency) continue;
+        final int amount = IncomeSchedule.amountInMonth(income, monthStart);
+        if (amount == 0) continue;
+        incomeMinor += amount;
+        incomeCount++;
+      }
+
+      final List<Obligation> obligationList = await obligations.getAll();
+      final ObligationPeriodRule rule =
+          ObligationPeriodRule(obligationList, currency);
+      final List<ObligationOccurrence> periods = await obligations
+          .periodsBetween(from: monthStart, to: monthEnd);
+
+      int obligationsMinor = 0;
+      int paidMinor = 0;
+      int overdueMinor = 0;
+      int obligationCount = 0;
+      for (final ObligationOccurrence period in periods) {
+        if (!rule.isDue(period)) continue;
+        obligationsMinor += period.amountMinor;
+        obligationCount++;
+        if (period.isPaid) {
+          paidMinor += period.amountMinor;
+        } else if (period.status == ObligationStatus.overdue) {
+          overdueMinor += period.amountMinor;
+        }
+      }
+
+      return MonthlyBudget(
+        year: year,
+        month: month,
+        currency: currency,
+        incomeMinor: incomeMinor,
+        obligationsMinor: obligationsMinor,
+        paidObligationsMinor: paidMinor,
+        overdueObligationsMinor: overdueMinor,
+        incomeCount: incomeCount,
+        obligationCount: obligationCount,
+      );
     });
   }
 

@@ -106,3 +106,23 @@ enum DebtSortOrder {
   oldestAdded,
   nameAscending,
 }
+
+/// Which debt a payment is applied to first.
+///
+/// Nothing here is stored: the order is a decision made when a payment is
+/// recorded, and the payments it produces are the record. Two people who
+/// disagree about which debt to settle first get the same ledger either way —
+/// only the split differs, and the split is visible before it is saved.
+enum PaymentAllocationOrder {
+  /// Most urgent first: the earliest due date, undated records last. Falls back
+  /// to the oldest record when two are equally urgent, or equally undated.
+  ///
+  /// The default, because a late bill usually costs more than an early one, and
+  /// because a record with no due date is the one nobody is chasing.
+  mostUrgent,
+
+  /// Oldest first, by the day each debt was incurred — how most people describe
+  /// the same idea ("أقدم دين أولاً"), and independent of whether a due date was
+  /// ever recorded.
+  oldestFirst,
+}

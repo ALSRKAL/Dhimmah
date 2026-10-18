@@ -4048,6 +4048,757 @@ class ObligationOccurrencesCompanion
   }
 }
 
+class $IncomesTable extends Incomes with TableInfo<$IncomesTable, IncomeRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $IncomesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+    'name',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 160,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _amountMinorMeta = const VerificationMeta(
+    'amountMinor',
+  );
+  @override
+  late final GeneratedColumn<int> amountMinor = GeneratedColumn<int>(
+    'amount_minor',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _currencyCodeMeta = const VerificationMeta(
+    'currencyCode',
+  );
+  @override
+  late final GeneratedColumn<String> currencyCode = GeneratedColumn<String>(
+    'currency_code',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 3,
+      maxTextLength: 3,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<RecurrenceFrequency, String>
+  frequency = GeneratedColumn<String>(
+    'frequency',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  ).withConverter<RecurrenceFrequency>($IncomesTable.$converterfrequency);
+  static const VerificationMeta _intervalCountMeta = const VerificationMeta(
+    'intervalCount',
+  );
+  @override
+  late final GeneratedColumn<int> intervalCount = GeneratedColumn<int>(
+    'interval_count',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _dayOfMonthMeta = const VerificationMeta(
+    'dayOfMonth',
+  );
+  @override
+  late final GeneratedColumn<int> dayOfMonth = GeneratedColumn<int>(
+    'day_of_month',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, String> startAt =
+      GeneratedColumn<String>(
+        'start_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($IncomesTable.$converterstartAt);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+    'note',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime?, int> archivedAt =
+      GeneratedColumn<int>(
+        'archived_at',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      ).withConverter<DateTime?>($IncomesTable.$converterarchivedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> createdAt =
+      GeneratedColumn<int>(
+        'created_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($IncomesTable.$convertercreatedAt);
+  @override
+  late final GeneratedColumnWithTypeConverter<DateTime, int> updatedAt =
+      GeneratedColumn<int>(
+        'updated_at',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: true,
+      ).withConverter<DateTime>($IncomesTable.$converterupdatedAt);
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    name,
+    amountMinor,
+    currencyCode,
+    frequency,
+    intervalCount,
+    dayOfMonth,
+    startAt,
+    note,
+    archivedAt,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'incomes';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<IncomeRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+        _nameMeta,
+        name.isAcceptableOrUnknown(data['name']!, _nameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('amount_minor')) {
+      context.handle(
+        _amountMinorMeta,
+        amountMinor.isAcceptableOrUnknown(
+          data['amount_minor']!,
+          _amountMinorMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_amountMinorMeta);
+    }
+    if (data.containsKey('currency_code')) {
+      context.handle(
+        _currencyCodeMeta,
+        currencyCode.isAcceptableOrUnknown(
+          data['currency_code']!,
+          _currencyCodeMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_currencyCodeMeta);
+    }
+    if (data.containsKey('interval_count')) {
+      context.handle(
+        _intervalCountMeta,
+        intervalCount.isAcceptableOrUnknown(
+          data['interval_count']!,
+          _intervalCountMeta,
+        ),
+      );
+    }
+    if (data.containsKey('day_of_month')) {
+      context.handle(
+        _dayOfMonthMeta,
+        dayOfMonth.isAcceptableOrUnknown(
+          data['day_of_month']!,
+          _dayOfMonthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+        _noteMeta,
+        note.isAcceptableOrUnknown(data['note']!, _noteMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  IncomeRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return IncomeRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      name: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}name'],
+      )!,
+      amountMinor: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}amount_minor'],
+      )!,
+      currencyCode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}currency_code'],
+      )!,
+      frequency: $IncomesTable.$converterfrequency.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}frequency'],
+        )!,
+      ),
+      intervalCount: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}interval_count'],
+      )!,
+      dayOfMonth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}day_of_month'],
+      ),
+      startAt: $IncomesTable.$converterstartAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}start_at'],
+        )!,
+      ),
+      note: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}note'],
+      ),
+      archivedAt: $IncomesTable.$converterarchivedAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}archived_at'],
+        ),
+      ),
+      createdAt: $IncomesTable.$convertercreatedAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}created_at'],
+        )!,
+      ),
+      updatedAt: $IncomesTable.$converterupdatedAt.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.int,
+          data['${effectivePrefix}updated_at'],
+        )!,
+      ),
+    );
+  }
+
+  @override
+  $IncomesTable createAlias(String alias) {
+    return $IncomesTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<RecurrenceFrequency, String, String>
+  $converterfrequency = const EnumNameConverter<RecurrenceFrequency>(
+    RecurrenceFrequency.values,
+  );
+  static TypeConverter<DateTime, String> $converterstartAt =
+      const DateOnlyConverter();
+  static TypeConverter<DateTime?, int?> $converterarchivedAt =
+      const NullableTimestampConverter();
+  static TypeConverter<DateTime, int> $convertercreatedAt =
+      const TimestampConverter();
+  static TypeConverter<DateTime, int> $converterupdatedAt =
+      const TimestampConverter();
+}
+
+class IncomeRow extends DataClass implements Insertable<IncomeRow> {
+  final String id;
+  final String name;
+  final int amountMinor;
+
+  /// The currency this income is paid in.
+  ///
+  /// Stored per record for the same reason an obligation stores its own: a
+  /// monthly total that adds 5,000 ﷼ to $500 is not a number, it is an accident.
+  final String currencyCode;
+  final RecurrenceFrequency frequency;
+
+  /// Every N periods. `1` means every month / week / year.
+  final int intervalCount;
+
+  /// The day of the month a monthly income lands on, when the user pinned one.
+  final int? dayOfMonth;
+
+  /// The anchor the whole schedule is measured from.
+  ///
+  /// Present because an interval needs a phase: "every 2 months" is a different
+  /// set of months depending on where it starts, and without an anchor the
+  /// answer would come from whichever date the read happened to run on. It is
+  /// the same rule [Obligations.startAt] exists for.
+  final DateTime startAt;
+  final String? note;
+  final DateTime? archivedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const IncomeRow({
+    required this.id,
+    required this.name,
+    required this.amountMinor,
+    required this.currencyCode,
+    required this.frequency,
+    required this.intervalCount,
+    this.dayOfMonth,
+    required this.startAt,
+    this.note,
+    this.archivedAt,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    map['amount_minor'] = Variable<int>(amountMinor);
+    map['currency_code'] = Variable<String>(currencyCode);
+    {
+      map['frequency'] = Variable<String>(
+        $IncomesTable.$converterfrequency.toSql(frequency),
+      );
+    }
+    map['interval_count'] = Variable<int>(intervalCount);
+    if (!nullToAbsent || dayOfMonth != null) {
+      map['day_of_month'] = Variable<int>(dayOfMonth);
+    }
+    {
+      map['start_at'] = Variable<String>(
+        $IncomesTable.$converterstartAt.toSql(startAt),
+      );
+    }
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    if (!nullToAbsent || archivedAt != null) {
+      map['archived_at'] = Variable<int>(
+        $IncomesTable.$converterarchivedAt.toSql(archivedAt),
+      );
+    }
+    {
+      map['created_at'] = Variable<int>(
+        $IncomesTable.$convertercreatedAt.toSql(createdAt),
+      );
+    }
+    {
+      map['updated_at'] = Variable<int>(
+        $IncomesTable.$converterupdatedAt.toSql(updatedAt),
+      );
+    }
+    return map;
+  }
+
+  IncomesCompanion toCompanion(bool nullToAbsent) {
+    return IncomesCompanion(
+      id: Value(id),
+      name: Value(name),
+      amountMinor: Value(amountMinor),
+      currencyCode: Value(currencyCode),
+      frequency: Value(frequency),
+      intervalCount: Value(intervalCount),
+      dayOfMonth: dayOfMonth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dayOfMonth),
+      startAt: Value(startAt),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      archivedAt: archivedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(archivedAt),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory IncomeRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return IncomeRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      amountMinor: serializer.fromJson<int>(json['amountMinor']),
+      currencyCode: serializer.fromJson<String>(json['currencyCode']),
+      frequency: $IncomesTable.$converterfrequency.fromJson(
+        serializer.fromJson<String>(json['frequency']),
+      ),
+      intervalCount: serializer.fromJson<int>(json['intervalCount']),
+      dayOfMonth: serializer.fromJson<int?>(json['dayOfMonth']),
+      startAt: serializer.fromJson<DateTime>(json['startAt']),
+      note: serializer.fromJson<String?>(json['note']),
+      archivedAt: serializer.fromJson<DateTime?>(json['archivedAt']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'amountMinor': serializer.toJson<int>(amountMinor),
+      'currencyCode': serializer.toJson<String>(currencyCode),
+      'frequency': serializer.toJson<String>(
+        $IncomesTable.$converterfrequency.toJson(frequency),
+      ),
+      'intervalCount': serializer.toJson<int>(intervalCount),
+      'dayOfMonth': serializer.toJson<int?>(dayOfMonth),
+      'startAt': serializer.toJson<DateTime>(startAt),
+      'note': serializer.toJson<String?>(note),
+      'archivedAt': serializer.toJson<DateTime?>(archivedAt),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  IncomeRow copyWith({
+    String? id,
+    String? name,
+    int? amountMinor,
+    String? currencyCode,
+    RecurrenceFrequency? frequency,
+    int? intervalCount,
+    Value<int?> dayOfMonth = const Value.absent(),
+    DateTime? startAt,
+    Value<String?> note = const Value.absent(),
+    Value<DateTime?> archivedAt = const Value.absent(),
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => IncomeRow(
+    id: id ?? this.id,
+    name: name ?? this.name,
+    amountMinor: amountMinor ?? this.amountMinor,
+    currencyCode: currencyCode ?? this.currencyCode,
+    frequency: frequency ?? this.frequency,
+    intervalCount: intervalCount ?? this.intervalCount,
+    dayOfMonth: dayOfMonth.present ? dayOfMonth.value : this.dayOfMonth,
+    startAt: startAt ?? this.startAt,
+    note: note.present ? note.value : this.note,
+    archivedAt: archivedAt.present ? archivedAt.value : this.archivedAt,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  IncomeRow copyWithCompanion(IncomesCompanion data) {
+    return IncomeRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      amountMinor: data.amountMinor.present
+          ? data.amountMinor.value
+          : this.amountMinor,
+      currencyCode: data.currencyCode.present
+          ? data.currencyCode.value
+          : this.currencyCode,
+      frequency: data.frequency.present ? data.frequency.value : this.frequency,
+      intervalCount: data.intervalCount.present
+          ? data.intervalCount.value
+          : this.intervalCount,
+      dayOfMonth: data.dayOfMonth.present
+          ? data.dayOfMonth.value
+          : this.dayOfMonth,
+      startAt: data.startAt.present ? data.startAt.value : this.startAt,
+      note: data.note.present ? data.note.value : this.note,
+      archivedAt: data.archivedAt.present
+          ? data.archivedAt.value
+          : this.archivedAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('IncomeRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('currencyCode: $currencyCode, ')
+          ..write('frequency: $frequency, ')
+          ..write('intervalCount: $intervalCount, ')
+          ..write('dayOfMonth: $dayOfMonth, ')
+          ..write('startAt: $startAt, ')
+          ..write('note: $note, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    name,
+    amountMinor,
+    currencyCode,
+    frequency,
+    intervalCount,
+    dayOfMonth,
+    startAt,
+    note,
+    archivedAt,
+    createdAt,
+    updatedAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is IncomeRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.amountMinor == this.amountMinor &&
+          other.currencyCode == this.currencyCode &&
+          other.frequency == this.frequency &&
+          other.intervalCount == this.intervalCount &&
+          other.dayOfMonth == this.dayOfMonth &&
+          other.startAt == this.startAt &&
+          other.note == this.note &&
+          other.archivedAt == this.archivedAt &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class IncomesCompanion extends UpdateCompanion<IncomeRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<int> amountMinor;
+  final Value<String> currencyCode;
+  final Value<RecurrenceFrequency> frequency;
+  final Value<int> intervalCount;
+  final Value<int?> dayOfMonth;
+  final Value<DateTime> startAt;
+  final Value<String?> note;
+  final Value<DateTime?> archivedAt;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const IncomesCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.amountMinor = const Value.absent(),
+    this.currencyCode = const Value.absent(),
+    this.frequency = const Value.absent(),
+    this.intervalCount = const Value.absent(),
+    this.dayOfMonth = const Value.absent(),
+    this.startAt = const Value.absent(),
+    this.note = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  IncomesCompanion.insert({
+    required String id,
+    required String name,
+    required int amountMinor,
+    required String currencyCode,
+    required RecurrenceFrequency frequency,
+    this.intervalCount = const Value.absent(),
+    this.dayOfMonth = const Value.absent(),
+    required DateTime startAt,
+    this.note = const Value.absent(),
+    this.archivedAt = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       name = Value(name),
+       amountMinor = Value(amountMinor),
+       currencyCode = Value(currencyCode),
+       frequency = Value(frequency),
+       startAt = Value(startAt),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<IncomeRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<int>? amountMinor,
+    Expression<String>? currencyCode,
+    Expression<String>? frequency,
+    Expression<int>? intervalCount,
+    Expression<int>? dayOfMonth,
+    Expression<String>? startAt,
+    Expression<String>? note,
+    Expression<int>? archivedAt,
+    Expression<int>? createdAt,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (currencyCode != null) 'currency_code': currencyCode,
+      if (frequency != null) 'frequency': frequency,
+      if (intervalCount != null) 'interval_count': intervalCount,
+      if (dayOfMonth != null) 'day_of_month': dayOfMonth,
+      if (startAt != null) 'start_at': startAt,
+      if (note != null) 'note': note,
+      if (archivedAt != null) 'archived_at': archivedAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  IncomesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? name,
+    Value<int>? amountMinor,
+    Value<String>? currencyCode,
+    Value<RecurrenceFrequency>? frequency,
+    Value<int>? intervalCount,
+    Value<int?>? dayOfMonth,
+    Value<DateTime>? startAt,
+    Value<String?>? note,
+    Value<DateTime?>? archivedAt,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return IncomesCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      amountMinor: amountMinor ?? this.amountMinor,
+      currencyCode: currencyCode ?? this.currencyCode,
+      frequency: frequency ?? this.frequency,
+      intervalCount: intervalCount ?? this.intervalCount,
+      dayOfMonth: dayOfMonth ?? this.dayOfMonth,
+      startAt: startAt ?? this.startAt,
+      note: note ?? this.note,
+      archivedAt: archivedAt ?? this.archivedAt,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (amountMinor.present) {
+      map['amount_minor'] = Variable<int>(amountMinor.value);
+    }
+    if (currencyCode.present) {
+      map['currency_code'] = Variable<String>(currencyCode.value);
+    }
+    if (frequency.present) {
+      map['frequency'] = Variable<String>(
+        $IncomesTable.$converterfrequency.toSql(frequency.value),
+      );
+    }
+    if (intervalCount.present) {
+      map['interval_count'] = Variable<int>(intervalCount.value);
+    }
+    if (dayOfMonth.present) {
+      map['day_of_month'] = Variable<int>(dayOfMonth.value);
+    }
+    if (startAt.present) {
+      map['start_at'] = Variable<String>(
+        $IncomesTable.$converterstartAt.toSql(startAt.value),
+      );
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (archivedAt.present) {
+      map['archived_at'] = Variable<int>(
+        $IncomesTable.$converterarchivedAt.toSql(archivedAt.value),
+      );
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(
+        $IncomesTable.$convertercreatedAt.toSql(createdAt.value),
+      );
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(
+        $IncomesTable.$converterupdatedAt.toSql(updatedAt.value),
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('IncomesCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('amountMinor: $amountMinor, ')
+          ..write('currencyCode: $currencyCode, ')
+          ..write('frequency: $frequency, ')
+          ..write('intervalCount: $intervalCount, ')
+          ..write('dayOfMonth: $dayOfMonth, ')
+          ..write('startAt: $startAt, ')
+          ..write('note: $note, ')
+          ..write('archivedAt: $archivedAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $RemindersTable extends Reminders
     with TableInfo<$RemindersTable, ReminderRow> {
   @override
@@ -7382,6 +8133,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $ObligationsTable obligations = $ObligationsTable(this);
   late final $ObligationOccurrencesTable obligationOccurrences =
       $ObligationOccurrencesTable(this);
+  late final $IncomesTable incomes = $IncomesTable(this);
   late final $RemindersTable reminders = $RemindersTable(this);
   late final $ActivityEntriesTable activityEntries = $ActivityEntriesTable(
     this,
@@ -7442,6 +8194,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_occurrences_status',
     'CREATE INDEX idx_occurrences_status ON obligation_occurrences (status)',
   );
+  late final Index idxIncomesArchived = Index(
+    'idx_incomes_archived',
+    'CREATE INDEX idx_incomes_archived ON incomes (archived_at)',
+  );
   late final Index idxRemindersDue = Index(
     'idx_reminders_due',
     'CREATE INDEX idx_reminders_due ON reminders (due_at)',
@@ -7463,6 +8219,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final ObligationsDao obligationsDao = ObligationsDao(
     this as AppDatabase,
   );
+  late final IncomesDao incomesDao = IncomesDao(this as AppDatabase);
   late final RemindersDao remindersDao = RemindersDao(this as AppDatabase);
   late final ActivityDao activityDao = ActivityDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
@@ -7477,6 +8234,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     payments,
     obligations,
     obligationOccurrences,
+    incomes,
     reminders,
     activityEntries,
     monthlySummaries,
@@ -7494,6 +8252,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     idxOccurrencesObligation,
     idxOccurrencesDue,
     idxOccurrencesStatus,
+    idxIncomesArchived,
     idxRemindersDue,
     idxRemindersStatus,
     idxActivityEntity,
@@ -10765,6 +11524,362 @@ typedef $$ObligationOccurrencesTableProcessedTableManager =
       ObligationOccurrenceRow,
       PrefetchHooks Function({bool obligationId})
     >;
+typedef $$IncomesTableCreateCompanionBuilder =
+    IncomesCompanion Function({
+      required String id,
+      required String name,
+      required int amountMinor,
+      required String currencyCode,
+      required RecurrenceFrequency frequency,
+      Value<int> intervalCount,
+      Value<int?> dayOfMonth,
+      required DateTime startAt,
+      Value<String?> note,
+      Value<DateTime?> archivedAt,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$IncomesTableUpdateCompanionBuilder =
+    IncomesCompanion Function({
+      Value<String> id,
+      Value<String> name,
+      Value<int> amountMinor,
+      Value<String> currencyCode,
+      Value<RecurrenceFrequency> frequency,
+      Value<int> intervalCount,
+      Value<int?> dayOfMonth,
+      Value<DateTime> startAt,
+      Value<String?> note,
+      Value<DateTime?> archivedAt,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$IncomesTableFilterComposer
+    extends Composer<_$AppDatabase, $IncomesTable> {
+  $$IncomesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<
+    RecurrenceFrequency,
+    RecurrenceFrequency,
+    String
+  >
+  get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnWithTypeConverterFilters(column),
+  );
+
+  ColumnFilters<int> get intervalCount => $composableBuilder(
+    column: $table.intervalCount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dayOfMonth => $composableBuilder(
+    column: $table.dayOfMonth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DateTime, DateTime, String> get startAt =>
+      $composableBuilder(
+        column: $table.startAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<DateTime?, DateTime, int> get archivedAt =>
+      $composableBuilder(
+        column: $table.archivedAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<DateTime, DateTime, int> get createdAt =>
+      $composableBuilder(
+        column: $table.createdAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnWithTypeConverterFilters<DateTime, DateTime, int> get updatedAt =>
+      $composableBuilder(
+        column: $table.updatedAt,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+}
+
+class $$IncomesTableOrderingComposer
+    extends Composer<_$AppDatabase, $IncomesTable> {
+  $$IncomesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get name => $composableBuilder(
+    column: $table.name,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get frequency => $composableBuilder(
+    column: $table.frequency,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get intervalCount => $composableBuilder(
+    column: $table.intervalCount,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dayOfMonth => $composableBuilder(
+    column: $table.dayOfMonth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get note => $composableBuilder(
+    column: $table.note,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get archivedAt => $composableBuilder(
+    column: $table.archivedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$IncomesTableAnnotationComposer
+    extends Composer<_$AppDatabase, $IncomesTable> {
+  $$IncomesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumn<int> get amountMinor => $composableBuilder(
+    column: $table.amountMinor,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get currencyCode => $composableBuilder(
+    column: $table.currencyCode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<RecurrenceFrequency, String> get frequency =>
+      $composableBuilder(column: $table.frequency, builder: (column) => column);
+
+  GeneratedColumn<int> get intervalCount => $composableBuilder(
+    column: $table.intervalCount,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get dayOfMonth => $composableBuilder(
+    column: $table.dayOfMonth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumnWithTypeConverter<DateTime, String> get startAt =>
+      $composableBuilder(column: $table.startAt, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DateTime?, int> get archivedAt =>
+      $composableBuilder(
+        column: $table.archivedAt,
+        builder: (column) => column,
+      );
+
+  GeneratedColumnWithTypeConverter<DateTime, int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DateTime, int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$IncomesTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $IncomesTable,
+          IncomeRow,
+          $$IncomesTableFilterComposer,
+          $$IncomesTableOrderingComposer,
+          $$IncomesTableAnnotationComposer,
+          $$IncomesTableCreateCompanionBuilder,
+          $$IncomesTableUpdateCompanionBuilder,
+          (IncomeRow, BaseReferences<_$AppDatabase, $IncomesTable, IncomeRow>),
+          IncomeRow,
+          PrefetchHooks Function()
+        > {
+  $$IncomesTableTableManager(_$AppDatabase db, $IncomesTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$IncomesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$IncomesTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$IncomesTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> name = const Value.absent(),
+                Value<int> amountMinor = const Value.absent(),
+                Value<String> currencyCode = const Value.absent(),
+                Value<RecurrenceFrequency> frequency = const Value.absent(),
+                Value<int> intervalCount = const Value.absent(),
+                Value<int?> dayOfMonth = const Value.absent(),
+                Value<DateTime> startAt = const Value.absent(),
+                Value<String?> note = const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => IncomesCompanion(
+                id: id,
+                name: name,
+                amountMinor: amountMinor,
+                currencyCode: currencyCode,
+                frequency: frequency,
+                intervalCount: intervalCount,
+                dayOfMonth: dayOfMonth,
+                startAt: startAt,
+                note: note,
+                archivedAt: archivedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String name,
+                required int amountMinor,
+                required String currencyCode,
+                required RecurrenceFrequency frequency,
+                Value<int> intervalCount = const Value.absent(),
+                Value<int?> dayOfMonth = const Value.absent(),
+                required DateTime startAt,
+                Value<String?> note = const Value.absent(),
+                Value<DateTime?> archivedAt = const Value.absent(),
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => IncomesCompanion.insert(
+                id: id,
+                name: name,
+                amountMinor: amountMinor,
+                currencyCode: currencyCode,
+                frequency: frequency,
+                intervalCount: intervalCount,
+                dayOfMonth: dayOfMonth,
+                startAt: startAt,
+                note: note,
+                archivedAt: archivedAt,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$IncomesTable, IncomeRow>(table),
+                  BaseReferences<_$AppDatabase, $IncomesTable, IncomeRow>(
+                    db,
+                    table,
+                    e,
+                  ),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$IncomesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $IncomesTable,
+      IncomeRow,
+      $$IncomesTableFilterComposer,
+      $$IncomesTableOrderingComposer,
+      $$IncomesTableAnnotationComposer,
+      $$IncomesTableCreateCompanionBuilder,
+      $$IncomesTableUpdateCompanionBuilder,
+      (IncomeRow, BaseReferences<_$AppDatabase, $IncomesTable, IncomeRow>),
+      IncomeRow,
+      PrefetchHooks Function()
+    >;
 typedef $$RemindersTableCreateCompanionBuilder =
     RemindersCompanion Function({
       required String id,
@@ -12367,6 +13482,8 @@ class $AppDatabaseManager {
       $$ObligationsTableTableManager(_db, _db.obligations);
   $$ObligationOccurrencesTableTableManager get obligationOccurrences =>
       $$ObligationOccurrencesTableTableManager(_db, _db.obligationOccurrences);
+  $$IncomesTableTableManager get incomes =>
+      $$IncomesTableTableManager(_db, _db.incomes);
   $$RemindersTableTableManager get reminders =>
       $$RemindersTableTableManager(_db, _db.reminders);
   $$ActivityEntriesTableTableManager get activityEntries =>

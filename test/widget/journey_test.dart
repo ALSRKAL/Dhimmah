@@ -158,8 +158,12 @@ void main() {
     await tester.tap(find.byType(BackButton));
     await settle(tester);
 
-    // The statement is one tap from the person, not buried in a menu.
-    await tester.tap(find.text('مشاركة كشف'));
+    // The statement is one tap from the person, not buried in a menu. It is an
+    // icon now rather than a labelled button: the bar it sits on gained "record
+    // a payment" beside "add a debt", and three Arabic labels do not fit one
+    // phone-width row without one of them being ellipsised. The tooltip carries
+    // the words, and the tap is still one.
+    await tester.tap(find.byTooltip('مشاركة كشف'));
     await pumpPreview(tester);
 
     // PdfPreview is the platform viewer and never settles, so its presence is

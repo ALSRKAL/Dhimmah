@@ -18,6 +18,7 @@ import '../data/database/app_database.dart';
 import '../data/read_models/ledger_queries.dart';
 import '../data/repositories/activity_repository_impl.dart';
 import '../data/repositories/debt_repository_impl.dart';
+import '../data/repositories/income_repository_impl.dart';
 import '../data/repositories/obligation_repository_impl.dart';
 import '../data/repositories/person_repository_impl.dart';
 import '../data/repositories/reminder_repository_impl.dart';
@@ -27,7 +28,9 @@ import '../data/services/ledger_service.dart';
 import '../data/services/statement_service.dart';
 import '../domain/entities/app_settings.dart';
 import '../domain/entities/debt.dart';
+import '../domain/entities/income.dart';
 import '../domain/entities/ledger_views.dart';
+import '../domain/entities/monthly_budget.dart';
 import '../domain/entities/monthly_report.dart';
 import '../domain/entities/obligation.dart';
 import '../domain/entities/person.dart';
@@ -169,6 +172,11 @@ final Provider<ObligationRepository> obligationRepositoryProvider =
   (Ref ref) => ObligationRepositoryImpl(ref.watch(databaseProvider)),
 );
 
+final Provider<IncomeRepository> incomeRepositoryProvider =
+    Provider<IncomeRepository>(
+  (Ref ref) => IncomeRepositoryImpl(ref.watch(databaseProvider)),
+);
+
 final Provider<ReminderRepository> reminderRepositoryProvider =
     Provider<ReminderRepository>(
   (Ref ref) => ReminderRepositoryImpl(ref.watch(databaseProvider)),
@@ -191,6 +199,7 @@ final Provider<LedgerQueries> ledgerQueriesProvider = Provider<LedgerQueries>(
     debts: ref.watch(debtRepositoryProvider),
     payments: ref.watch(paymentRepositoryProvider),
     obligations: ref.watch(obligationRepositoryProvider),
+    incomes: ref.watch(incomeRepositoryProvider),
     reminders: ref.watch(reminderRepositoryProvider),
     activity: ref.watch(activityRepositoryProvider),
   ),
@@ -456,6 +465,7 @@ final Provider<LedgerService> ledgerServiceProvider = Provider<LedgerService>(
     debts: ref.watch(debtRepositoryProvider),
     payments: ref.watch(paymentRepositoryProvider),
     obligations: ref.watch(obligationRepositoryProvider),
+    incomes: ref.watch(incomeRepositoryProvider),
     reminders: ref.watch(reminderRepositoryProvider),
     activity: ref.watch(activityRepositoryProvider),
     settings: ref.watch(settingsRepositoryProvider),
@@ -483,6 +493,7 @@ final Provider<DataExportService> dataExportServiceProvider =
     debts: ref.watch(debtRepositoryProvider),
     payments: ref.watch(paymentRepositoryProvider),
     obligations: ref.watch(obligationRepositoryProvider),
+    incomes: ref.watch(incomeRepositoryProvider),
     reminders: ref.watch(reminderRepositoryProvider),
     activity: ref.watch(activityRepositoryProvider),
     localizations: ref.watch(localizationsProvider),
@@ -527,6 +538,57 @@ final StreamProvider<List<ObligationInstance>> obligationInstancesProvider =
   return ref.watch(ledgerQueriesProvider).watchObligationInstances(
         asOf: ref.watch(todayProvider),
       );
+});
+
+/// Every source of income, archived ones included.
+///
+/// Archived records are carried because the management sheet has to offer them
+/// back: an income set aside by mistake is restored from the same list it was
+/// archived in.
+final StreamProvider<List<Income>> incomeListProvider =
+    StreamProvider<List<Income>>((Ref ref) {
+  return ref.watch(incomeRepositoryProvider).watchAll(includeArchived: true);
+});
+
+/// Arguments for the budget, so the family key is a value type.
+typedef BudgetArgs = ({int year, int month, AppCurrency currency});
+
+/// The month's income against the month's commitments.
+final monthlyBudgetProvider =
+    StreamProvider.family<MonthlyBudget, BudgetArgs>((Ref ref, BudgetArgs args) {
+  return ref.watch(ledgerQueriesProvider).watchMonthlyBudget(
+        year: args.year,
+        month: args.month,
+        currency: args.currency,
+      );
+});
+
+/// The currencies the budget card can speak about.
+///
+/// Taken from the records that go into it — commitments and income — and never
+/// from the ones that do not: a currency with only a debt in it produces an
+/// empty budget, and offering it would be offering a screen with nothing on it.
+///
+/// The default currency is always present, so someone who has recorded nothing
+/// yet still gets the card that invites them to record something.
+final Provider<List<AppCurrency>> budgetCurrenciesProvider =
+    Provider<List<AppCurrency>>((Ref ref) {
+  final Set<AppCurrency> used = <AppCurrency>{};
+  for (final ObligationInstance instance
+      in ref.watch(obligationInstancesProvider).value ??
+          const <ObligationInstance>[]) {
+    used.add(instance.obligation.currency);
+  }
+  for (final Income income
+      in ref.watch(incomeListProvider).value ?? const <Income>[]) {
+    used.add(income.currency);
+  }
+  final AppCurrency fallback =
+      ref.watch(effectiveSettingsProvider).defaultCurrency;
+  used.add(fallback);
+  final List<AppCurrency> sorted = used.toList()
+    ..sort((AppCurrency a, AppCurrency b) => a.code.compareTo(b.code));
+  return sorted;
 });
 
 final StreamProvider<List<Reminder>> remindersProvider =

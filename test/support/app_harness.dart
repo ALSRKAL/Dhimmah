@@ -16,6 +16,7 @@ import 'package:dhimmah/core/utils/id_generator.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/data/repositories/activity_repository_impl.dart';
 import 'package:dhimmah/data/repositories/debt_repository_impl.dart';
+import 'package:dhimmah/data/repositories/income_repository_impl.dart';
 import 'package:dhimmah/data/repositories/obligation_repository_impl.dart';
 import 'package:dhimmah/data/repositories/person_repository_impl.dart';
 import 'package:dhimmah/data/repositories/reminder_repository_impl.dart';
@@ -46,10 +47,13 @@ import 'package:flutter_test/flutter_test.dart';
 /// delivery policy can be driven without a phone.
 /// [language] is the language the service writes notifications in — Arabic,
 /// like the phone the suite runs on, unless a test is about another one.
+/// [clock] stands in for the wall clock, so a test about what a *month* holds
+/// can fix "today" instead of depending on the day it happens to run.
 LedgerService buildService(
   AppDatabase db, {
   NotificationService? notifications,
   AppLanguage language = AppLanguage.arabic,
+  DateTime Function()? clock,
 }) {
   final AppLocalizations l10n = lookupAppLocalizations(Locale(language.code));
   return LedgerService(
@@ -58,6 +62,7 @@ LedgerService buildService(
     debts: DebtRepositoryImpl(db),
     payments: PaymentRepositoryImpl(db),
     obligations: ObligationRepositoryImpl(db),
+    incomes: IncomeRepositoryImpl(db),
     reminders: ReminderRepositoryImpl(db),
     activity: ActivityRepositoryImpl(db),
     settings: SettingsRepositoryImpl(db),
@@ -72,7 +77,7 @@ LedgerService buildService(
         localizations: l10n,
       ),
     ),
-    clock: DateTime.now,
+    clock: clock ?? DateTime.now,
   );
 }
 

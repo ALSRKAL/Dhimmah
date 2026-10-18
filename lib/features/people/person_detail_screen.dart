@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/backup_providers.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
+import '../../core/formatting/app_formatting.dart';
 import '../../core/money/money.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
@@ -18,6 +19,7 @@ import '../../data/services/ledger_service.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../debts/debt_list.dart';
+import '../debts/person_payment_sheet.dart';
 import 'statement_screen.dart';
 
 /// One person's page: their totals on top, then every debt linked to them.
@@ -127,7 +129,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           ),
           bottomNavigationBar: _PersonActions(
             personId: personId,
-            hasOpenDebt: data.debts.any((DebtView view) => view.isOpen),
+            ledger: data,
           ),
         );
       },
@@ -300,7 +302,13 @@ class _PersonHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Text(
-                    localizations.dashboardBalanced,
+                    // Two different facts, and the difference matters. Nobody
+                    // recorded here yet, or everything that was recorded has been
+                    // paid off — the second is the one worth saying out loud,
+                    // because it is the outcome of the page's own work.
+                    ledger.debts.isEmpty
+                        ? localizations.dashboardBalanced
+                        : '${localizations.personSettledBadge} ✓',
                     style: theme.textTheme.titleSmall?.copyWith(
                       color: palette.settled,
                     ),
@@ -322,6 +330,19 @@ class _PersonHeader extends StatelessWidget {
                 Money(primary.net.minorUnits.abs(), primary.currency),
                 fontSize: 32,
               ),
+              // A net figure hides the thing the payment sheet is about to ask:
+              // which side the money moves on. When both sides carry a balance,
+              // the two are spelled out under the number they were netted into.
+              if (primary.iOweMinor > 0 && primary.owedToMeMinor > 0) ...<Widget>[
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  localizations.personSidesBreakdown(
+                    context.formatting.amount(primary.owedToMe),
+                    context.formatting.amount(primary.iOwe),
+                  ),
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
               if (others.isNotEmpty) ...<Widget>[
                 const SizedBox(height: AppSpacing.md),
                 const AppDivider(),
@@ -397,19 +418,28 @@ class _OtherCurrencyLine extends StatelessWidget {
 
 /// The two things anyone opens a person's page to do.
 ///
-/// One primary action, stated in words, plus the statement. Adding a debt is the
-/// rarer of the two once a person has a balance, and destructive actions live in
-/// the overflow menu rather than next to the primary one.
-class _PersonActions extends StatelessWidget {
-  const _PersonActions({required this.personId, required this.hasOpenDebt});
+/// Once a balance exists, paying it is what the page is for and adding another
+/// record is the exception — the ledger is a record of money moving, not of
+/// records accumulating. So the primary action follows the balance: "record a
+/// payment" while anything is owed, and "add a debt" only when there is nothing
+/// to pay. Destructive actions live in the overflow menu rather than next to it.
+class _PersonActions extends ConsumerWidget {
+  const _PersonActions({required this.personId, required this.ledger});
 
   final String personId;
-  final bool hasOpenDebt;
+  final PersonLedger ledger;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
+
+    // A legacy shared record cannot take a payment — one would settle everybody
+    // at once — so it does not count as payable, and the page offers "add a
+    // debt" instead of a button that would refuse.
+    final bool canPay = ledger.debts.any(
+      (DebtView view) => view.isOpen && !view.debt.isShared,
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -427,19 +457,51 @@ class _PersonActions extends StatelessWidget {
         child: Row(
           children: <Widget>[
             Expanded(
+              flex: canPay ? 3 : 1,
               child: FilledButton.icon(
-                onPressed: () =>
-                    context.push('${AppRoutes.debtNew}?person=$personId'),
-                icon: const Icon(Icons.add, size: 20),
-                label: Text(localizations.addDebtAction),
+                onPressed: canPay
+                    ? () => showPersonPaymentSheet(
+                          context,
+                          personId: personId,
+                          ledger: ledger,
+                        )
+                    : () => context.push(
+                          '${AppRoutes.debtNew}?person=$personId',
+                        ),
+                icon: Icon(
+                  canPay ? Icons.payments_outlined : Icons.add,
+                  size: 20,
+                ),
+                label: Text(
+                  canPay
+                      ? localizations.detailRecordPayment
+                      : localizations.addDebtAction,
+                ),
               ),
             ),
+            if (canPay) ...<Widget>[
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () =>
+                      context.push('${AppRoutes.debtNew}?person=$personId'),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(
+                    localizations.addDebtAction,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => showStatement(context, personId),
-                icon: const Icon(Icons.receipt_long_outlined, size: 20),
-                label: Text(localizations.reportShareStatement),
+            IconButton.outlined(
+              tooltip: localizations.reportShareStatement,
+              onPressed: () => showStatement(context, personId),
+              icon: const Icon(Icons.receipt_long_outlined, size: 20),
+              style: IconButton.styleFrom(
+                minimumSize: const Size(52, 52),
+                side: BorderSide(color: palette.borderStrong),
               ),
             ),
           ],

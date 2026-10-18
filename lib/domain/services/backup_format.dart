@@ -33,6 +33,12 @@ abstract final class BackupFormat {
 
   /// The tables a backup carries, in the order they must be restored: parents
   /// before children, so a single transaction can insert them straight through.
+  ///
+  /// `incomes` was appended with schema 6. Appending is the only safe move here:
+  /// a file written before it simply has no such key, and [ParsedBackup.rows]
+  /// answers with an empty list for a table the file does not carry — so an old
+  /// backup restores as a ledger with no income recorded, which is exactly what
+  /// it was, rather than as an error.
   static const List<String> tables = <String>[
     'people',
     'debts',
@@ -40,6 +46,7 @@ abstract final class BackupFormat {
     'payments',
     'obligations',
     'obligationOccurrences',
+    'incomes',
     'reminders',
     'monthlySummaries',
     'activity',

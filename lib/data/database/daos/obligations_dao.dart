@@ -105,6 +105,28 @@ class ObligationsDao extends DatabaseAccessor<AppDatabase>
         .get();
   }
 
+  /// The periods that fall inside a window, whatever their state.
+  ///
+  /// The sibling of [occurrencesBetween], which keeps only the open ones because
+  /// a reminder can only be about a period still to be dealt with. The budget
+  /// needs the settled ones too — "paid so far this month" is half of what it
+  /// reports — so this one filters on the date alone and leaves the meaning of
+  /// each status to the rule that reads it. Index-backed by `idx_occurrences_due`.
+  Future<List<ObligationOccurrenceRow>> periodsBetween({
+    required DateTime from,
+    required DateTime to,
+  }) {
+    return (select(obligationOccurrences)
+          ..where(
+            (ObligationOccurrences t) =>
+                t.dueAt.isBetweenValues(toIsoDate(from), toIsoDate(to)),
+          )
+          ..orderBy(<OrderingTerm Function($ObligationOccurrencesTable)>[
+            (t) => OrderingTerm.asc(t.dueAt),
+          ]))
+        .get();
+  }
+
   /// The commitments behind a set of periods.
   Future<List<ObligationRow>> getByIds(Iterable<String> ids) {
     final List<String> wanted = ids.toSet().toList(growable: false);

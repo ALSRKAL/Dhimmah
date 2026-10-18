@@ -10,6 +10,8 @@
   "actionDisable": "تعطيل",
   "actionDone": "تم",
   "actionEdit": "تعديل",
+  "actionSharePdf": "مشاركة كشف حساب PDF",
+  "actionShareText": "مشاركة كنص سريع",
   "actionEnable": "تفعيل",
   "actionOk": "حسنًا",
   "actionRetry": "إعادة المحاولة",
@@ -27,6 +29,11 @@
   "activityDebtUpdated": "تم تعديل دين",
   "activityExported": "تم تصدير بيانات",
   "activityImported": "تم استيراد بيانات",
+  "activityIncomeArchived": "تمت أرشفة مصدر دخل",
+  "activityIncomeCreated": "أُضيف مصدر دخل",
+  "activityIncomeDeleted": "تم حذف مصدر دخل",
+  "activityIncomeRestored": "تمت استعادة مصدر دخل",
+  "activityIncomeUpdated": "حُدّث مصدر دخل",
   "activityMonthSummary": "تم إنشاء الملخص الشهري",
   "activityObligationCreated": "تم إنشاء التزام",
   "activityObligationPaid": "تم دفع التزام",
@@ -70,6 +77,28 @@
   "biometricNotEnrolled": "لم تُسجَّل أي بصمة على هذا الجهاز بعد.",
   "biometricUnavailable": "البصمة غير متاحة على هذا الجهاز.",
   "brandPromise": "هذا المكان يحفظ كل شيء عليّ ولي، ويذكّرني بما يجب أن أدفعه وما يجب أن أستلمه.",
+  "budgetAddIncome": "إضافة دخل",
+  "budgetConsumed": "{percent} من دخل هذا الشهر تذهب للالتزامات",
+  "@budgetConsumed": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetEmptyBody": "أضف راتبك أو دخلك الشهري لتعرف كم يتبقى لك بعد الالتزامات.",
+  "budgetEmptyTitle": "ما المتبقي من راتبك؟",
+  "budgetManageIncome": "إدارة الدخل",
+  "budgetNoObligations": "لا توجد التزامات مستحقة هذا الشهر.",
+  "budgetOverCommitted": "الالتزامات تتجاوز الدخل هذا الشهر",
+  "budgetOverdueLabel": "منها متأخر",
+  "budgetPaidLabel": "دفعت منها",
+  "budgetRemaining": "المتبقي من الدخل",
+  "budgetThisMonth": "هذا الشهر",
+  "budgetTitle": "الراتب والالتزامات",
+  "budgetTotalIncome": "إجمالي الدخل",
+  "budgetTotalObligations": "إجمالي الالتزامات",
+  "budgetUnpaidLabel": "متبقٍ دفعه",
   "categoryHousing": "سكن",
   "categoryInstallment": "أقساط",
   "categoryInsurance": "تأمين",
@@ -181,6 +210,27 @@
       }
     }
   },
+  "dueQuickMonth": "بعد شهر",
+  "dueQuickMonthEnd": "نهاية الشهر",
+  "dueQuickNone": "بلا تاريخ",
+  "dueQuickWeek": "بعد أسبوع",
+  "fieldIncomeName": "اسم الدخل",
+  "fieldIncomeNameHint": "مثال: الراتب الشهري",
+  "incomeArchivedToast": "تمت أرشفة مصدر الدخل",
+  "incomeDeleteBody": "لن تتأثر السجلات الأخرى.",
+  "incomeDeleteTitle": "حذف مصدر الدخل؟",
+  "incomeDeletedToast": "تم حذف مصدر الدخل",
+  "incomeFollowsStartDay": "يتبع يومَ تاريخ البداية",
+  "incomeManageEmpty": "لا يوجد دخل مسجل بعد.",
+  "incomeManageTitle": "مصادر الدخل",
+  "incomePresetAllowance": "مكافأة دراسية",
+  "incomePresetExtra": "دخل إضافي",
+  "incomePresetFreelance": "عمل حر",
+  "incomePresetSalary": "راتب شهري",
+  "incomeRestoredToast": "تمت استعادة مصدر الدخل",
+  "incomeSheetEdit": "تعديل الدخل",
+  "incomeSheetNew": "دخل جديد",
+  "incomeTitle": "الدخل",
   "legacySharedTitle": "دين مشترك قديم يحتاج مراجعة",
   "legacySharedBody": "هذا الدين مسجّل على عدة أشخاص معاً بالنظام القديم. تسديد دفعة عليه سيُصفّر رصيد الجميع معاً، لذلك تم إيقاف السداد مؤقتاً. راجع الدفعات السابقة ثم حوّله إلى ديون مستقلة، وسيبقى سجل الدفعات على دين الشخص الأول.",
   "legacySharedSplit": "تحويل إلى ديون مستقلة",
@@ -199,6 +249,92 @@
   "debtUpdated": "تم تحديث الدين",
   "deleteConfirmBody": "لا يمكن التراجع عن هذا الإجراء.",
   "deleteUndoableBody": "سيُحذف الدين، ويمكنك التراجع خلال ثوانٍ.",
+  "personPaymentAllocation": "التوزيع",
+  "personPaymentEmpty": "لا توجد ديون مفتوحة في هذا الاتجاه.",
+  "personPaymentExcluded": "مستثنى",
+  "personPaymentLeftoverCount": "{count, plural, =0{ولا يتغيّر غيره} =1{ويتغيّر دين آخر} =2{ويتغيّر دينان آخران} few{وتتغيّر {count} ديون أخرى} other{ويتغيّر {count} دينًا آخر}}",
+  "@personPaymentLeftoverCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personPaymentNoShare": "لا يصله شيء",
+  "personPaymentOrderOldest": "الأقدم أولاً",
+  "personPaymentOrderUrgent": "الأكثر إلحاحاً",
+  "personPaymentOutstanding": "إجمالي المستحق: {amount}",
+  "@personPaymentOutstanding": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "personPaymentOverCap": "المبلغ أكبر من المستحق ({amount}).",
+  "@personPaymentOverCap": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "personPaymentPayAll": "سداد الكل",
+  "personPaymentQuickHalf": "50%",
+  "personPaymentQuickQuarter": "25%",
+  "personPaymentRecordedToast": "{count, plural, =1{تم تسجيل دفعة} =2{تم تسجيل دفعتين} few{تم تسجيل {count} دفعات} other{تم تسجيل {count} دفعة}}",
+  "@personPaymentRecordedToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personPaymentRowTakes": "{amount} من {total} · يتبقى {remaining}",
+  "@personPaymentRowTakes": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "personPaymentSettledToast": "{count, plural, =1{وسُدّد دين واحد} =2{وسُدّد دينان} few{وسُدّد {count} ديون} other{وسُدّد {count} دينًا}}",
+  "@personPaymentSettledToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personPaymentSettlingCount": "{count, plural, =0{لن يُسدَّد أي دين} =1{سيُسدَّد دين واحد} =2{سيُسدَّد دينان} few{سيُسدَّد {count} ديون} other{سيُسدَّد {count} دينًا}}",
+  "@personPaymentSettlingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personPaymentSharedNotice": "يوجد دين مشترك قديم مع هذا الشخص. التوزيع التلقائي يستثنيه لأن دفعةً واحدة عليه تُصفّر رصيد الجميع، فحوّله إلى ديون مستقلة ليساهم هنا.",
+  "personPaymentSide": "يُسدَّد على",
+  "personPaymentWillSettle": "يُسدَّد بالكامل",
+  "personSettledBadge": "الحساب مصفّى",
+  "personSidesBreakdown": "لي {owedToMe} · عليّ {iOwe}",
+  "@personSidesBreakdown": {
+    "placeholders": {
+      "owedToMe": {
+        "type": "String"
+      },
+      "iOwe": {
+        "type": "String"
+      }
+    }
+  },
   "recordGone": "هذا السجل لم يعد موجودًا.",
   "deleteConfirmTitle": "تأكيد الحذف",
   "detailClosedOn": "أُغلق في {date}",

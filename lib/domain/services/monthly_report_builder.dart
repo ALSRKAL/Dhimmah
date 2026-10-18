@@ -5,7 +5,7 @@ import '../entities/monthly_report.dart';
 import '../entities/obligation.dart';
 import '../entities/payment.dart';
 import '../enums/debt_enums.dart';
-import '../enums/obligation_enums.dart';
+import 'obligation_period_rule.dart';
 
 /// Computes a month's report from raw records.
 ///
@@ -233,41 +233,10 @@ List<MonthlyTrendPoint> buildTrend({
 
 /// Which commitment periods count as money due, for the report and its trend.
 ///
-/// One rule, so the month's figure and the chart under it cannot disagree:
+/// One rule, so the month's figure and the chart under it cannot disagree.
 ///
-/// * only commitments in the report's currency;
-/// * never a period the user **skipped** or that was cancelled — a skipped
-///   period is "not applicable this time", and counting it reported a rent the
-///   user had said was not owed;
-/// * for a commitment in the archive, what was paid stays in the history, but
-///   the unpaid periods from the day it was archived onwards are not due — they
-///   belong to a commitment the user has set aside.
-class _PeriodRule {
-  _PeriodRule(List<Obligation> obligations, AppCurrency currency)
-      : _archivedOn = <String, DateTime?>{
-          for (final Obligation obligation in obligations)
-            if (obligation.currency == currency)
-              // A timestamp, so the day is taken on the phone's own clock.
-              obligation.id: obligation.archivedAt == null
-                  ? null
-                  : dateOnly(obligation.archivedAt!.toLocal()),
-        };
-
-  /// Commitments in the report's currency, with the day each was archived.
-  final Map<String, DateTime?> _archivedOn;
-
-  bool isDue(ObligationOccurrence occurrence) {
-    if (!_archivedOn.containsKey(occurrence.obligationId)) return false;
-    if (occurrence.status == ObligationStatus.cancelled ||
-        occurrence.status == ObligationStatus.skipped) {
-      return false;
-    }
-    final DateTime? archivedOn = _archivedOn[occurrence.obligationId];
-    if (archivedOn != null &&
-        !occurrence.isPaid &&
-        !occurrence.dueAt.isBefore(archivedOn)) {
-      return false;
-    }
-    return true;
-  }
-}
+/// It lives in [ObligationPeriodRule] rather than here because the obligations
+/// screen's budget card asks the same question of the same rows, and two answers
+/// to "which periods belong to this month" would be two different numbers for
+/// one month.
+typedef _PeriodRule = ObligationPeriodRule;

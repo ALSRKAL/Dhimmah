@@ -3,6 +3,7 @@ import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/money/money.dart';
 import 'package:dhimmah/core/utils/money_input.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
+import 'package:dhimmah/domain/services/amount_rules.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// Money parsing and formatting.
@@ -78,6 +79,44 @@ void main() {
 
     test('handles a second separator as a grouping mark', () {
       expect(parse('1.234.567'), 123456700);
+    });
+
+    test('refuses every figure the domain will not store', () {
+      // The point of the ceiling: an amount past it must come back as nothing, so
+      // a caller is forced to say so rather than writing a figure it did not mean.
+      // 1,000,000,001 is the first whole figure past the ceiling; 99,999,999,999 is
+      // the shape a mistyped figure actually arrives in.
+      expect(parse('1000000000'), AmountRules.maxMinor);
+      expect(parse('1000000001'), isNull);
+      expect(parse('10000000001'), isNull);
+      expect(parse('99999999999'), isNull);
+    });
+
+    test('never answers with a figure smaller than the one refused', () {
+      // The silent-corruption shape found on the device: the parser refuses the
+      // whole figure, and the field then kept the last value that happened to
+      // parse, so the screen read one number while the record held another.
+      for (final String typed in <String>[
+        '1000000001',
+        '10000000001',
+        '99999999999',
+        '2000000000',
+      ]) {
+        final int? minor = parse(typed);
+        if (minor == null) continue;
+        // Accepted, so it has to be the whole of what was typed — never a prefix
+        // of it that happens to fit under the ceiling.
+        expect(
+          minor,
+          parseAmountToMinor(typed, AppCurrency.inr),
+          reason: '$typed must not resolve to a different figure than it reads as',
+        );
+        expect(
+          minor,
+          AmountRules.maxMinor,
+          reason: '$typed is past the ceiling and must be refused outright',
+        );
+      }
     });
   });
 

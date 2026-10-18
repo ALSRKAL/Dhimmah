@@ -148,6 +148,7 @@ class AmountField extends StatefulWidget {
     this.errorText,
     this.enabled = true,
     this.focusNode,
+    this.onRejected,
     super.key,
   });
 
@@ -163,6 +164,13 @@ class AmountField extends StatefulWidget {
   /// Taken when a save has to send the caret to this field.
   final FocusNode? focusNode;
 
+  /// Called when what is typed cannot be turned into money at all.
+  ///
+  /// The last accepted figure is *not* kept as the answer: doing so lets a form
+  /// save a number that is not the one on screen. A caller uses this to drop the
+  /// value it was last given, so its own validation refuses the save.
+  final VoidCallback? onRejected;
+
   @override
   State<AmountField> createState() => _AmountFieldState();
 }
@@ -171,6 +179,9 @@ class _AmountFieldState extends State<AmountField> {
   late final TextEditingController _controller;
   late final bool _ownsController;
   String? _error;
+
+  /// Whether what is typed is currently past what the parser will accept.
+  bool _rejected = false;
 
   @override
   void initState() {
@@ -186,10 +197,28 @@ class _AmountFieldState extends State<AmountField> {
   }
 
   void _handleChange() {
-    final int? minor = parseAmountToMinor(_controller.text, widget.currency);
-    if (minor != null && minor > 0) {
+    final String typed = _controller.text.trim();
+    final int? minor =
+        typed.isEmpty ? null : parseAmountToMinor(typed, widget.currency);
+    final bool usable = minor != null && minor > 0;
+    // Something is on screen the parser will not accept — past the ceiling, or
+    // malformed. Silently keeping the last good value would store a different
+    // number from the one on screen, so the field says so and tells the caller to
+    // stop trusting the value it was last handed.
+    final bool rejected = typed.isNotEmpty && !usable;
+    if (rejected != _rejected) {
+      setState(() {
+        _rejected = rejected;
+        _error = rejected
+            ? AppLocalizations.of(context).validationAmountTooLarge
+            : null;
+      });
+    }
+    if (usable) {
       if (_error != null) setState(() => _error = null);
       widget.onChanged(minor);
+    } else if (rejected) {
+      widget.onRejected?.call();
     }
   }
 

@@ -10,6 +10,8 @@
   "actionDisable": "Turn off",
   "actionDone": "Done",
   "actionEdit": "Edit",
+  "actionSharePdf": "Share as PDF statement",
+  "actionShareText": "Share as quick text",
   "actionEnable": "Enable",
   "actionOk": "OK",
   "actionRetry": "Try again",
@@ -27,6 +29,11 @@
   "activityDebtUpdated": "Debt updated",
   "activityExported": "Data exported",
   "activityImported": "Data imported",
+  "activityIncomeArchived": "Income source archived",
+  "activityIncomeCreated": "Income source added",
+  "activityIncomeDeleted": "Income source deleted",
+  "activityIncomeRestored": "Income source restored",
+  "activityIncomeUpdated": "Income source updated",
   "activityMonthSummary": "Monthly summary generated",
   "activityObligationCreated": "Obligation created",
   "activityObligationPaid": "Obligation paid",
@@ -70,6 +77,28 @@
   "biometricNotEnrolled": "No fingerprint or face is enrolled on this device yet.",
   "biometricUnavailable": "Biometrics are not available on this device.",
   "brandPromise": "Everything you owe and everything you're owed, remembered for you.",
+  "budgetAddIncome": "Add income",
+  "budgetConsumed": "{percent} of this month's income goes to commitments",
+  "@budgetConsumed": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "budgetEmptyBody": "Add your salary or monthly income to see what is left after your commitments.",
+  "budgetEmptyTitle": "What is left of your salary?",
+  "budgetManageIncome": "Manage income",
+  "budgetNoObligations": "Nothing is due this month.",
+  "budgetOverCommitted": "Commitments exceed income this month",
+  "budgetOverdueLabel": "Of it, late",
+  "budgetPaidLabel": "Paid so far",
+  "budgetRemaining": "Left of your income",
+  "budgetThisMonth": "This month",
+  "budgetTitle": "Salary and commitments",
+  "budgetTotalIncome": "Total income",
+  "budgetTotalObligations": "Total commitments",
+  "budgetUnpaidLabel": "Still to pay",
   "categoryHousing": "Housing",
   "categoryInstallment": "Instalments",
   "categoryInsurance": "Insurance",
@@ -181,6 +210,27 @@
       }
     }
   },
+  "dueQuickMonth": "In a month",
+  "dueQuickMonthEnd": "End of month",
+  "dueQuickNone": "No date",
+  "dueQuickWeek": "In a week",
+  "fieldIncomeName": "Income name",
+  "fieldIncomeNameHint": "For example: monthly salary",
+  "incomeArchivedToast": "Income archived",
+  "incomeDeleteBody": "No other record is affected.",
+  "incomeDeleteTitle": "Delete this income?",
+  "incomeDeletedToast": "Income deleted",
+  "incomeFollowsStartDay": "Follows the start date's day",
+  "incomeManageEmpty": "No income recorded yet.",
+  "incomeManageTitle": "Income sources",
+  "incomePresetAllowance": "Student allowance",
+  "incomePresetExtra": "Extra income",
+  "incomePresetFreelance": "Freelance",
+  "incomePresetSalary": "Monthly salary",
+  "incomeRestoredToast": "Income restored",
+  "incomeSheetEdit": "Edit income",
+  "incomeSheetNew": "New income",
+  "incomeTitle": "Income",
   "legacySharedTitle": "Legacy shared debt needs review",
   "legacySharedBody": "This debt is registered on several people together under the old system. A payment on it would zero everyone's balance together, so payments are paused for now. Review the previous payments, then split it into separate debts; the payment history stays on the first person's debt.",
   "legacySharedSplit": "Split into separate debts",
@@ -199,6 +249,92 @@
   "debtUpdated": "Debt updated",
   "deleteConfirmBody": "This cannot be undone.",
   "deleteUndoableBody": "The debt will be deleted. You can undo this for a few seconds.",
+  "personPaymentAllocation": "Allocation",
+  "personPaymentEmpty": "No open debts on this side.",
+  "personPaymentExcluded": "Left out",
+  "personPaymentLeftoverCount": "{count, plural, =0{and nothing else changes} =1{and one more changes} other{and {count} more change}}",
+  "@personPaymentLeftoverCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personPaymentNoShare": "Nothing applied",
+  "personPaymentOrderOldest": "Oldest first",
+  "personPaymentOrderUrgent": "Most urgent",
+  "personPaymentOutstanding": "Outstanding: {amount}",
+  "@personPaymentOutstanding": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "personPaymentOverCap": "That is more than is owed ({amount}).",
+  "@personPaymentOverCap": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "personPaymentPayAll": "Pay all",
+  "personPaymentQuickHalf": "50%",
+  "personPaymentQuickQuarter": "25%",
+  "personPaymentRecordedToast": "{count, plural, =1{Payment recorded} other{{count} payments recorded}}",
+  "@personPaymentRecordedToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personPaymentRowTakes": "{amount} of {total} · {remaining} left",
+  "@personPaymentRowTakes": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      },
+      "remaining": {
+        "type": "String"
+      }
+    }
+  },
+  "personPaymentSettledToast": "{count, plural, =1{and one debt settled} other{and {count} debts settled}}",
+  "@personPaymentSettledToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personPaymentSettlingCount": "{count, plural, =0{Nothing is settled} =1{One debt is settled} other{{count} debts are settled}}",
+  "@personPaymentSettlingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personPaymentSharedNotice": "There is a legacy shared record with this person. The split leaves it out, because one payment on it would clear everyone at once — convert it to independent debts and it takes part.",
+  "personPaymentSide": "Applied to",
+  "personPaymentWillSettle": "Settled in full",
+  "personSettledBadge": "Account settled",
+  "personSidesBreakdown": "Owed to me {owedToMe} · I owe {iOwe}",
+  "@personSidesBreakdown": {
+    "placeholders": {
+      "owedToMe": {
+        "type": "String"
+      },
+      "iOwe": {
+        "type": "String"
+      }
+    }
+  },
   "recordGone": "This record no longer exists.",
   "deleteConfirmTitle": "Delete this record?",
   "detailClosedOn": "Settled on {date}",

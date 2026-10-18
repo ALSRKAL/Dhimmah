@@ -7,6 +7,7 @@ import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/data/read_models/ledger_queries.dart';
 import 'package:dhimmah/data/repositories/activity_repository_impl.dart';
 import 'package:dhimmah/data/repositories/debt_repository_impl.dart';
+import 'package:dhimmah/data/repositories/income_repository_impl.dart';
 import 'package:dhimmah/data/repositories/obligation_repository_impl.dart';
 import 'package:dhimmah/data/repositories/person_repository_impl.dart';
 import 'package:dhimmah/data/repositories/reminder_repository_impl.dart';
@@ -79,6 +80,7 @@ void main() {
       debts: DebtRepositoryImpl(db),
       payments: PaymentRepositoryImpl(db),
       obligations: ObligationRepositoryImpl(db),
+      incomes: IncomeRepositoryImpl(db),
       reminders: ReminderRepositoryImpl(db),
       activity: ActivityRepositoryImpl(db),
     );

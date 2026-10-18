@@ -16,6 +16,7 @@ import '../../domain/enums/recurrence.dart';
 import 'converters.dart';
 import 'daos/activity_dao.dart';
 import 'daos/debts_dao.dart';
+import 'daos/incomes_dao.dart';
 import 'daos/obligations_dao.dart';
 import 'daos/people_dao.dart';
 import 'daos/reminders_dao.dart';
@@ -40,6 +41,7 @@ part 'app_database.g.dart';
     Payments,
     Obligations,
     ObligationOccurrences,
+    Incomes,
     Reminders,
     ActivityEntries,
     MonthlySummaries,
@@ -49,6 +51,7 @@ part 'app_database.g.dart';
     PeopleDao,
     DebtsDao,
     ObligationsDao,
+    IncomesDao,
     RemindersDao,
     ActivityDao,
     SettingsDao,
@@ -78,13 +81,18 @@ class AppDatabase extends _$AppDatabase {
   /// No column changed, but the version had to: a build from before it would
   /// read `system` as an unknown enum value and fail somewhere confusing, where
   /// the version check refuses the file with a message that says why.
+  ///
+  /// 6 added [Incomes], so the app can say what is left of a salary after the
+  /// month's commitments. It is a new table and nothing else: no existing table
+  /// gained, lost or renamed a column, so an upgrade touches no existing row and
+  /// a file written by any earlier version arrives whole.
   @override
   int get schemaVersion => currentSchemaVersion;
 
   /// The schema this build writes. Named as a constant so a test can assert
   /// "a file from the future is refused" without repeating the number, and so a
   /// later version has exactly one place to change.
-  static const int currentSchemaVersion = 5;
+  static const int currentSchemaVersion = 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -104,15 +112,10 @@ class AppDatabase extends _$AppDatabase {
             throw DatabaseTooNewException(from: from, supported: to);
           }
           // Every step after version 1 is additive and idempotent, and is
-          // applied in one pass in the order it was introduced: the new table,
-          // then any index the file is missing, then the data that belongs in
-          // it. `createAll` is deliberately not used here — drift's CREATE
-          // INDEX is not conditional, so a file that already has the indexes
-          // fails on a second run, which is how an upgrade from version 1 used
-          // to end with "no such table" half way through.
+          // applied in one pass in the order it was introduced. `createAll` is
+          // deliberately not used here.
           if (from < 3) {
             await m.createTable(debtPeople);
-            await _ensureIndexes();
             await _backfillDebtPeople();
           }
           if (from < 4) {
@@ -123,6 +126,25 @@ class AppDatabase extends _$AppDatabase {
           if (from < 5) {
             await _followDeviceInsteadOfSeededArabic();
           }
+          if (from < 6) {
+            // One new table, and nothing else. An existing ledger gains an empty
+            // `incomes` table and is otherwise byte-for-byte the file it was:
+            // no column is added, no row is rewritten, and a user who never
+            // records an income never writes to it.
+            await m.createTable(incomes);
+          }
+          // **Last, and it has to stay last.**
+          //
+          // It used to run in the middle of the version 3 step, which was
+          // harmless while every index belonged to a table that already existed
+          // by then. Adding `incomes` broke that: an upgrade from version 1 or 2
+          // reached this call before the version 6 step had created the table, so
+          // `CREATE INDEX idx_incomes_archived ON incomes` died on "no such
+          // table" and the whole migration aborted — the same way the version 1
+          // upgrade used to die before `IF NOT EXISTS` was added. Running it once
+          // at the end means every table an index can name has been created by
+          // the time the index is asked for.
+          await _ensureIndexes();
         },
         beforeOpen: (OpeningDetails details) async {
           // Required for the ON DELETE actions declared on the tables.
@@ -219,6 +241,9 @@ class AppDatabase extends _$AppDatabase {
       await delete(debtPeople).go();
       await delete(obligationOccurrences).go();
       await delete(obligations).go();
+      // Nothing points at an income and an income points at nothing, so its
+      // place in this order is free; it sits with the records it is read beside.
+      await delete(incomes).go();
       await delete(debts).go();
       await delete(reminders).go();
       await delete(monthlySummaries).go();

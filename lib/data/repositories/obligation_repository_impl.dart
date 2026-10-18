@@ -99,6 +99,16 @@ class ObligationRepositoryImpl implements ObligationRepository {
       _db.obligationsDao.existingPeriodKeys(obligationId);
 
   @override
+  Future<List<ObligationOccurrence>> periodsBetween({
+    required DateTime from,
+    required DateTime to,
+  }) async {
+    return _toOccurrenceEntities(
+      await _db.obligationsDao.periodsBetween(from: from, to: to),
+    );
+  }
+
+  @override
   Future<DateTime?> latestPeriodDue(String obligationId) =>
       _db.obligationsDao.latestPeriodDue(obligationId);
 

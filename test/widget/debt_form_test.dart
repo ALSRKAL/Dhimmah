@@ -526,4 +526,47 @@ void main() {
       expect(await amountText(tester), '700');
     });
   });
+
+  group('an amount past the ceiling', () {
+    /// What the user typed, through the real field and the real parser.
+    Future<void> typeAmount(WidgetTester tester, String value) async {
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AmountField),
+          matching: find.byType(TextFormField),
+        ),
+        value,
+      );
+      await settle(tester);
+    }
+
+    testWidgets('is refused in words instead of quietly kept',
+        (WidgetTester tester) async {
+      await pumpDhimmah(tester, db: db);
+      await openBlankForm(tester);
+      await typeAmount(tester, '1000000000');
+
+      // One digit more than a billion cannot be stored, so the field says so
+      // rather than leaving the last figure that fitted in place.
+      await typeAmount(tester, '1000000001');
+      expect(find.text('المبلغ كبير جدًا.'), findsOneWidget);
+
+      // Typing it out does not clear the complaint either.
+      await typeAmount(tester, '99999999999');
+      expect(find.text('المبلغ كبير جدًا.'), findsOneWidget);
+    });
+
+    testWidgets('takes the complaint away once the figure fits again',
+        (WidgetTester tester) async {
+      await pumpDhimmah(tester, db: db);
+      await openBlankForm(tester);
+      await typeAmount(tester, '1000000001');
+      expect(find.text('المبلغ كبير جدًا.'), findsOneWidget);
+
+      // Deleting one digit brings it back inside the ceiling, and the field stops
+      // objecting — the error follows the figure, not the field.
+      await typeAmount(tester, '100000000');
+      expect(find.text('المبلغ كبير جدًا.'), findsNothing);
+    });
+  });
 }

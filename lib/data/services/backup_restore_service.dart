@@ -168,6 +168,7 @@ class BackupRestoreService {
       'obligations': _byId(await reader.obligations(), BackupCodec.obligation),
       'obligationOccurrences':
           _byId(await reader.occurrences(), BackupCodec.occurrence),
+      'incomes': _byId(await reader.incomes(), BackupCodec.income),
       'reminders': _byId(await reader.reminders(), BackupCodec.reminder),
       'monthlySummaries':
           _byId(await reader.summaries(), BackupCodec.summary),
@@ -242,6 +243,9 @@ class BackupRestoreService {
     await _db.delete(_db.payments).go();
     await _db.delete(_db.debtPeople).go();
     await _db.delete(_db.debts).go();
+    // An income references nothing and nothing references it, so this line is
+    // order-free; it sits between the two groups it is read beside.
+    await _db.delete(_db.incomes).go();
     await _db.delete(_db.people).go();
   }
 
@@ -286,6 +290,9 @@ class BackupRestoreService {
         case 'obligationOccurrences':
           await _db.batch((Batch b) => b.insertAll(_db.obligationOccurrences,
               rows.map(BackupCodec.occurrenceRow).toList()));
+        case 'incomes':
+          await _db.batch((Batch b) =>
+              b.insertAll(_db.incomes, rows.map(BackupCodec.incomeRow).toList()));
         case 'reminders':
           await _db.batch((Batch b) =>
               b.insertAll(_db.reminders, rows.map(BackupCodec.reminderRow).toList()));
@@ -355,6 +362,12 @@ class BackupRestoreService {
           await (_db.update(_db.obligationOccurrences)
                 ..where((ObligationOccurrences t) => t.id.equals(_id(row))))
               .write(BackupCodec.occurrenceRow(row));
+        }
+      case 'incomes':
+        for (final Map<String, Object?> row in rows) {
+          await (_db.update(_db.incomes)
+                ..where((Incomes t) => t.id.equals(_id(row))))
+              .write(BackupCodec.incomeRow(row));
         }
       case 'reminders':
         for (final Map<String, Object?> row in rows) {
@@ -443,6 +456,7 @@ class BackupRestoreService {
     final List<ObligationRow> obligationRows = await reader.obligations();
     final List<ObligationOccurrenceRow> occurrenceRows =
         await reader.occurrences();
+    final List<IncomeRow> incomeRows = await reader.incomes();
     // Only read when the plan wrote something there: these three are the tables
     // a merge usually leaves alone, and the activity log is the biggest of them.
     final List<ReminderRow> reminderRows = expected.containsKey('reminders')
@@ -466,6 +480,7 @@ class BackupRestoreService {
         expected['obligations'] ?? const <String>{};
     final Set<String> wantedOccurrences =
         expected['obligationOccurrences'] ?? const <String>{};
+    final Set<String> wantedIncomes = expected['incomes'] ?? const <String>{};
     final Set<String> wantedReminders = expected['reminders'] ?? const <String>{};
     final Set<String> wantedSummaries =
         expected['monthlySummaries'] ?? const <String>{};
@@ -504,6 +519,11 @@ class BackupRestoreService {
         if (wantedOccurrences.contains(row.id))
           row.id: BackupCodec.occurrence(row),
     };
+    final Map<String, Map<String, Object?>> storedIncomes =
+        <String, Map<String, Object?>>{
+      for (final IncomeRow row in incomeRows)
+        if (wantedIncomes.contains(row.id)) row.id: BackupCodec.income(row),
+    };
     final Map<String, Map<String, Object?>> storedReminders =
         <String, Map<String, Object?>>{
       for (final ReminderRow row in reminderRows)
@@ -528,6 +548,7 @@ class BackupRestoreService {
       'payments': storedPayments,
       'obligations': storedObligations,
       'obligationOccurrences': storedOccurrences,
+      'incomes': storedIncomes,
       'reminders': storedReminders,
       'monthlySummaries': storedSummaries,
       'activity': storedActivity,
@@ -613,6 +634,10 @@ class BackupRestoreService {
       'payments': paymentRows.length,
       'obligations': obligationRows.length,
       'obligationOccurrences': occurrenceRows.length,
+      // Read with the other tables rather than counted only when the plan wrote
+      // there, because it is one short read either way and the restore's report
+      // is meant to name every table it was responsible for.
+      'incomes': incomeRows.length,
       'reminders': reminderRows.isEmpty
           ? await _count(_db.reminders)
           : reminderRows.length,

@@ -12,6 +12,7 @@ import 'package:dhimmah/data/services/backup_service.dart';
 import 'package:dhimmah/data/services/ledger_service.dart';
 import 'package:dhimmah/domain/entities/app_settings.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
+import 'package:dhimmah/domain/entities/income.dart';
 import 'package:dhimmah/domain/entities/obligation.dart';
 import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
@@ -97,6 +98,7 @@ void main() {
       'obligationOccurrences': (await db.obligationsDao.getOccurrences())
           .map(BackupCodec.occurrence)
           .toList(),
+      'incomes': (await db.incomesDao.getAll()).map(BackupCodec.income).toList(),
       'reminders':
           (await db.remindersDao.getAll()).map(BackupCodec.reminder).toList(),
       'monthlySummaries': (await db.activityDao.getAllSummaries())
@@ -125,6 +127,7 @@ void main() {
       await db.delete(db.monthlySummaries).go();
       await db.delete(db.reminders).go();
       await db.delete(db.obligations).go();
+      await db.delete(db.incomes).go();
       await db.delete(db.payments).go();
       await db.delete(db.debtPeople).go();
       await db.delete(db.debts).go();
@@ -217,12 +220,44 @@ void main() {
     }
   }
 
+  /// E: two sources of income, one of them archived.
+  ///
+  /// Two, because the archived one is the case that matters: an archived income
+  /// still carries the `archivedAt` stamp the budget read model needs to decide
+  /// which months it covered, so a round trip that dropped it would change what
+  /// a past month reads as.
+  Future<void> datasetE() async {
+    final Income salary = await service.createIncome(
+      IncomeDraft(
+        name: 'الراتب الشهري',
+        amountMinor: 400000,
+        currency: AppCurrency.inr,
+        frequency: RecurrenceFrequency.monthly,
+        startAt: DateTime(today.year, today.month),
+        dayOfMonth: 25,
+        note: 'يُنزل آخر الشهر',
+      ),
+    );
+    final Income extra = await service.createIncome(
+      IncomeDraft(
+        name: 'عمل حر',
+        amountMinor: 75000,
+        currency: AppCurrency.inr,
+        frequency: RecurrenceFrequency.quarterly,
+        startAt: DateTime(today.year, today.month, 10),
+      ),
+    );
+    await service.setIncomeArchived(extra.id, true);
+    expect(salary.id, isNotEmpty);
+  }
+
   /// The whole shape in one ledger: every table, both scripts, two currencies,
-  /// a shared record, a recurring commitment, a standalone reminder.
+  /// a shared record, a recurring commitment, an income, a standalone reminder.
   Future<void> datasetEverything() async {
     await datasetA();
     await datasetBC();
     await datasetD();
+    await datasetE();
     await service.createReminder(
       ReminderDraft(title: 'اتصل بالمحاسب', dueAt: addDays(today, 2)),
     );
@@ -585,6 +620,87 @@ void main() {
           'previous version wrote',
     );
     expect((await db.peopleDao.getAll()), isNotEmpty, reason: 'and the records came back');
+  });
+
+  test('a backup written before incomes existed restores as no income',
+      () async {
+    await datasetEverything();
+    final ({File file, ParsedBackup backup}) written =
+        await backups.create(kind: BackupKind.manual);
+
+    // The file an earlier build would have written: it has no `incomes` key at
+    // all, and its schemaVersion predates the table. Nothing else is changed, so
+    // what this proves is exactly the claim — an absent table is not an error
+    // and not a loss, it is simply a ledger that recorded no income.
+    final Map<String, Object?> envelope =
+        jsonDecode(await written.file.readAsString()) as Map<String, Object?>;
+    final Map<String, Object?> payload =
+        envelope['payload']! as Map<String, Object?>;
+    payload['schemaVersion'] = AppDatabase.currentSchemaVersion - 1;
+    final Map<String, Object?> data =
+        payload['data']! as Map<String, Object?>;
+    expect(data.remove('incomes'), isNotNull, reason: 'the key was there to remove');
+    final Map<String, Object?> counts =
+        payload['counts']! as Map<String, Object?>;
+    expect(counts.remove('incomes'), isNotNull, reason: 'and in the counts');
+    envelope['checksum'] = BackupFormat.checksumOf(payload);
+    final File previous = File('${dir.path}/before-incomes.dhimmah');
+    await previous.writeAsString(jsonEncode(envelope));
+
+    // It validates, which is the part that would break if a missing table were
+    // treated as a malformed file.
+    final BackupValidationResult validation =
+        await _inspect(backups, previous);
+    expect(validation.isUsable, isTrue, reason: validation.errors.join('\n'));
+
+    await wipe();
+    await restores.apply(
+      backup: await backups.read(previous.path),
+      mode: RestoreMode.replace,
+      takeSafetySnapshot: false,
+    );
+
+    expect(await db.incomesDao.getAll(), isEmpty);
+    expect(await db.peopleDao.getAll(), isNotEmpty,
+        reason: 'and every other table came back intact');
+    expect(await db.debtsDao.getAll(), isNotEmpty);
+    expect(await db.obligationsDao.getAll(), isNotEmpty);
+  });
+
+  test('an income survives backup → wipe → restore, stamps and all', () async {
+    await datasetE();
+    final List<IncomeRow> before = await db.incomesDao.getAll();
+    expect(before, hasLength(2));
+    final ({File file, ParsedBackup backup}) written =
+        await backups.create(kind: BackupKind.manual);
+    expect(written.backup.rows('incomes'), hasLength(2));
+
+    await wipe();
+    expect(await db.incomesDao.getAll(), isEmpty);
+
+    await restores.apply(
+      backup: written.backup,
+      mode: RestoreMode.replace,
+      takeSafetySnapshot: false,
+    );
+
+    final List<IncomeRow> after = await db.incomesDao.getAll();
+    expect(
+      <String>{for (final IncomeRow row in after) row.id},
+      <String>{for (final IncomeRow row in before) row.id},
+    );
+    final IncomeRow archived =
+        after.firstWhere((IncomeRow row) => row.archivedAt != null);
+    final IncomeRow original = before
+        .firstWhere((IncomeRow row) => row.id == archived.id);
+    expect(archived.archivedAt, original.archivedAt,
+        reason: 'the stamp that decides which months it covered came back');
+    expect(archived.name, original.name);
+    expect(archived.amountMinor, original.amountMinor);
+    expect(archived.currencyCode, original.currencyCode);
+    expect(archived.frequency, original.frequency);
+    expect(archived.dayOfMonth, original.dayOfMonth);
+    expect(archived.note, original.note);
   });
 
   test('a file from a newer schema is refused, not guessed at', () async {

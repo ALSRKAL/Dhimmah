@@ -10,12 +10,14 @@ import '../../domain/entities/activity_entry.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/debt.dart';
 import '../../domain/entities/drafts.dart';
+import '../../domain/entities/income.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/obligation.dart';
 import '../../domain/entities/payment.dart';
 import '../../domain/entities/person.dart';
 import '../../domain/entities/reminder.dart';
 import '../../domain/enums/activity_enums.dart';
+import '../../domain/enums/debt_enums.dart';
 import '../../domain/enums/obligation_enums.dart';
 import '../../domain/enums/recurrence.dart';
 import '../../domain/repositories/repositories.dart';
@@ -24,10 +26,12 @@ import '../../domain/services/debt_calculator.dart';
 import '../../domain/services/notification_planner.dart';
 import '../../domain/services/obligation_schedule.dart';
 import '../../domain/services/participant_rules.dart';
+import '../../domain/services/payment_allocator.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../database/app_database.dart';
 import '../database/daos/debts_dao.dart';
 import '../mappers/db_mappers.dart';
+import '../repositories/income_repository_impl.dart';
 
 /// The debt reminders one plan produced, and the read it took.
 @immutable
@@ -74,6 +78,7 @@ class LedgerService {
     required this.debts,
     required this.payments,
     required this.obligations,
+    required this.incomes,
     required this.reminders,
     required this.activity,
     required this.settings,
@@ -88,6 +93,7 @@ class LedgerService {
   final DebtRepository debts;
   final PaymentRepository payments;
   final ObligationRepository obligations;
+  final IncomeRepository incomes;
   final ReminderRepository reminders;
   final ActivityRepository activity;
   final SettingsRepository settings;
@@ -765,6 +771,187 @@ class LedgerService {
     );
   }
 
+  /// Records one payment against everything a person owes on one side of the
+  /// ledger, split across their open debts.
+  ///
+  /// The split is worked out **inside** the transaction, from the balances as
+  /// they stand at that moment, and with the same [PaymentAllocator] the sheet
+  /// drew its preview from — so the plan the user approved is the plan that is
+  /// written. The caller passes the decision (amount, direction, currency,
+  /// order, exclusions) and never the amounts, because a preview that went stale
+  /// while the sheet was open must not be able to become the ledger.
+  ///
+  /// Nothing about the shape of the data changes: this writes several ordinary
+  /// payments, each with its own debt, so every existing read — the per-debt
+  /// balances, the reports, the backup, the feed — sees exactly what it would
+  /// have seen had the user recorded each share by hand.
+  ///
+  /// Returns what was written, so the caller can offer one undo for the group.
+  Future<List<Payment>> recordPersonPayment(PersonPaymentDraft draft) async {
+    _requireValidAmount(draft.amountMinor, 'payment');
+
+    final List<Payment> created = await _db.transaction(() async {
+      final List<DebtView> candidates = await _openDebtsFor(
+        personId: draft.personId,
+        direction: draft.direction,
+        currency: draft.currency,
+      );
+      // Nothing to pay. Silent rather than a throw: the sheet disables its own
+      // save button in this state, and a race that empties the list between the
+      // preview and the write should leave the ledger alone, not fail loudly.
+      if (candidates.isEmpty) return const <Payment>[];
+
+      final List<DebtAllocation> plan = PaymentAllocator.plan(
+        openDebts: candidates,
+        amountMinor: draft.amountMinor,
+        order: draft.order,
+        excludedDebtIds: draft.excludedDebtIds,
+      );
+      final Map<String, Debt> byId = <String, Debt>{
+        for (final DebtView view in candidates) view.debt.id: view.debt,
+      };
+
+      final DateTime now = clock();
+      final DateTime paidAt = dateOnly(draft.paidAt);
+      final String? note = _blankToNull(draft.note);
+      final List<Payment> out = <Payment>[];
+
+      for (final DebtAllocation allocation in plan) {
+        if (allocation.allocatedMinor <= 0) continue;
+        final Debt? debt = byId[allocation.debtId];
+        if (debt == null) continue;
+
+        final Payment payment = Payment(
+          id: newId(),
+          debtId: debt.id,
+          personId: draft.personId,
+          amountMinor: allocation.allocatedMinor,
+          currency: debt.currency,
+          paidAt: paidAt,
+          note: note,
+          createdAt: now,
+        );
+        await payments.save(payment);
+        // One entry per debt, not one for the group: a debt's own page reads its
+        // timeline with `activity.forEntity(debt, id)`, and a group entry filed
+        // against one debt would leave the others with a payment and no record
+        // of where it came from.
+        await _log(
+          type: ActivityType.paymentRecorded,
+          entityType: RelatedEntityType.debt,
+          entityId: debt.id,
+          title: await _displayNameFor(debt),
+          amountMinor: payment.amountMinor,
+          currency: payment.currency,
+        );
+        // The single decider of closure, exactly as a hand-recorded payment
+        // uses it — so a debt settled here is closed, announced, and given its
+        // next period if it recurs, by the same code path as any other.
+        await _settleIfPaid(debt);
+        out.add(payment);
+      }
+      return out;
+    });
+
+    await refreshNotifications();
+    return created;
+  }
+
+  /// Removes a group of payments in one write.
+  ///
+  /// The undo behind one person-level payment, which is several rows at once:
+  /// taking them away one call at a time would rebuild the whole notification
+  /// plan once per row, and would leave the ledger briefly holding a half-undone
+  /// split if the app stopped in the middle.
+  ///
+  /// Each affected debt's closing stamp is brought back in line, exactly as
+  /// [deletePayment] does it, and one `paymentDeleted` entry is written per debt
+  /// carrying the total that came off it.
+  Future<void> deletePaymentsBatch(List<String> paymentIds) async {
+    if (paymentIds.isEmpty) return;
+    await _db.transaction(() async {
+      final Map<String, int> removedByDebt = <String, int>{};
+      for (final String id in paymentIds) {
+        final Payment? existing = await payments.getById(id);
+        if (existing == null) continue;
+        await payments.delete(id);
+        final String? debtId = existing.debtId;
+        if (debtId == null) continue;
+        removedByDebt[debtId] = (removedByDebt[debtId] ?? 0) + existing.amountMinor;
+      }
+
+      for (final MapEntry<String, int> entry in removedByDebt.entries) {
+        final Debt? debt = await debts.getById(entry.key);
+        if (debt == null) continue;
+        await _syncClosedStamp(debt);
+        await _log(
+          type: ActivityType.paymentDeleted,
+          entityType: RelatedEntityType.debt,
+          entityId: debt.id,
+          title: await _displayNameFor(debt),
+          amountMinor: entry.value,
+          currency: debt.currency,
+        );
+      }
+    });
+    await refreshNotifications();
+  }
+
+  /// A person's open debts on one side of the ledger, in one currency, as views.
+  ///
+  /// Three exclusions, each of which would be a bug if left in:
+  ///
+  /// * **archived** — the user set the record aside; its balance is not theirs
+  ///   to collect or pay any more;
+  /// * **settled** — nothing left to apply money to;
+  /// * **shared legacy records** (`personIds.length > 1`) — a payment on one
+  ///   settles everybody at once, which is why `recordPayment` refuses them. Left
+  ///   in, one would abort the whole split mid-transaction.
+  ///
+  /// Balances come from one grouped query rather than one per debt, which at a
+  /// dozen debts on a person's page is the difference between a write and a
+  /// pause.
+  Future<List<DebtView>> _openDebtsFor({
+    required String personId,
+    required DebtDirection direction,
+    required AppCurrency currency,
+  }) async {
+    final List<Debt> personDebts = await debts.forPerson(personId);
+    final List<Debt> eligible = <Debt>[
+      for (final Debt debt in personDebts)
+        if (!debt.isArchived &&
+            !debt.isShared &&
+            debt.direction == direction &&
+            debt.currency == currency)
+          debt,
+    ];
+    if (eligible.isEmpty) return const <DebtView>[];
+
+    final List<DebtPaymentTotals> totals = await _db.debtsDao.paymentTotalsFor(
+      eligible.map((Debt debt) => debt.id),
+    );
+    final Map<String, PaymentTotals> byDebt = <String, PaymentTotals>{
+      for (final DebtPaymentTotals t in totals)
+        t.debtId: PaymentTotals(
+          paidMinor: t.paidMinor,
+          count: t.count,
+          lastPaidAt: t.lastPaidAt,
+        ),
+    };
+    final AppSettings settings = await this.settings.get();
+    final DateTime asOf = dateOnly(clock());
+
+    return <DebtView>[
+      for (final Debt debt in eligible)
+        DebtCalculator.buildViewFromTotals(
+          debt: debt,
+          totals: byDebt[debt.id] ?? const PaymentTotals.none(),
+          asOf: asOf,
+          dueSoonWindowDays: settings.dueSoonWindowDays,
+        ),
+    ];
+  }
+
   // --- Obligations ---------------------------------------------------------
 
   Future<Obligation> createObligation(ObligationDraft draft) async {
@@ -909,6 +1096,103 @@ class LedgerService {
       title: existing?.name ?? '',
     );
     await refreshNotifications();
+  }
+
+  // --- Income --------------------------------------------------------------
+
+  /// Records a new source of recurring income.
+  ///
+  /// No periods are materialised and no notifications are scheduled: an income
+  /// has no state to keep and nothing to be reminded about. The only thing this
+  /// write changes is the month's budget reading, which is derived.
+  Future<Income> createIncome(IncomeDraft draft) async {
+    _requireValidAmount(draft.amountMinor, 'income amount');
+    final Income income = newIncome(draft: draft, now: clock());
+    await _db.transaction(() async {
+      await incomes.save(income);
+      await _log(
+        type: ActivityType.incomeCreated,
+        entityType: RelatedEntityType.income,
+        entityId: income.id,
+        title: income.name,
+        amountMinor: income.amountMinor,
+        currency: income.currency,
+      );
+    });
+    return income;
+  }
+
+  /// Edits an income in place.
+  ///
+  /// Nothing downstream has to be rebuilt: the months this income has already
+  /// paid are not stored anywhere, so re-anchoring the schedule changes what
+  /// every month reads from now on and rewrites no history. That is the whole
+  /// reason income is kept as a rule rather than as a record per payslip.
+  Future<void> updateIncome(String id, IncomeDraft draft) async {
+    _requireValidAmount(draft.amountMinor, 'income amount');
+    await _db.transaction(() async {
+      final Income? existing = await incomes.getById(id);
+      if (existing == null) return;
+      // Built fresh rather than copied onto: the identity, the creation moment
+      // and the archived flag are the three things an edit may not move, and
+      // taking them from [existing] makes that explicit instead of relying on
+      // the draft to leave them out.
+      final Income built = newIncome(draft: draft, now: clock());
+      final Income updated = Income(
+        id: existing.id,
+        name: built.name,
+        amountMinor: built.amountMinor,
+        currency: built.currency,
+        frequency: built.frequency,
+        intervalCount: built.intervalCount,
+        dayOfMonth: built.dayOfMonth,
+        startAt: built.startAt,
+        note: built.note,
+        archivedAt: existing.archivedAt,
+        createdAt: existing.createdAt,
+        updatedAt: built.updatedAt,
+      );
+      await incomes.save(updated);
+      await _log(
+        type: ActivityType.incomeUpdated,
+        entityType: RelatedEntityType.income,
+        entityId: updated.id,
+        title: updated.name,
+        amountMinor: updated.amountMinor,
+        currency: updated.currency,
+      );
+    });
+  }
+
+  /// Sets an income aside, or brings it back.
+  ///
+  /// Archiving is the normal way to end an income; the record stays so the
+  /// months it covered keep reading correctly, and it can be restored.
+  Future<void> setIncomeArchived(String id, bool archived) async {
+    final Income? existing = await incomes.getById(id);
+    if (existing == null) return;
+    await incomes.setArchived(id, archived: archived);
+    await _log(
+      type: archived ? ActivityType.incomeArchived : ActivityType.incomeRestored,
+      entityType: RelatedEntityType.income,
+      entityId: id,
+      title: existing.name,
+    );
+  }
+
+  /// Removes an income for good.
+  Future<void> deleteIncome(String id) async {
+    final Income? existing = await incomes.getById(id);
+    await _db.transaction(() async {
+      await activity.deleteForEntity(RelatedEntityType.income, id);
+      await incomes.delete(id);
+    });
+    await _log(
+      type: ActivityType.incomeDeleted,
+      entityType: RelatedEntityType.income,
+      entityId: id,
+      title: existing?.name ?? '',
+    );
   }
 
   /// Pays one period, then moves the obligation on to its next one.

@@ -25,6 +25,7 @@ import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/person.dart';
 import '../../l10n/enum_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../people/statement_screen.dart';
 import 'payment_sheet.dart';
 
 /// Everything about one debt: the balance, its history, and the actions that
@@ -50,10 +51,38 @@ class DebtDetailScreen extends ConsumerWidget {
         ),
         actions: <Widget>[
           if (detail.value != null) ...<Widget>[
-            IconButton(
+            // One share affordance, and it asks before it sends. A single icon
+            // used to mean "quick text" on this screen while "Share statement"
+            // on a person's page meant a PDF file, so the same gesture gave two
+            // very different things and neither said which.
+            PopupMenuButton<_ShareChoice>(
               tooltip: localizations.actionShare,
               icon: const Icon(Icons.ios_share, size: 20),
-              onPressed: () => _share(context, ref, detail.value!),
+              onSelected: (_ShareChoice choice) => _share(
+                context,
+                ref,
+                detail.value!,
+                choice,
+              ),
+              itemBuilder: (BuildContext context) =>
+                  <PopupMenuEntry<_ShareChoice>>[
+                PopupMenuItem<_ShareChoice>(
+                  value: _ShareChoice.pdf,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.picture_as_pdf_outlined, size: 20),
+                    title: Text(localizations.actionSharePdf),
+                  ),
+                ),
+                PopupMenuItem<_ShareChoice>(
+                  value: _ShareChoice.text,
+                  child: ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.notes_outlined, size: 20),
+                    title: Text(localizations.actionShareText),
+                  ),
+                ),
+              ],
             ),
             IconButton(
               tooltip: localizations.actionEdit,
@@ -98,8 +127,24 @@ class DebtDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _share(BuildContext context, WidgetRef ref, DebtDetail data) async {
+  Future<void> _share(
+    BuildContext context,
+    WidgetRef ref,
+    DebtDetail data,
+    _ShareChoice choice,
+  ) async {
     final AppLocalizations localizations = AppLocalizations.of(context);
+    if (choice == _ShareChoice.pdf) {
+      // The statement is a person's, not a single record's: it is the whole
+      // balance as they will see it. A record with nobody on it has none.
+      final String? personId = data.view.debt.personId;
+      if (personId == null) {
+        AppFeedback.error(context, localizations.somethingWentWrong);
+        return;
+      }
+      await showStatement(context, personId);
+      return;
+    }
     final ShareService service = ShareService(
       localizations: localizations,
       formatting: context.formatting,
@@ -107,6 +152,9 @@ class DebtDetailScreen extends ConsumerWidget {
     await service.shareText(service.debtSummary(data.view));
   }
 }
+
+/// What a tap on the share button is sending.
+enum _ShareChoice { pdf, text }
 
 class _OverflowMenu extends ConsumerWidget {
   const _OverflowMenu({required this.debtId});
@@ -545,21 +593,6 @@ class _BottomAction extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            IconButton.outlined(
-              tooltip: localizations.actionShare,
-              onPressed: () async {
-                final ShareService service = ShareService(
-                  localizations: localizations,
-                  formatting: context.formatting,
-                );
-                await service.shareText(service.debtSummary(view));
-              },
-              icon: const Icon(Icons.ios_share, size: 20),
-              style: IconButton.styleFrom(
-                minimumSize: const Size(52, 52),
-                side: BorderSide(color: palette.borderStrong),
-              ),
-            ),
           ],
         ),
       );

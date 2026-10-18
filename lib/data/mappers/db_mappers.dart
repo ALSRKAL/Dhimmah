@@ -4,6 +4,7 @@ import '../../core/money/currency.dart';
 import '../../domain/entities/activity_entry.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/entities/debt.dart';
+import '../../domain/entities/income.dart';
 import '../../domain/entities/monthly_summary.dart';
 import '../../domain/entities/obligation.dart';
 import '../../domain/entities/payment.dart';
@@ -274,8 +275,56 @@ extension ObligationOccurrenceMapper on ObligationOccurrence {
       );
 }
 
-extension ReminderRowMapper on ReminderRow {
-  Reminder toEntity() => Reminder(
+extension IncomeRowMapper on IncomeRow {
+  Income toEntity() => Income(
+        id: id,
+        name: name,
+        amountMinor: amountMinor,
+        currency: AppCurrency.parse(currencyCode),
+        frequency: frequency,
+        intervalCount: intervalCount,
+        dayOfMonth: dayOfMonth,
+        startAt: startAt,
+        note: note,
+        archivedAt: archivedAt,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+}
+
+extension IncomeMapper on Income {
+  IncomesCompanion toCompanion() => IncomesCompanion(
+        id: Value<String>(id),
+        name: Value<String>(name),
+        amountMinor: Value<int>(amountMinor),
+        currencyCode: Value<String>(currency.code),
+        frequency: Value<RecurrenceFrequency>(frequency),
+        intervalCount: Value<int>(intervalCount),
+        dayOfMonth: Value<int?>(dayOfMonth),
+        startAt: Value<DateTime>(startAt),
+        note: Value<String?>(note),
+        archivedAt: Value<DateTime?>(archivedAt),
+        createdAt: Value<DateTime>(createdAt),
+        updatedAt: Value<DateTime>(updatedAt),
+      );
+
+  IncomeRow toRow() => IncomeRow(
+        id: id,
+        name: name,
+        amountMinor: amountMinor,
+        currencyCode: currency.code,
+        frequency: frequency,
+        intervalCount: intervalCount,
+        dayOfMonth: dayOfMonth,
+        startAt: startAt,
+        note: note,
+        archivedAt: archivedAt,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+}
+
+extension ReminderRowMapper on ReminderRow {  Reminder toEntity() => Reminder(
         id: id,
         title: title,
         note: note,

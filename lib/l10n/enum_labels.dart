@@ -57,6 +57,13 @@ extension DebtDirectionL10n on DebtDirection {
       isIOwe ? l.addDebtIOwe : l.addDebtOwedToMe;
 }
 
+extension PaymentAllocationOrderL10n on PaymentAllocationOrder {
+  String label(AppLocalizations l) => switch (this) {
+        PaymentAllocationOrder.mostUrgent => l.personPaymentOrderUrgent,
+        PaymentAllocationOrder.oldestFirst => l.personPaymentOrderOldest,
+      };
+}
+
 extension ObligationStatusL10n on ObligationStatus {
   String label(AppLocalizations l) => switch (this) {
         ObligationStatus.upcoming => l.statusUpcoming,
@@ -175,6 +182,11 @@ extension ActivityTypeL10n on ActivityType {
         ActivityType.obligationCreated => l.activityObligationCreated,
         ActivityType.obligationPaid => l.activityObligationPaid,
         ActivityType.obligationSkipped => l.activityObligationSkipped,
+        ActivityType.incomeCreated => l.activityIncomeCreated,
+        ActivityType.incomeUpdated => l.activityIncomeUpdated,
+        ActivityType.incomeArchived => l.activityIncomeArchived,
+        ActivityType.incomeRestored => l.activityIncomeRestored,
+        ActivityType.incomeDeleted => l.activityIncomeDeleted,
         ActivityType.reminderCreated => l.activityReminderCreated,
         ActivityType.reminderCompleted => l.activityReminderCompleted,
         ActivityType.dataImported => l.activityImported,
@@ -199,6 +211,11 @@ extension ActivityTypeL10n on ActivityType {
         ActivityType.obligationCreated => Icons.event_repeat_outlined,
         ActivityType.obligationPaid => Icons.task_alt,
         ActivityType.obligationSkipped => Icons.skip_next_outlined,
+        ActivityType.incomeCreated => Icons.savings_outlined,
+        ActivityType.incomeUpdated => Icons.edit_outlined,
+        ActivityType.incomeArchived => Icons.inventory_2_outlined,
+        ActivityType.incomeRestored => Icons.unarchive_outlined,
+        ActivityType.incomeDeleted => Icons.delete_outline,
         ActivityType.reminderCreated => Icons.notifications_none,
         ActivityType.reminderCompleted => Icons.done_all,
         ActivityType.dataImported => Icons.file_download_outlined,
@@ -277,6 +294,7 @@ extension RelatedEntityTypeL10n on RelatedEntityType {
         RelatedEntityType.person => l.navPeople,
         RelatedEntityType.reminder => l.navReminders,
         RelatedEntityType.payment => l.paymentTitle,
+        RelatedEntityType.income => l.incomeTitle,
         RelatedEntityType.none => '',
       };
 }

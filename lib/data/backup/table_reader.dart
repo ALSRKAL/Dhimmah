@@ -157,6 +157,23 @@ class TableReader {
         fullRead: _db.obligationsDao.getOccurrences,
       );
 
+  /// Every source of recurring income, in key order.
+  Future<List<IncomeRow>> incomes() => _collect<IncomeRow>(
+        page: (String? after) => (_db.select(_db.incomes)
+              ..where((Incomes t) =>
+                  after == null ? const Constant(true) : t.id.isBiggerThanValue(after))
+              ..orderBy(<OrderingTerm Function($IncomesTable)>[
+                (t) => OrderingTerm.asc(t.id),
+              ])
+              ..limit(pageSize))
+            .get(),
+        key: (IncomeRow row) => row.id,
+        count: () => _count(_db.incomes),
+        // A tear-off will not do here: `getAll` takes an optional argument, so
+        // its type is not the zero-argument function this parameter wants.
+        fullRead: () => _db.incomesDao.getAll(),
+      );
+
   /// Every reminder, in key order.
   Future<List<ReminderRow>> reminders() => _collect<ReminderRow>(
         page: (String? after) => (_db.select(_db.reminders)

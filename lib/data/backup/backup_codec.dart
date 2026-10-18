@@ -118,6 +118,27 @@ abstract final class BackupCodec {
         'updatedAt': _instant(row.updatedAt),
       };
 
+  /// One source of recurring income.
+  ///
+  /// Added with schema 6. A file written before it carries no `incomes` list at
+  /// all, and nothing here has to special-case that: the reader's default for a
+  /// missing table is an empty list, so an old backup restores with no income
+  /// recorded rather than failing.
+  static Map<String, Object?> income(IncomeRow row) => <String, Object?>{
+        'id': row.id,
+        'name': row.name,
+        'amountMinor': row.amountMinor,
+        'currency': row.currencyCode,
+        'frequency': row.frequency.name,
+        'intervalCount': row.intervalCount,
+        'dayOfMonth': row.dayOfMonth,
+        'startAt': toIsoDate(row.startAt),
+        'note': row.note,
+        'archivedAt': _instant(row.archivedAt),
+        'createdAt': _instant(row.createdAt),
+        'updatedAt': _instant(row.updatedAt),
+      };
+
   static Map<String, Object?> reminder(ReminderRow row) => <String, Object?>{
         'id': row.id,
         'title': row.title,
@@ -277,6 +298,32 @@ abstract final class BackupCodec {
         status: ObligationStatus.values.byName(_text(row['status'])!),
         paidAt: Value<DateTime?>(_dateOnly(row['paidAt'])),
         paymentId: Value<String?>(_text(row['paymentId'])),
+        createdAt: _dateTime(row['createdAt'])!,
+        updatedAt: _dateTime(row['updatedAt'])!,
+      );
+
+  /// Reads one income back.
+  ///
+  /// Every field that a file might not carry falls back to a value that keeps
+  /// the record usable rather than throwing: the interval to `1`, the anchor to
+  /// the day the row was created. Nothing here can invent money — the amount and
+  /// the currency are required, and validation refuses a file whose row does not
+  /// have them.
+  static IncomesCompanion incomeRow(Map<String, Object?> row) =>
+      IncomesCompanion.insert(
+        id: _text(row['id'])!,
+        name: _text(row['name'])!,
+        amountMinor: _int(row['amountMinor'])!,
+        currencyCode: _text(row['currency'])!,
+        frequency: _enumByName(RecurrenceFrequency.values, row['frequency']) ??
+            RecurrenceFrequency.monthly,
+        intervalCount: Value<int>(_int(row['intervalCount']) ?? 1),
+        dayOfMonth: Value<int?>(_int(row['dayOfMonth'])),
+        startAt: _dateOnly(row['startAt']) ??
+            _dateTime(row['createdAt']) ??
+            DateTime(1970),
+        note: Value<String?>(_text(row['note'])),
+        archivedAt: Value<DateTime?>(_dateTime(row['archivedAt'])),
         createdAt: _dateTime(row['createdAt'])!,
         updatedAt: _dateTime(row['updatedAt'])!,
       );

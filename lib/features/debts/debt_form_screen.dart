@@ -284,6 +284,17 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                 initialMinor: _amountMinor,
                 errorText: _amountError,
                 focusNode: _amountFocus,
+                onRejected: () {
+                  // Past the ceiling: the figure last handed to this form is not
+                  // the one on screen, so it is dropped and `_validate` refuses
+                  // the save rather than writing a different number.
+                  if (!mounted) return;
+                  setState(() {
+                    _dirty = true;
+                    _amountMinor = null;
+                    _amountError = localizations.validationAmountTooLarge;
+                  });
+                },
                 onChanged: (int minor) {
                   setState(() {
                     _dirty = true;
@@ -339,6 +350,17 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                 clearable: true,
                 icon: Icons.event_outlined,
                 onChanged: (DateTime? value) => setState(() {
+                  _dirty = true;
+                  _dueAt = value;
+                }),
+              ),
+              const SizedBox(height: AppSpacing.sm),
+              // The four answers that cover almost every record, so the common
+              // case never opens the calendar. The field above stays the way to
+              // name a day that is not one of them.
+              _DueDateShortcuts(
+                selected: _dueAt,
+                onPick: (DateTime? value) => setState(() {
                   _dirty = true;
                   _dueAt = value;
                 }),
@@ -944,6 +966,63 @@ class _MissingFieldsBanner extends StatelessWidget {
 }
 
 /// The disclosure that keeps a form short without hiding anything.
+/// Quick answers for "when is this due?".
+///
+/// Four chips that between them cover nearly every record a person writes down:
+/// a week, a month, the end of the month, or never. They set the same field the
+/// calendar does, so nothing here is a second way to record a date — only a
+/// faster first guess at one.
+class _DueDateShortcuts extends StatelessWidget {
+  const _DueDateShortcuts({required this.selected, required this.onPick});
+
+  final DateTime? selected;
+  final ValueChanged<DateTime?> onPick;
+
+  /// The end of the month a date falls in — the last day, not the 30th, so a
+  /// 31-day month is not quietly cut short.
+  static DateTime _endOfMonth(DateTime from) =>
+      DateTime(from.year, from.month + 1, 0);
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final DateTime today = dateOnly(DateTime.now());
+
+    final List<({String label, DateTime? value})> options =
+        <({String label, DateTime? value})>[
+      (label: localizations.dueQuickWeek, value: addDays(today, 7)),
+      (label: localizations.dueQuickMonth, value: addMonths(today, 1)),
+      (label: localizations.dueQuickMonthEnd, value: _endOfMonth(today)),
+      (label: localizations.dueQuickNone, value: null),
+    ];
+
+    // On the last week of a month two shortcuts can name the same day — "in a
+    // week" and "end of the month" are the 31st together. The second is dropped
+    // rather than drawn as another button that does the same thing.
+    final Set<DateTime> seen = <DateTime>{};
+    final List<({String label, DateTime? value})> unique =
+        <({String label, DateTime? value})>[
+      for (final ({String label, DateTime? value}) option in options)
+        if (option.value == null || seen.add(option.value!)) option,
+    ];
+
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: <Widget>[
+        for (final ({String label, DateTime? value}) option in unique)
+          ChoiceChip(
+            label: Text(option.label),
+            selected: option.value == null
+                ? selected == null
+                : selected != null && isSameDate(selected!, option.value!),
+            onSelected: (_) => onPick(option.value),
+          ),
+      ],
+    );
+  }
+}
+
 class _AdvancedSection extends StatelessWidget {
   const _AdvancedSection({
     required this.expanded,

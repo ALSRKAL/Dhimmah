@@ -17,6 +17,7 @@ import '../../domain/entities/obligation.dart';
 import '../../domain/enums/obligation_enums.dart';
 import '../../l10n/enum_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
+import 'budget_card.dart';
 import 'obligation_actions.dart';
 
 /// The obligations tab: every recurring commitment, with the period that is
@@ -64,11 +65,26 @@ class _ObligationsScreenState extends ConsumerState<ObligationsScreen> {
           final List<ObligationGroup> groups = ObligationGroup.from(data);
 
           if (groups.isEmpty && !_showArchived) {
-            return EmptyState(
-              title: localizations.obligationsEmptyTitle,
-              body: localizations.obligationsEmptyBody,
-              actionLabel: localizations.obligationFormNew,
-              onAction: () => context.push(AppRoutes.obligationsNew),
+            // The budget card still leads: a user who has told the app their
+            // salary and has not added a commitment yet is being told something
+            // useful, and hiding it behind an empty state would bury it.
+            return ListView(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg,
+                AppSpacing.sm,
+                AppSpacing.lg,
+                AppSpacing.massive,
+              ),
+              children: <Widget>[
+                BudgetCard(asOf: asOf),
+                const SizedBox(height: AppSpacing.xxl),
+                EmptyState(
+                  title: localizations.obligationsEmptyTitle,
+                  body: localizations.obligationsEmptyBody,
+                  actionLabel: localizations.obligationFormNew,
+                  onAction: () => context.push(AppRoutes.obligationsNew),
+                ),
+              ],
             );
           }
 
@@ -94,6 +110,13 @@ class _ObligationsScreenState extends ConsumerState<ObligationsScreen> {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
               const SizedBox(height: AppSpacing.lg),
+              // Above the list, and inside the same scroll view: the number the
+              // card carries is why the screen is opened, and the commitments
+              // below it are the working out. It stays visible in the empty
+              // state too — someone with a salary and no commitments yet is
+              // exactly who benefits from being told what is left.
+              BudgetCard(asOf: asOf),
+              const SizedBox(height: AppSpacing.xl),
               for (final ObligationGroup group in open) ...<Widget>[
                 ObligationCard(group: group, asOf: asOf),
                 const SizedBox(height: AppSpacing.md),

@@ -190,6 +190,59 @@ class ObligationOccurrences extends Table {
       ];
 }
 
+/// Money that comes in on a recurring schedule: a salary, a monthly allowance,
+/// a pension, rent the user receives.
+///
+/// A table of its own rather than a row in [Obligations], and that is not a
+/// matter of taste. Direction is what a record *means*: every obligation query,
+/// the reminder planner, the monthly report and the stored monthly summaries all
+/// treat an obligation's amount as money going **out**. An income stored there
+/// would be counted as money owed — silently, because nothing would look wrong
+/// until a total did.
+///
+/// Like an obligation, this row is the *rule* — the schedule, not one payment.
+/// There is no occurrence table beside it because an income has no status to
+/// track: nothing is "paid" when a salary arrives, and no history is needed to
+/// compute the month's total. The schedule is walked on read instead.
+@DataClassName('IncomeRow')
+@TableIndex(name: 'idx_incomes_archived', columns: <Symbol>{#archivedAt})
+class Incomes extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text().withLength(min: 1, max: 160)();
+  IntColumn get amountMinor => integer()();
+
+  /// The currency this income is paid in.
+  ///
+  /// Stored per record for the same reason an obligation stores its own: a
+  /// monthly total that adds 5,000 ﷼ to $500 is not a number, it is an accident.
+  TextColumn get currencyCode => text().withLength(min: 3, max: 3)();
+
+  TextColumn get frequency => textEnum<RecurrenceFrequency>()();
+
+  /// Every N periods. `1` means every month / week / year.
+  IntColumn get intervalCount => integer().withDefault(const Constant(1))();
+
+  /// The day of the month a monthly income lands on, when the user pinned one.
+  IntColumn get dayOfMonth => integer().nullable()();
+
+  /// The anchor the whole schedule is measured from.
+  ///
+  /// Present because an interval needs a phase: "every 2 months" is a different
+  /// set of months depending on where it starts, and without an anchor the
+  /// answer would come from whichever date the read happened to run on. It is
+  /// the same rule [Obligations.startAt] exists for.
+  TextColumn get startAt => text().map(const DateOnlyConverter())();
+
+  TextColumn get note => text().nullable()();
+  IntColumn get archivedAt =>
+      integer().nullable().map(const NullableTimestampConverter())();
+  IntColumn get createdAt => integer().map(const TimestampConverter())();
+  IntColumn get updatedAt => integer().map(const TimestampConverter())();
+
+  @override
+  Set<Column<Object>> get primaryKey => <Column<Object>>{id};
+}
+
 @DataClassName('ReminderRow')
 @TableIndex(name: 'idx_reminders_due', columns: <Symbol>{#dueAt})
 @TableIndex(name: 'idx_reminders_status', columns: <Symbol>{#status})
