@@ -199,9 +199,12 @@ void main() {
     expectFits(tester, 'the commitments screen');
 
     // The budget card is the first card on the screen, and the whole card is
-    // the way into the income sheet — the same tap a user makes.
+    // the way into the income sheet — the same tap a user makes. Tapped near its
+    // top edge: at this text size the card is taller than the room above the
+    // navigation bar, so its centre is behind the bar.
     expect(find.byType(AppCard), findsWidgets);
-    await tester.tap(find.byType(AppCard).first);
+    final Rect card = tester.getRect(find.byType(AppCard).first);
+    await tester.tapAt(Offset(card.center.dx, card.top + 12));
     await settle(tester);
     expectFits(tester, 'the income sheet');
     expect(find.textContaining(incomeSheetTitle), findsWidgets);

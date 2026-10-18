@@ -219,6 +219,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get budgetAddIncome => 'Add income';
 
   @override
+  String get budgetAllAvailable =>
+      'All of your income is available — nothing is due this month.';
+
+  @override
   String budgetConsumed(String percent) {
     return '$percent of this month\'s income goes to commitments';
   }
@@ -235,6 +239,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get budgetNoObligations => 'Nothing is due this month.';
+
+  @override
+  String get budgetOverBy => 'Over income by';
 
   @override
   String get budgetOverCommitted => 'Commitments exceed income this month';
@@ -586,6 +593,11 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get personPaymentAllocation => 'Allocation';
+
+  @override
+  String personPaymentAddedOn(String date) {
+    return 'Added $date';
+  }
 
   @override
   String get personPaymentEmpty => 'No open debts on this side.';

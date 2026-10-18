@@ -270,12 +270,12 @@ class _ActionBar extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: busy ? null : onShare,
                 icon: busy
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 18,
                         height: 18,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.palette.textOnBrand,
                         ),
                       )
                     : const Icon(Icons.ios_share, size: 20),

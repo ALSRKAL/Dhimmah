@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
+import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/dates.dart';
 import '../../core/utils/money_input.dart';
@@ -273,12 +274,15 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
             onPressed: _busy ? null : _save,
             style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
             child: _busy
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      // The theme's on-brand colour: white in the light theme,
+                      // the brand ink in the dark one. The literal was only
+                      // right in one of them.
+                      color: context.palette.textOnBrand,
                     ),
                   )
                 : Text(_isEditing ? localizations.saveChanges : localizations.actionSave),

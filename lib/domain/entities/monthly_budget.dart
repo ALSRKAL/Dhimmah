@@ -78,6 +78,15 @@ class MonthlyBudget {
   /// Commitments exceed income.
   bool get isOverCommitted => obligationsMinor > incomeMinor;
 
+  /// How far the commitments run past the income, as a positive amount.
+  ///
+  /// The card states the overage under a label that names it («تجاوز الدخل بـ»)
+  /// rather than showing the negative remainder: "what is left" with a minus in
+  /// front reads as a balance below zero, and a leading minus on an amount is
+  /// the one thing the two scripts lay out differently.
+  int get overMinor =>
+      isOverCommitted ? obligationsMinor - incomeMinor : 0;
+
   /// The share of the income the month's commitments consume.
   ///
   /// Zero when nothing comes in: "all of nothing" is not a ratio, and a bar

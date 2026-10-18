@@ -78,6 +78,7 @@
   "biometricUnavailable": "البصمة غير متاحة على هذا الجهاز.",
   "brandPromise": "هذا المكان يحفظ كل شيء عليّ ولي، ويذكّرني بما يجب أن أدفعه وما يجب أن أستلمه.",
   "budgetAddIncome": "إضافة دخل",
+  "budgetAllAvailable": "كامل دخلك متاح هذا الشهر — لا التزامات مستحقة.",
   "budgetConsumed": "{percent} من دخل هذا الشهر تذهب للالتزامات",
   "@budgetConsumed": {
     "placeholders": {
@@ -90,6 +91,7 @@
   "budgetEmptyTitle": "ما المتبقي من راتبك؟",
   "budgetManageIncome": "إدارة الدخل",
   "budgetNoObligations": "لا توجد التزامات مستحقة هذا الشهر.",
+  "budgetOverBy": "تجاوز الدخل بـ",
   "budgetOverCommitted": "الالتزامات تتجاوز الدخل هذا الشهر",
   "budgetOverdueLabel": "منها متأخر",
   "budgetPaidLabel": "دفعت منها",
@@ -250,6 +252,14 @@
   "deleteConfirmBody": "لا يمكن التراجع عن هذا الإجراء.",
   "deleteUndoableBody": "سيُحذف الدين، ويمكنك التراجع خلال ثوانٍ.",
   "personPaymentAllocation": "التوزيع",
+  "personPaymentAddedOn": "أُضيف في {date}",
+  "@personPaymentAddedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "personPaymentEmpty": "لا توجد ديون مفتوحة في هذا الاتجاه.",
   "personPaymentExcluded": "مستثنى",
   "personPaymentLeftoverCount": "{count, plural, =0{ولا يتغيّر غيره} =1{ويتغيّر دين آخر} =2{ويتغيّر دينان آخران} few{وتتغيّر {count} ديون أخرى} other{ويتغيّر {count} دينًا آخر}}",

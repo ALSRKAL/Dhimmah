@@ -78,6 +78,7 @@
   "biometricUnavailable": "Biometrics are not available on this device.",
   "brandPromise": "Everything you owe and everything you're owed, remembered for you.",
   "budgetAddIncome": "Add income",
+  "budgetAllAvailable": "All of your income is available — nothing is due this month.",
   "budgetConsumed": "{percent} of this month's income goes to commitments",
   "@budgetConsumed": {
     "placeholders": {
@@ -90,6 +91,7 @@
   "budgetEmptyTitle": "What is left of your salary?",
   "budgetManageIncome": "Manage income",
   "budgetNoObligations": "Nothing is due this month.",
+  "budgetOverBy": "Over income by",
   "budgetOverCommitted": "Commitments exceed income this month",
   "budgetOverdueLabel": "Of it, late",
   "budgetPaidLabel": "Paid so far",
@@ -250,6 +252,14 @@
   "deleteConfirmBody": "This cannot be undone.",
   "deleteUndoableBody": "The debt will be deleted. You can undo this for a few seconds.",
   "personPaymentAllocation": "Allocation",
+  "personPaymentAddedOn": "Added {date}",
+  "@personPaymentAddedOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "personPaymentEmpty": "No open debts on this side.",
   "personPaymentExcluded": "Left out",
   "personPaymentLeftoverCount": "{count, plural, =0{and nothing else changes} =1{and one more changes} other{and {count} more change}}",

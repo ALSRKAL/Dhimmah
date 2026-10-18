@@ -193,12 +193,14 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
             onPressed: _busy ? null : _save,
             style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
             child: _busy
-                ? const SizedBox(
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: Colors.white,
+                      // The theme's on-brand colour: white is the light theme's,
+                      // and the dark theme's is the brand ink.
+                      color: context.palette.textOnBrand,
                     ),
                   )
                 : Text(
@@ -298,7 +300,7 @@ class _Swatch extends StatelessWidget {
             ),
           ),
           child: selected
-              ? const Icon(Icons.check, color: Colors.white, size: 20)
+              ? Icon(Icons.check, color: context.palette.textOnBrand, size: 20)
               : null,
         ),
       ),

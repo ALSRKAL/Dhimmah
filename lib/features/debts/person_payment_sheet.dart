@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -102,6 +103,10 @@ class _PersonPaymentSheetState extends ConsumerState<PersonPaymentSheet> {
   /// showing what had been typed, so a user who typed 2,500 pressed "pay all"
   /// and watched 2,500 stay on screen — then saved the full balance.
   void _setAmount(int minor, AppCurrency currency) {
+    // A shortcut that fills a field is a discrete choice, and the phone can say
+    // "taken" without a sound or a flash. Fire-and-forget: on a device with no
+    // haptic motor this is a no-op on a channel nobody listens to.
+    HapticFeedback.selectionClick();
     final String text = formatMinorForInput(minor, currency);
     _amountController.value = TextEditingValue(
       text: text,
@@ -114,6 +119,7 @@ class _PersonPaymentSheetState extends ConsumerState<PersonPaymentSheet> {
   }
 
   void _toggleExcluded(String debtId) {
+    HapticFeedback.selectionClick();
     setState(() {
       if (!_excluded.remove(debtId)) _excluded.add(debtId);
     });
@@ -169,12 +175,14 @@ class _PersonPaymentSheetState extends ConsumerState<PersonPaymentSheet> {
           onPressed: canSave ? _save : null,
           style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
           child: _busy
-              ? const SizedBox(
+              ? SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    // The theme's own on-brand colour, not a literal white: the
+                    // busy spinner sits on the filled button in both themes.
+                    color: context.palette.textOnBrand,
                   ),
                 )
               : Text(localizations.paymentSave),
@@ -204,6 +212,7 @@ class _PersonPaymentSheetState extends ConsumerState<PersonPaymentSheet> {
             controller: _amountController,
             currency: currency,
             capMinor: cap,
+            selectedMinor: _amountMinor,
             errorText: _amountError,
             onChanged: (int minor) => setState(() {
               _amountMinor = minor;
@@ -246,15 +255,24 @@ class _PersonPaymentSheetState extends ConsumerState<PersonPaymentSheet> {
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
-          if (settling > 0 || changing > 0) ...<Widget>[
-            const SizedBox(height: AppSpacing.lg),
-            _ImpactCard(
-              settling: settling,
-              changing: changing,
-              settlesAll:
-                  _amountMinor >= cap && cap > 0,
-            ),
-          ],
+          // The impact card arrives when the amount first reaches a debt and
+          // leaves when it stops reaching one. AnimatedSize gives it a height to
+          // travel through, so the rows below slide instead of jumping.
+          AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: AlignmentDirectional.topStart,
+            child: settling > 0 || changing > 0
+                ? Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.lg),
+                    child: _ImpactCard(
+                      settling: settling,
+                      changing: changing,
+                      settlesAll: _amountMinor >= cap && cap > 0,
+                    ),
+                  )
+                : const SizedBox(width: double.infinity),
+          ),
           const SizedBox(height: AppSpacing.lg),
           DateField(
             label: localizations.paymentDate,
@@ -607,6 +625,7 @@ class _AmountBlock extends StatelessWidget {
     required this.controller,
     required this.currency,
     required this.capMinor,
+    required this.selectedMinor,
     required this.errorText,
     required this.onChanged,
     required this.onRejected,
@@ -616,6 +635,10 @@ class _AmountBlock extends StatelessWidget {
   final TextEditingController controller;
   final AppCurrency currency;
   final int capMinor;
+
+  /// What the field holds, so a shortcut can show whether it is the one in
+  /// force.
+  final int selectedMinor;
   final String? errorText;
   final ValueChanged<int> onChanged;
   final VoidCallback onRejected;
@@ -644,23 +667,48 @@ class _AmountBlock extends StatelessWidget {
           errorText: errorText,
         ),
         const SizedBox(height: AppSpacing.sm),
+        // Choice chips, not action chips: the shortcut in force stays lit while
+        // the field holds its value, so pressing 50% and then typing over it
+        // shows at a glance that what is on screen is no longer its number.
         Wrap(
           spacing: AppSpacing.sm,
           runSpacing: AppSpacing.sm,
           children: <Widget>[
-            ActionChip(
-              label: Text(localizations.personPaymentQuickQuarter),
-              onPressed: () => onQuickPick(capMinor ~/ 4),
-            ),
-            ActionChip(
-              label: Text(localizations.personPaymentQuickHalf),
-              onPressed: () => onQuickPick(capMinor ~/ 2),
-            ),
-            ActionChip(
-              avatar: const Icon(Icons.done_all, size: 16),
-              label: Text(localizations.personPaymentPayAll),
-              onPressed: () => onQuickPick(capMinor),
-            ),
+            for (final ({String label, IconData? icon, int value}) pick
+                in <({String label, IconData? icon, int value})>[
+              (
+                label: localizations.personPaymentQuickQuarter,
+                icon: null,
+                value: capMinor ~/ 4,
+              ),
+              (
+                label: localizations.personPaymentQuickHalf,
+                icon: null,
+                value: capMinor ~/ 2,
+              ),
+              (
+                label: localizations.personPaymentPayAll,
+                icon: Icons.done_all,
+                value: capMinor,
+              ),
+            ])
+              ChoiceChip(
+                avatar: pick.icon == null
+                    ? null
+                    : Icon(
+                        pick.icon,
+                        size: 16,
+                        color: selectedMinor == pick.value
+                            ? null
+                            : palette.textSecondary,
+                      ),
+                label: Text(pick.label),
+                // A ceiling of nothing has no shortcut to light up: with no open
+                // debt every value here is zero, and zero is also what an empty
+                // field holds.
+                selected: pick.value > 0 && selectedMinor == pick.value,
+                onSelected: (_) => onQuickPick(pick.value),
+              ),
           ],
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -720,11 +768,14 @@ class _AllocationSection extends StatelessWidget {
             // button together were 59 pixels wider than the sheet.
             Flexible(
               child: TextButton.icon(
-                onPressed: () => onOrderChanged(
-                  order == PaymentAllocationOrder.mostUrgent
-                      ? PaymentAllocationOrder.oldestFirst
-                      : PaymentAllocationOrder.mostUrgent,
-                ),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  onOrderChanged(
+                    order == PaymentAllocationOrder.mostUrgent
+                        ? PaymentAllocationOrder.oldestFirst
+                        : PaymentAllocationOrder.mostUrgent,
+                  );
+                },
                 icon: const Icon(Icons.swap_vert, size: 16),
                 label: Text(
                   order.label(localizations),
@@ -742,20 +793,33 @@ class _AllocationSection extends StatelessWidget {
             vertical: AppSpacing.xs,
           ),
           borderColor: palette.border,
-          child: Column(
-            children: <Widget>[
-              for (int i = 0; i < plan.length; i++) ...<Widget>[
-                if (i > 0) const AppDivider(),
-                _AllocationRow(
-                  allocation: plan[i],
-                  view: viewById[plan[i].debtId],
-                  currency: currency,
-                  isExcluded: excluded.contains(plan[i].debtId),
-                  onToggle: () => onToggle(plan[i].debtId),
-                  personId: personId,
-                ),
-              ],
-            ],
+          // Swapping the rule reorders these rows. The rows themselves are
+          // unchanged — the same records, the same amounts — so the transition
+          // is a cross fade keyed on the rule, which reads as a reshuffle rather
+          // than as one list being replaced by another.
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            alignment: AlignmentDirectional.topStart,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              child: Column(
+                key: ValueKey<PaymentAllocationOrder>(order),
+                children: <Widget>[
+                  for (int i = 0; i < plan.length; i++) ...<Widget>[
+                    if (i > 0) const AppDivider(),
+                    _AllocationRow(
+                      allocation: plan[i],
+                      view: viewById[plan[i].debtId],
+                      currency: currency,
+                      isExcluded: excluded.contains(plan[i].debtId),
+                      onToggle: () => onToggle(plan[i].debtId),
+                      personId: personId,
+                    ),
+                  ],
+                ],
+              ),
+            ),
           ),
         ),
       ],
@@ -859,8 +923,13 @@ class _AllocationRow extends StatelessWidget {
     );
   }
 
-  /// What the row says under the title: how late it is, when it falls due, or
-  /// that it never does.
+  /// What the row says under the title: how late it is, when it falls due, or —
+  /// when it never falls due — the day it was incurred.
+  ///
+  /// That last one is not decoration. "Oldest first" orders these rows by that
+  /// day, and "most urgent" falls back to it, so a record with no deadline had
+  /// no visible reason to be where it is. Now every row shows the one date the
+  /// order reads, and the user can see why the perfume came before the shoes.
   static String _statusLine(
     BuildContext context,
     AppLocalizations l,
@@ -868,7 +937,11 @@ class _AllocationRow extends StatelessWidget {
   ) {
     if (debt.status == DebtLifecycleStatus.overdue) return l.statusOverdue;
     final DateTime? due = debt.debt.dueAt;
-    if (due == null) return l.fieldDueDateNone;
+    if (due == null) {
+      return l.personPaymentAddedOn(
+        context.formatting.date(debt.debt.issuedAt),
+      );
+    }
     return context.formatting.date(due);
   }
 }
@@ -897,24 +970,40 @@ class _AmountCell extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final AppFormatting formatting = context.formatting;
 
+    // Keyed on the *state*, never on the amount: a row that becomes excluded or
+    // that this payment clears changes kind, and that is worth a transition. The
+    // digits themselves stay instant — a number that fades lags the finger that
+    // is typing it.
+    final String stateKey = '${isExcluded ? 'x' : 'on'}'
+        '|${touched ? 't' : 'n'}'
+        '|${settles ? 's' : 'p'}';
+
     if (isExcluded) {
-      return Text(
-        localizations.personPaymentExcluded,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: palette.textTertiary,
+      return _Swap(
+        stateKey: stateKey,
+        child: Text(
+          localizations.personPaymentExcluded,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: palette.textTertiary,
+          ),
         ),
       );
     }
     if (!touched) {
-      return Text(
-        localizations.personPaymentNoShare,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: palette.textTertiary,
+      return _Swap(
+        stateKey: stateKey,
+        child: Text(
+          localizations.personPaymentNoShare,
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: palette.textTertiary,
+          ),
         ),
       );
     }
     if (settles) {
-      return Row(
+      return _Swap(
+        stateKey: stateKey,
+        child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
           Icon(Icons.check_circle_outline, size: 16, color: palette.settled),
@@ -931,9 +1020,12 @@ class _AmountCell extends StatelessWidget {
             ),
           ),
         ],
+        ),
       );
     }
-    return Column(
+    return _Swap(
+      stateKey: stateKey,
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
@@ -955,6 +1047,24 @@ class _AmountCell extends StatelessWidget {
           ),
         ),
       ],
+      ),
+    );
+  }
+}
+
+/// Cross fades the right-hand cell of a preview row when what it *is* changes,
+/// and nothing when only its number does.
+class _Swap extends StatelessWidget {
+  const _Swap({required this.stateKey, required this.child});
+
+  final String stateKey;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 180),
+      child: KeyedSubtree(key: ValueKey<String>(stateKey), child: child),
     );
   }
 }

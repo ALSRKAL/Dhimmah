@@ -166,6 +166,31 @@ void main() {
         }
       });
 
+      test('the budget bar reads against its own track', () {
+        // The only graphic in the app whose background is not a surface: the
+        // fill sits on `surfaceMuted`. The bar is drawn in three states —
+        // comfortable, close to the income, over it — and each has to be
+        // distinguishable from the track it fills.
+        for (final ({String name, Color colour}) accent in <({
+          String name,
+          Color colour
+        })>[
+          (name: 'settled', colour: p.settled),
+          (name: 'dueSoon', colour: p.dueSoon),
+          (name: 'overdue', colour: p.overdue),
+        ]) {
+          expectAtLeast(
+            accent.colour,
+            p.surfaceMuted,
+            3,
+            '${accent.name} on the bar track',
+          );
+        }
+        // And the track itself has to read as a shape on the card, or the bar
+        // is invisible until it is part full.
+        expectAtLeast(p.surfaceMuted, p.surface, 1.03, 'the bar track on the card');
+      });
+
       test('the hero figure and its label are legible', () {
         expectAtLeast(p.textPrimary, p.background, 7, 'hero figure on background');
       });

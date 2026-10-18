@@ -506,6 +506,12 @@ abstract class AppLocalizations {
   /// **'إضافة دخل'**
   String get budgetAddIncome;
 
+  /// No description provided for @budgetAllAvailable.
+  ///
+  /// In ar, this message translates to:
+  /// **'كامل دخلك متاح هذا الشهر — لا التزامات مستحقة.'**
+  String get budgetAllAvailable;
+
   /// No description provided for @budgetConsumed.
   ///
   /// In ar, this message translates to:
@@ -535,6 +541,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'لا توجد التزامات مستحقة هذا الشهر.'**
   String get budgetNoObligations;
+
+  /// No description provided for @budgetOverBy.
+  ///
+  /// In ar, this message translates to:
+  /// **'تجاوز الدخل بـ'**
+  String get budgetOverBy;
 
   /// No description provided for @budgetOverCommitted.
   ///
@@ -1141,6 +1153,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'التوزيع'**
   String get personPaymentAllocation;
+
+  /// No description provided for @personPaymentAddedOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُضيف في {date}'**
+  String personPaymentAddedOn(String date);
 
   /// No description provided for @personPaymentEmpty.
   ///

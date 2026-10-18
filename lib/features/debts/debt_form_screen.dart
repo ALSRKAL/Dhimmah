@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -456,12 +457,14 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                   child: FilledButton(
                     onPressed: _busy ? null : _save,
                     child: _busy
-                        ? const SizedBox(
+                        ? SizedBox(
                             width: 18,
                             height: 18,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              color: Colors.white,
+                              // The theme's on-brand colour, not a literal
+                              // white that happens to look right on the fill.
+                              color: context.palette.textOnBrand,
                             ),
                           )
                         : Text(
@@ -978,49 +981,64 @@ class _DueDateShortcuts extends StatelessWidget {
   final DateTime? selected;
   final ValueChanged<DateTime?> onPick;
 
-  /// The end of the month a date falls in — the last day, not the 30th, so a
-  /// 31-day month is not quietly cut short.
-  static DateTime _endOfMonth(DateTime from) =>
-      DateTime(from.year, from.month + 1, 0);
-
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations localizations = AppLocalizations.of(context);
-    final DateTime today = dateOnly(DateTime.now());
-
-    final List<({String label, DateTime? value})> options =
-        <({String label, DateTime? value})>[
-      (label: localizations.dueQuickWeek, value: addDays(today, 7)),
-      (label: localizations.dueQuickMonth, value: addMonths(today, 1)),
-      (label: localizations.dueQuickMonthEnd, value: _endOfMonth(today)),
-      (label: localizations.dueQuickNone, value: null),
-    ];
-
-    // On the last week of a month two shortcuts can name the same day — "in a
-    // week" and "end of the month" are the 31st together. The second is dropped
-    // rather than drawn as another button that does the same thing.
-    final Set<DateTime> seen = <DateTime>{};
-    final List<({String label, DateTime? value})> unique =
-        <({String label, DateTime? value})>[
-      for (final ({String label, DateTime? value}) option in options)
-        if (option.value == null || seen.add(option.value!)) option,
-    ];
+    final List<({String label, DateTime? value})> options = dueQuickOptions(
+      today: dateOnly(DateTime.now()),
+      localizations: AppLocalizations.of(context),
+    );
 
     return Wrap(
       spacing: AppSpacing.sm,
       runSpacing: AppSpacing.sm,
       children: <Widget>[
-        for (final ({String label, DateTime? value}) option in unique)
+        for (final ({String label, DateTime? value}) option in options)
           ChoiceChip(
             label: Text(option.label),
             selected: option.value == null
                 ? selected == null
                 : selected != null && isSameDate(selected!, option.value!),
-            onSelected: (_) => onPick(option.value),
+            onSelected: (_) {
+              HapticFeedback.selectionClick();
+              onPick(option.value);
+            },
           ),
       ],
     );
   }
+}
+
+/// The four answers to "when is this due?", for a given today.
+///
+/// A function rather than four inline chips so the awkward days can be tested
+/// rather than reasoned about: the 31st, the 30th, February, and the last week
+/// of a month where two of the shortcuts name the same day. The widget reads it
+/// with the real today; a test hands it any date it likes.
+List<({String label, DateTime? value})> dueQuickOptions({
+  required DateTime today,
+  required AppLocalizations localizations,
+}) {
+  final DateTime start = dateOnly(today);
+  final List<({String label, DateTime? value})> options =
+      <({String label, DateTime? value})>[
+    (label: localizations.dueQuickWeek, value: addDays(start, 7)),
+    // From *today*, clamped to the target month: the 31st plus a month is the
+    // 30th of a 30-day month and the 28th of February, which is the day a person
+    // means when they say "in a month".
+    (label: localizations.dueQuickMonth, value: addMonths(start, 1)),
+    // The last day of this month, whatever it is: 28, 29, 30 or 31.
+    (label: localizations.dueQuickMonthEnd, value: endOfMonth(start)),
+    (label: localizations.dueQuickNone, value: null),
+  ];
+
+  // On the last week of a month two shortcuts can name the same day — "in a
+  // week" and "end of the month" are the 31st together. The second is dropped
+  // rather than drawn as another button that does the same thing.
+  final Set<DateTime> seen = <DateTime>{};
+  return <({String label, DateTime? value})>[
+    for (final ({String label, DateTime? value}) option in options)
+      if (option.value == null || seen.add(option.value!)) option,
+  ];
 }
 
 class _AdvancedSection extends StatelessWidget {

@@ -3,8 +3,10 @@ import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
 import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
+import 'package:dhimmah/features/debts/debt_form_screen.dart';
 import 'package:dhimmah/features/people/people_screen.dart';
 import 'package:dhimmah/features/people/person_picker_sheet.dart';
+import 'package:dhimmah/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -567,6 +569,109 @@ void main() {
       // objecting — the error follows the figure, not the field.
       await typeAmount(tester, '100000000');
       expect(find.text('المبلغ كبير جدًا.'), findsNothing);
+    });
+  });
+
+  group('the due-date shortcuts', () {
+    final AppLocalizations l = lookupAppLocalizations(const Locale('ar'));
+
+    DateTime? valueFor(DateTime today, String label) => dueQuickOptions(
+          today: today,
+          localizations: l,
+        ).firstWhere((({String label, DateTime? value}) o) => o.label == label).value;
+
+    List<String> labelsFor(DateTime today) => dueQuickOptions(
+          today: today,
+          localizations: l,
+        ).map((({String label, DateTime? value}) o) => o.label).toList();
+
+    test('the last day of a 31-day month is the 31st', () {
+      final DateTime today = DateTime(2026, 10, 31);
+      expect(valueFor(today, 'نهاية الشهر'), DateTime(2026, 10, 31));
+      // From the 31st, "in a month" is the 30th: November has no 31st, and the
+      // month the user means is November, clamped — not December's 1st.
+      expect(valueFor(today, 'بعد شهر'), DateTime(2026, 11, 30));
+      expect(valueFor(today, 'بعد أسبوع'), DateTime(2026, 11, 7));
+    });
+
+    test('the last day of a 30-day month is the 30th', () {
+      expect(
+        valueFor(DateTime(2026, 9, 30), 'نهاية الشهر'),
+        DateTime(2026, 9, 30),
+      );
+    });
+
+    test('February ends on the 28th, and on the 29th in a leap year', () {
+      expect(valueFor(DateTime(2027, 2, 10), 'نهاية الشهر'), DateTime(2027, 2, 28));
+      expect(valueFor(DateTime(2028, 2, 10), 'نهاية الشهر'), DateTime(2028, 2, 29));
+      // Leap day plus a month is March's 29th, not the 28th: the clamp applies
+      // to the target month, not to the day the user is standing on.
+      expect(valueFor(DateTime(2028, 2, 29), 'بعد شهر'), DateTime(2028, 3, 29));
+      expect(valueFor(DateTime(2028, 2, 29), 'نهاية الشهر'), DateTime(2028, 2, 29));
+    });
+
+    test('in the last week two shortcuts can name one day, and only one is drawn',
+        () {
+      // 24 January plus a week is 31 January, which is also the month's end.
+      final List<String> labels = labelsFor(DateTime(2026, 1, 24));
+      expect(labels.where((String label) => label == 'بعد أسبوع'), hasLength(1));
+      expect(labels, isNot(contains('نهاية الشهر')),
+          reason: 'the second chip would do the same thing as the first');
+      expect(labels.last, 'بلا تاريخ');
+    });
+
+    test('never spans a month end that is already the same day', () {
+      final DateTime today = DateTime(2026, 12, 31);
+      expect(valueFor(today, 'نهاية الشهر'), DateTime(2026, 12, 31));
+      final List<String> labels = labelsFor(today);
+      expect(labels.toSet(), hasLength(labels.length),
+          reason: 'no two chips may name the same day');
+    });
+
+    testWidgets('the chip in force is the one lit', (WidgetTester tester) async {
+      await pumpDhimmah(tester, db: db);
+      await settle(tester);
+      await openBlankForm(tester);
+      await reveal(tester, find.text('بلا تاريخ'));
+
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.ancestor(
+                of: find.text('بلا تاريخ'),
+                matching: find.byType(ChoiceChip),
+              ),
+            )
+            .selected,
+        isTrue,
+        reason: 'nothing is due yet, so "no date" is the state the form is in',
+      );
+
+      await tester.tap(find.text('نهاية الشهر'));
+      await settle(tester);
+
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.ancestor(
+                of: find.text('نهاية الشهر'),
+                matching: find.byType(ChoiceChip),
+              ),
+            )
+            .selected,
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<ChoiceChip>(
+              find.ancestor(
+                of: find.text('بلا تاريخ'),
+                matching: find.byType(ChoiceChip),
+              ),
+            )
+            .selected,
+        isFalse,
+      );
     });
   });
 }

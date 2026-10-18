@@ -117,9 +117,17 @@ class _FilledCard extends StatelessWidget {
             ? palette.dueSoonContainer
             : palette.settledContainer;
 
-    final String headline = over
-        ? localizations.budgetOverCommitted
-        : localizations.budgetRemaining;
+    // Over-committed, the headline figure is the *overage* under a label that
+    // names it, not the negative remainder: «المتبقي من الدخل −₹1,000» reads as
+    // a balance below zero, and it puts a minus sign at the start of an amount,
+    // which is exactly the thing the two scripts lay out differently. The
+    // number itself is the same either way — this is the sign moved into words.
+    final String headline =
+        over ? localizations.budgetOverBy : localizations.budgetRemaining;
+    final Money figure = Money(
+      over ? budget.overMinor : budget.remainingMinor,
+      budget.currency,
+    );
 
     return AppCard(
       onTap: () => showIncomeManageSheet(context),
@@ -135,7 +143,13 @@ class _FilledCard extends StatelessWidget {
                   color: accentContainer,
                   borderRadius: AppRadius.rSm,
                 ),
-                child: Icon(Icons.savings_outlined, size: 20, color: accent),
+                child: Icon(
+                  // The same mark the attention list uses for money that has
+                  // gone wrong, so "over" reads as the same kind of fact here.
+                  over ? Icons.error_outline : Icons.savings_outlined,
+                  size: 20,
+                  color: accent,
+                ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -149,10 +163,20 @@ class _FilledCard extends StatelessWidget {
                       maxLines: 2,
                     ),
                     const SizedBox(height: 2),
-                    MoneyText(
-                      Money(budget.remainingMinor, budget.currency),
-                      style: theme.textTheme.headlineSmall,
-                      color: accent,
+                    // Keyed on the figure, so a month that changes underneath
+                    // the reader — a commitment edited, an income added — cross
+                    // fades to the new number instead of snapping to it.
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 220),
+                      child: MoneyText(
+                        figure,
+                        key: ValueKey<String>(
+                          '${figure.minorUnits}|${figure.currency.code}',
+                        ),
+                        style: theme.textTheme.headlineSmall,
+                        color: accent,
+                        shrinkToFit: true,
+                      ),
                     ),
                   ],
                 ),
@@ -165,19 +189,34 @@ class _FilledCard extends StatelessWidget {
           // overflowing it, and the words above already say which case it is.
           ClipRRect(
             borderRadius: BorderRadius.circular(AppRadius.pill),
-            child: LinearProgressIndicator(
-              value: budget.consumptionRatioClamped,
-              minHeight: 8,
-              backgroundColor: palette.surfaceMuted,
-              valueColor: AlwaysStoppedAnimation<Color>(accent),
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(end: budget.consumptionRatioClamped),
+              duration: const Duration(milliseconds: 320),
+              curve: Curves.easeOutCubic,
+              builder: (BuildContext context, double value, Widget? child) =>
+                  LinearProgressIndicator(
+                value: value,
+                minHeight: 8,
+                backgroundColor: palette.surfaceMuted,
+                valueColor: AlwaysStoppedAnimation<Color>(accent),
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          Text(
-            localizations.budgetConsumed(
-              formatting.percent(budget.consumptionRatio),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Text(
+              // A month with nothing due says so in words rather than reporting
+              // "0% of your income goes to commitments", which is a number
+              // about nothing. The rest of the card already reads zero.
+              budget.hasObligations
+                  ? localizations.budgetConsumed(
+                      formatting.percent(budget.consumptionRatio),
+                    )
+                  : localizations.budgetAllAvailable,
+              key: ValueKey<bool>(budget.hasObligations),
+              style: theme.textTheme.labelSmall,
             ),
-            style: theme.textTheme.labelSmall,
           ),
           const SizedBox(height: AppSpacing.md),
           const AppDivider(),
@@ -225,13 +264,33 @@ class _FilledCard extends StatelessWidget {
               ],
             ),
           ),
-          if (!budget.hasObligations) ...<Widget>[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              localizations.budgetNoObligations,
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
+          const SizedBox(height: AppSpacing.sm),
+          // The card *is* the way into the income list — tap it and every source
+          // is there to edit. A card that opens something without saying so is a
+          // feature only its author knows about, so it says so, once, quietly.
+          Row(
+            children: <Widget>[
+              Icon(Icons.edit_outlined, size: 13, color: palette.textTertiary),
+              const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: Text(
+                  localizations.budgetManageIncome,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: palette.textTertiary,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Icon(
+                Directionality.of(context) == TextDirection.rtl
+                    ? Icons.chevron_left
+                    : Icons.chevron_right,
+                size: 16,
+                color: palette.textTertiary,
+              ),
+            ],
+          ),
         ],
       ),
     );
