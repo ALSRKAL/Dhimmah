@@ -451,22 +451,36 @@ class _ListControls extends StatelessWidget {
       ),
       child: Row(
         children: <Widget>[
-          Text(
-            localizations.recordsCount(count),
-            style: Theme.of(
-              context,
-            ).textTheme.labelMedium?.copyWith(color: palette.textSecondary),
+          // The count takes whatever the controls leave and gives way first
+          // when there is not enough: it is the least important thing on the
+          // row, and at the largest text size on a narrow phone the three of
+          // them together ran 74 pixels past the screen.
+          Expanded(
+            child: Text(
+              localizations.recordsCount(count),
+              style: Theme.of(
+                context,
+              ).textTheme.labelMedium?.copyWith(color: palette.textSecondary),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: AppSpacing.sm),
           if (onOpenFilters != null)
-            TextButton.icon(
-              onPressed: onOpenFilters,
-              icon: Badge(
-                isLabelVisible: filter.activeCount > 0,
-                label: Text(filter.activeCount.toString()),
-                child: const Icon(Icons.tune, size: 18),
+            Flexible(
+              child: TextButton.icon(
+                onPressed: onOpenFilters,
+                icon: Badge(
+                  isLabelVisible: filter.activeCount > 0,
+                  label: Text(filter.activeCount.toString()),
+                  child: const Icon(Icons.tune, size: 18),
+                ),
+                label: Text(
+                  localizations.filterTitle,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                ),
               ),
-              label: Text(localizations.filterTitle),
             ),
           if (!sortLocked)
             PopupMenuButton<DebtSortOrder>(

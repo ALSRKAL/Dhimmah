@@ -715,15 +715,23 @@ class _AllocationSection extends StatelessWidget {
             ),
             // One tap swaps the rule and the plan is redrawn: the order is the
             // whole decision, so the control for it sits on the heading rather
-            // than behind a menu.
-            TextButton.icon(
-              onPressed: () => onOrderChanged(
-                order == PaymentAllocationOrder.mostUrgent
-                    ? PaymentAllocationOrder.oldestFirst
-                    : PaymentAllocationOrder.mostUrgent,
+            // than behind a menu. Flexible, and its label may take two lines:
+            // at the largest text size on a narrow phone the heading and this
+            // button together were 59 pixels wider than the sheet.
+            Flexible(
+              child: TextButton.icon(
+                onPressed: () => onOrderChanged(
+                  order == PaymentAllocationOrder.mostUrgent
+                      ? PaymentAllocationOrder.oldestFirst
+                      : PaymentAllocationOrder.mostUrgent,
+                ),
+                icon: const Icon(Icons.swap_vert, size: 16),
+                label: Text(
+                  order.label(localizations),
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                ),
               ),
-              icon: const Icon(Icons.swap_vert, size: 16),
-              label: Text(order.label(localizations)),
             ),
           ],
         ),
@@ -830,13 +838,20 @@ class _AllocationRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            _AmountCell(
-              allocation: allocation,
-              currency: currency,
-              settles: settles,
-              touched: touched,
-              isExcluded: isExcluded,
-              localizations: localizations,
+            // Flexible, because this cell is the widest thing in the row and it
+            // grows with the amount: at the largest amount Dhimmah accepts the
+            // "takes X of Y, leaving Z" line was 120 pixels wider than the
+            // sheet, and the row was laid out past its own edge. Loose, so an
+            // ordinary figure still takes exactly the width it needs.
+            Flexible(
+              child: _AmountCell(
+                allocation: allocation,
+                currency: currency,
+                settles: settles,
+                touched: touched,
+                isExcluded: isExcluded,
+                localizations: localizations,
+              ),
             ),
           ],
         ),
@@ -904,9 +919,16 @@ class _AmountCell extends StatelessWidget {
         children: <Widget>[
           Icon(Icons.check_circle_outline, size: 16, color: palette.settled),
           const SizedBox(width: AppSpacing.xs),
-          Text(
-            localizations.personPaymentWillSettle,
-            style: theme.textTheme.labelLarge?.copyWith(color: palette.settled),
+          // The mark already says it; the words may take two lines rather than
+          // push the row past its edge, which is what they did at the largest
+          // text size.
+          Flexible(
+            child: Text(
+              localizations.personPaymentWillSettle,
+              style: theme.textTheme.labelLarge?.copyWith(color: palette.settled),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
         ],
       );
@@ -919,6 +941,7 @@ class _AmountCell extends StatelessWidget {
           Money(allocation.allocatedMinor, currency),
           style: theme.textTheme.titleSmall,
           color: palette.owedToMe,
+          shrinkToFit: true,
         ),
         const SizedBox(height: 2),
         Text(

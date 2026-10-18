@@ -202,42 +202,60 @@ class _IncomeTileState extends ConsumerState<_IncomeTile> {
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
-              MoneyText(
-                Money(income.amountMinor, income.currency),
-                style: theme.textTheme.titleSmall,
-                color: archived ? palette.textTertiary : palette.owedToMe,
+              // The name gives way with an ellipsis already; the figure gives
+              // way by being drawn smaller, because a shortened amount is a
+              // different amount. At the largest text size on a narrow phone
+              // the two of them together ran 94 pixels past this row.
+              Flexible(
+                child: MoneyText(
+                  Money(income.amountMinor, income.currency),
+                  style: theme.textTheme.titleSmall,
+                  color: archived ? palette.textTertiary : palette.owedToMe,
+                  shrinkToFit: true,
+                ),
               ),
             ],
           ),
           const SizedBox(height: AppSpacing.sm),
           Row(
             children: <Widget>[
-              TextButton.icon(
-                onPressed: _busy
-                    ? null
-                    : () => _run(
-                          () => ref
-                              .read(ledgerServiceProvider)
-                              .setIncomeArchived(income.id, !archived),
-                          archived
-                              ? localizations.incomeRestoredToast
-                              : localizations.incomeArchivedToast,
-                        ),
-                icon: Icon(
-                  archived ? Icons.unarchive_outlined : Icons.inventory_2_outlined,
-                  size: 16,
-                ),
-                label: Text(
-                  archived ? localizations.actionUnarchive : localizations.actionArchive,
+              // Both actions are labelled, and both may take a second line:
+              // "unarchive" beside "delete" is wider than a narrow phone at the
+              // largest text size has room for on one line.
+              Flexible(
+                child: TextButton.icon(
+                  onPressed: _busy
+                      ? null
+                      : () => _run(
+                            () => ref
+                                .read(ledgerServiceProvider)
+                                .setIncomeArchived(income.id, !archived),
+                            archived
+                                ? localizations.incomeRestoredToast
+                                : localizations.incomeArchivedToast,
+                          ),
+                  icon: Icon(
+                    archived ? Icons.unarchive_outlined : Icons.inventory_2_outlined,
+                    size: 16,
+                  ),
+                  label: Text(
+                    archived ? localizations.actionUnarchive : localizations.actionArchive,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
-              const Spacer(),
-              TextButton.icon(
-                onPressed: _busy ? null : _confirmDelete,
-                icon: Icon(Icons.delete_outline, size: 16, color: palette.overdue),
-                label: Text(
-                  localizations.actionDelete,
-                  style: TextStyle(color: palette.overdue),
+              const SizedBox(width: AppSpacing.sm),
+              Flexible(
+                child: TextButton.icon(
+                  onPressed: _busy ? null : _confirmDelete,
+                  icon: Icon(Icons.delete_outline, size: 16, color: palette.overdue),
+                  label: Text(
+                    localizations.actionDelete,
+                    style: TextStyle(color: palette.overdue),
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             ],

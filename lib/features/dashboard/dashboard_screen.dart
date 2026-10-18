@@ -425,7 +425,16 @@ class _AttentionAmounts extends StatelessWidget {
                 color: palette.textSecondary,
               ),
             ),
-            MoneyText(money, color: color, style: theme.textTheme.titleSmall),
+            // The label stays whole and the figure gives way: it is the figure
+            // that cannot be cut, and it is the one that grows with the ledger.
+            Flexible(
+              child: MoneyText(
+                money,
+                color: color,
+                style: theme.textTheme.titleSmall,
+                shrinkToFit: true,
+              ),
+            ),
           ],
         );
 
@@ -512,10 +521,17 @@ class _AttentionRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-            MoneyText(
-              item.money,
-              style: theme.textTheme.titleSmall,
-              color: amountColor,
+            // The row has to hold a title and a figure; when the figure is what
+            // cannot fit — the largest amount at the largest text size — it is
+            // drawn smaller rather than ellipsized, because a shortened amount
+            // reads as a different amount.
+            Flexible(
+              child: MoneyText(
+                item.money,
+                style: theme.textTheme.titleSmall,
+                color: amountColor,
+                shrinkToFit: true,
+              ),
             ),
           ],
         ),

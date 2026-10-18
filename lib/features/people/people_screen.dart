@@ -131,7 +131,15 @@ class _PersonRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.md),
-            _PersonBalances(totals: entry.totals),
+            // The name gives way first — it is truncated with an ellipsis and
+            // still names the person — and the balances give way last, by being
+            // drawn smaller rather than cut: a shortened amount is a different
+            // amount. Without this, a person whose balance is the largest the
+            // app accepts ran 120 pixels past the row on a narrow phone at the
+            // largest text size.
+            Flexible(
+              child: _PersonBalances(totals: entry.totals),
+            ),
           ],
         ),
       ),
@@ -175,12 +183,14 @@ class _PersonBalances extends StatelessWidget {
             Money(first.iOweMinor, first.currency),
             style: theme.textTheme.titleSmall,
             color: palette.iOwe,
+            shrinkToFit: true,
           ),
         if (first.owedToMeMinor > 0)
           MoneyText(
             Money(first.owedToMeMinor, first.currency),
             style: theme.textTheme.titleSmall,
             color: palette.owedToMe,
+            shrinkToFit: true,
           ),
         if (active.length > 1)
           Text(

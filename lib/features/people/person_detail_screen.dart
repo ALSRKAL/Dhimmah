@@ -398,17 +398,29 @@ class _OtherCurrencyLine extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Text(
-            totals.net.isNegative
-                ? localizations.dashboardAgainstYou
-                : localizations.dashboardInYourFavour,
-            style: theme.textTheme.labelSmall,
+          // Which way the balance leans is a phrase, so it is the part that
+          // gives way — and beside it the figure, which cannot be shortened
+          // without becoming a different figure, is drawn smaller instead. The
+          // two of them together ran 17 pixels past this row on a narrow phone
+          // at the largest text size.
+          Flexible(
+            child: Text(
+              totals.net.isNegative
+                  ? localizations.dashboardAgainstYou
+                  : localizations.dashboardInYourFavour,
+              style: theme.textTheme.labelSmall,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          MoneyText(
-            Money(totals.net.minorUnits.abs(), totals.currency),
-            style: theme.textTheme.labelLarge,
-            color: totals.net.isNegative ? palette.iOwe : palette.owedToMe,
+          Flexible(
+            child: MoneyText(
+              Money(totals.net.minorUnits.abs(), totals.currency),
+              style: theme.textTheme.labelLarge,
+              color: totals.net.isNegative ? palette.iOwe : palette.owedToMe,
+              shrinkToFit: true,
+            ),
           ),
         ],
       ),
@@ -456,8 +468,12 @@ class _PersonActions extends ConsumerWidget {
         ),
         child: Row(
           children: <Widget>[
+            // The two actions share the row between them, each one's label free
+            // to take a second line. Three parts to the primary and one to the
+            // secondary left the secondary 17 pixels narrower than its own icon
+            // and first word at the largest text size on a narrow phone, and the
+            // row was laid out past the screen.
             Expanded(
-              flex: canPay ? 3 : 1,
               child: FilledButton.icon(
                 onPressed: canPay
                     ? () => showPersonPaymentSheet(
@@ -476,11 +492,17 @@ class _PersonActions extends ConsumerWidget {
                   canPay
                       ? localizations.detailRecordPayment
                       : localizations.addDebtAction,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
                 ),
               ),
             ),
             if (canPay) ...<Widget>[
               const SizedBox(width: AppSpacing.sm),
+              // An equal share, not a quarter: two labelled buttons beside an
+              // icon need half each once the text is large. The hierarchy is
+              // carried by filled-against-outlined, which is what the eye reads
+              // anyway, and both labels stay whole.
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed: () =>
@@ -488,8 +510,8 @@ class _PersonActions extends ConsumerWidget {
                   icon: const Icon(Icons.add, size: 18),
                   label: Text(
                     localizations.addDebtAction,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
                   ),
                 ),
               ),

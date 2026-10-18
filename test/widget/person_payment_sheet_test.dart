@@ -8,6 +8,7 @@ import 'package:dhimmah/domain/entities/drafts.dart';
 import 'package:dhimmah/domain/entities/payment.dart';
 import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
+import 'package:dhimmah/domain/services/amount_rules.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -350,6 +351,44 @@ void main() {
       await balances(),
       <String, int>{'فلس': 101 - 25},
       reason: '25 paise, not 24 and not 26',
+    );
+  });
+
+  testWidgets('the largest amount is split exactly, with nothing wrapping round',
+      (WidgetTester tester) async {
+    // One billion rupees: the ceiling the domain allows, and the biggest figure
+    // every path in this sheet can be handed. The shortcuts divide in minor
+    // units, and the field renders the result in major ones, so a slip here
+    // would show as a plausible-looking small number rather than an error.
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[ahmed.id],
+        title: 'الحد',
+        principalMinor: AmountRules.maxMinor,
+        currency: AppCurrency.inr,
+        issuedAt: today,
+        dueAt: addDays(today, 1),
+      ),
+    );
+    await openSheet(tester);
+
+    expect(fieldText(tester), isEmpty, reason: 'nothing typed yet');
+
+    await tap(tester, '25%');
+    expect(fieldText(tester), '250000000.00', reason: '100,000,000,000 ~/ 4');
+
+    await tap(tester, '50%');
+    expect(fieldText(tester), '500000000.00', reason: 'and ~/ 2');
+
+    await tap(tester, 'سداد الكل');
+    expect(fieldText(tester), '1000000000.00');
+
+    await tap(tester, 'حفظ الدفعة');
+    expect(
+      await balances(),
+      <String, int>{'الحد': 0},
+      reason: 'the whole billion was applied, and the record is settled',
     );
   });
 

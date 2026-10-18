@@ -218,11 +218,30 @@ class _Side extends StatelessWidget {
           children: <Widget>[
             Icon(icon, size: 13, color: color),
             const SizedBox(width: AppSpacing.xs),
-            Text(label, style: theme.textTheme.labelMedium),
+            // The label wraps rather than running past the card. At the largest
+            // text size on a narrow phone, "You are owed" beside its mark is
+            // wider than one side of the header — and the two sides are equal,
+            // so neither can grow.
+            Flexible(
+              child: Text(
+                label,
+                style: theme.textTheme.labelMedium,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
           ],
         ),
         const SizedBox(height: 3),
-        MoneyText(money, color: color, style: theme.textTheme.titleLarge),
+        // The two headline figures of the whole app. They keep every digit by
+        // being drawn smaller when they have to; a headline amount with an
+        // ellipsis in it would be a headline that does not state the amount.
+        MoneyText(
+          money,
+          color: color,
+          style: theme.textTheme.titleLarge,
+          shrinkToFit: true,
+        ),
       ],
     );
   }
