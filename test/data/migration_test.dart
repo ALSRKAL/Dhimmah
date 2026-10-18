@@ -476,8 +476,14 @@ void main() {
       expect(income.note, 'يُنزل آخر الشهر');
       expect(income.archivedAt, isNull);
 
-      // Archiving keeps the row and stamps the day, which is what lets a month
-      // an income covered go on reading correctly after it stops.
+      // Archiving keeps the row and stamps the day, so the record itself — its
+      // amount, its rhythm and the day it stopped — survives and travels in a
+      // backup. What it stops is the live figure: the budget card reads the
+      // active incomes only, so an archived income leaves this month's total at
+      // once, and every month after it. That is the behaviour pinned by
+      // `monthly_budget_test.dart` ("an archived one stops counting"); the
+      // comment that used to stand here claimed the opposite — that a month the
+      // income covered went on reading correctly — and no read does that.
       await incomes.setArchived(income.id, archived: true, now: today);
       expect(await incomes.getAll(), hasLength(1));
       expect((await incomes.getAll()).single.archivedAt, isNotNull);

@@ -17,6 +17,7 @@ import 'package:dhimmah/domain/entities/obligation.dart';
 import 'package:dhimmah/domain/enums/activity_enums.dart';
 import 'package:dhimmah/domain/enums/obligation_enums.dart';
 import 'package:dhimmah/domain/enums/recurrence.dart';
+import 'package:dhimmah/domain/services/amount_rules.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/app_harness.dart';
@@ -211,6 +212,34 @@ void main() {
       await service.setIncomeArchived(second.id, false);
       expect((await budget()).incomeMinor, 460000,
           reason: 'and restoring it brings it back');
+    });
+
+    test('the largest incomes add up without wrapping', () async {
+      // The card adds its sources itself, so the ceiling is where the sum could
+      // stop being a sum: 64-bit arithmetic wraps round into a small, plausible
+      // number rather than failing, and a wrong balance that still looks like a
+      // balance is the one kind of defect a ledger cannot show its user.
+      //
+      // Weekly, starting on a Monday in June 2026, so each source is multiplied
+      // by the five Mondays that month has on the way in.
+      for (final String name in <String>['الأول', 'الثاني']) {
+        await service.createIncome(
+          IncomeDraft(
+            name: name,
+            amountMinor: AmountRules.maxMinor,
+            currency: AppCurrency.inr,
+            frequency: RecurrenceFrequency.weekly,
+            startAt: DateTime(2026, 6),
+          ),
+        );
+      }
+
+      final MonthlyBudget june = await queries
+          .watchMonthlyBudget(year: 2026, month: 6, currency: AppCurrency.inr)
+          .first;
+      expect(june.incomeCount, 2);
+      expect(june.incomeMinor, 10 * AmountRules.maxMinor);
+      expect(june.incomeMinor, greaterThan(0), reason: 'a wrap shows as this');
     });
 
     test('a monthly income every N months counts only in its own months',
