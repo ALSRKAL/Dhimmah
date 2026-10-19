@@ -766,21 +766,28 @@ class _AllocationSection extends StatelessWidget {
             // than behind a menu. Flexible, and its label may take two lines:
             // at the largest text size on a narrow phone the heading and this
             // button together were 59 pixels wider than the sheet.
+            //
+            // End-aligned inside its half, or the button is packed where the
+            // heading ends — on the midline — with the sheet's trailing edge
+            // empty.
             Flexible(
-              child: TextButton.icon(
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  onOrderChanged(
-                    order == PaymentAllocationOrder.mostUrgent
-                        ? PaymentAllocationOrder.oldestFirst
-                        : PaymentAllocationOrder.mostUrgent,
-                  );
-                },
-                icon: const Icon(Icons.swap_vert, size: 16),
-                label: Text(
-                  order.label(localizations),
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: TextButton.icon(
+                  onPressed: () {
+                    HapticFeedback.selectionClick();
+                    onOrderChanged(
+                      order == PaymentAllocationOrder.mostUrgent
+                          ? PaymentAllocationOrder.oldestFirst
+                          : PaymentAllocationOrder.mostUrgent,
+                    );
+                  },
+                  icon: const Icon(Icons.swap_vert, size: 16),
+                  label: Text(
+                    order.label(localizations),
+                    maxLines: 2,
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
             ),
@@ -902,12 +909,14 @@ class _AllocationRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            // Flexible, because this cell is the widest thing in the row and it
+            // Tight, because this cell is the widest thing in the row and it
             // grows with the amount: at the largest amount Dhimmah accepts the
             // "takes X of Y, leaving Z" line was 120 pixels wider than the
-            // sheet, and the row was laid out past its own edge. Loose, so an
-            // ordinary figure still takes exactly the width it needs.
-            Flexible(
+            // sheet, and the row was laid out past its own edge. The cell's own
+            // column is end-aligned, so filling the trailing half both bounds
+            // the amount and puts it on the sheet's edge; a loose `Flexible`
+            // bounded it but left it floating where the title ended.
+            Expanded(
               child: _AmountCell(
                 allocation: allocation,
                 currency: currency,

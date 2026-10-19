@@ -510,10 +510,15 @@ class _TrendChart extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Row(
+          // A legend flows rather than overflows. The two labels side by side
+          // are wider than a 320-wide card at the largest text size in Arabic,
+          // where the second entry ran 61 pixels past the card; a second line
+          // costs nothing and keeps both labels whole.
+          Wrap(
+            spacing: AppSpacing.lg,
+            runSpacing: AppSpacing.sm,
             children: <Widget>[
               _LegendDot(color: palette.settled, label: localizations.reportTrendSettled),
-              const SizedBox(width: AppSpacing.lg),
               _LegendDot(color: palette.brand, label: localizations.reportTrendNewDebt),
             ],
           ),

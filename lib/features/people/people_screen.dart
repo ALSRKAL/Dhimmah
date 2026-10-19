@@ -62,7 +62,14 @@ class PeopleScreen extends ConsumerWidget {
                 children: <Widget>[
                   _PersonRow(entry: entry),
                   if (index != sorted.length - 1)
-                    const AppDivider(indent: 74),
+                    // Ends where the row's content ends. The balances are drawn
+                    // against that edge, and a rule that ran on to the screen
+                    // edge while they stopped short of it read as a row that
+                    // had not been squared off.
+                    const AppDivider(
+                      indent: 74,
+                      endIndent: AppSpacing.lg,
+                    ),
                 ],
               );
             },
@@ -134,10 +141,16 @@ class _PersonRow extends StatelessWidget {
             // The name gives way first — it is truncated with an ellipsis and
             // still names the person — and the balances give way last, by being
             // drawn smaller rather than cut: a shortened amount is a different
-            // amount. Without this, a person whose balance is the largest the
-            // app accepts ran 120 pixels past the row on a narrow phone at the
-            // largest text size.
-            Flexible(
+            // amount.
+            //
+            // Tight, not loose. `Flexible` shares the free space and then packs
+            // its child at the row's *start*, so the balances began at the 50%
+            // line and the whole trailing half of the row stood empty — the
+            // amounts floated in the middle in Arabic. Filling the trailing half
+            // and letting `_PersonBalances`' own `CrossAxisAlignment.end` place
+            // the figures is what puts them on the edge, and it still bounds them
+            // so a record-sized amount is scaled down rather than overflowing.
+            Expanded(
               child: _PersonBalances(totals: entry.totals),
             ),
           ],

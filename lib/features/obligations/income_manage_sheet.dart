@@ -204,14 +204,18 @@ class _IncomeTileState extends ConsumerState<_IncomeTile> {
               const SizedBox(width: AppSpacing.md),
               // The name gives way with an ellipsis already; the figure gives
               // way by being drawn smaller, because a shortened amount is a
-              // different amount. At the largest text size on a narrow phone
-              // the two of them together ran 94 pixels past this row.
-              Flexible(
-                child: MoneyText(
-                  Money(income.amountMinor, income.currency),
-                  style: theme.textTheme.titleSmall,
-                  color: archived ? palette.textTertiary : palette.owedToMe,
-                  shrinkToFit: true,
+              // different amount. Tight and end-aligned: a loose `Flexible` is
+              // packed at the row's start, which drew the amount on the middle
+              // line instead of the card's trailing edge.
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: MoneyText(
+                    Money(income.amountMinor, income.currency),
+                    style: theme.textTheme.titleSmall,
+                    color: archived ? palette.textTertiary : palette.owedToMe,
+                    shrinkToFit: true,
+                  ),
                 ),
               ),
             ],
@@ -220,9 +224,15 @@ class _IncomeTileState extends ConsumerState<_IncomeTile> {
           Row(
             children: <Widget>[
               // Both actions are labelled, and both may take a second line:
-              // "unarchive" beside "delete" is wider than a narrow phone at the
-              // largest text size has room for on one line.
-              Flexible(
+              // The two actions share the row between them, one on each side, so
+              // the destructive action is never where a thumb expected the
+              // other. An equal share rather than natural widths: "archive" and
+              // "delete" are single words, so a button that is given less than
+              // its label needs cannot wrap its way out — it ran 8.5 pixels past
+              // the row in English at the largest text size. Half each, and the
+              // label gives way with an ellipsis at the very largest sizes
+              // rather than the row breaking.
+              Expanded(
                 child: TextButton.icon(
                   onPressed: _busy
                       ? null
@@ -241,12 +251,13 @@ class _IncomeTileState extends ConsumerState<_IncomeTile> {
                   label: Text(
                     archived ? localizations.actionUnarchive : localizations.actionArchive,
                     maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                   ),
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Flexible(
+              Expanded(
                 child: TextButton.icon(
                   onPressed: _busy ? null : _confirmDelete,
                   icon: Icon(Icons.delete_outline, size: 16, color: palette.overdue),
@@ -254,6 +265,7 @@ class _IncomeTileState extends ConsumerState<_IncomeTile> {
                     localizations.actionDelete,
                     style: TextStyle(color: palette.overdue),
                     maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                   ),
                 ),

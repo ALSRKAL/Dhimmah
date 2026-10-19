@@ -525,12 +525,20 @@ class _AttentionRow extends StatelessWidget {
             // cannot fit — the largest amount at the largest text size — it is
             // drawn smaller rather than ellipsized, because a shortened amount
             // reads as a different amount.
-            Flexible(
-              child: MoneyText(
-                item.money,
-                style: theme.textTheme.titleSmall,
-                color: amountColor,
-                shrinkToFit: true,
+            //
+            // Tight and end-aligned. A loose `Flexible` shares the free space
+            // and is then packed at the row's start, which left the figure
+            // floating on the midline with the trailing half of the card empty;
+            // the `Align` is what actually holds it against the edge.
+            Expanded(
+              child: Align(
+                alignment: AlignmentDirectional.centerEnd,
+                child: MoneyText(
+                  item.money,
+                  style: theme.textTheme.titleSmall,
+                  color: amountColor,
+                  shrinkToFit: true,
+                ),
               ),
             ),
           ],

@@ -133,11 +133,21 @@ class DetailRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.md),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: theme.textTheme.titleSmall?.copyWith(color: valueColor),
+          // The value takes the other half and is drawn against its trailing
+          // edge. It must be a *tight* box with end-aligned content: a loose
+          // `Flexible` is packed where the row's start leaves it, so the value
+          // began on the 50% line and the trailing half of the card stood empty
+          // — which in Arabic is the middle of the screen. The `Align` keeps the
+          // painted figure measurable at the edge; the box around it does not
+          // matter to the eye.
+          Expanded(
+            child: Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                style: theme.textTheme.titleSmall?.copyWith(color: valueColor),
+              ),
             ),
           ),
         ],

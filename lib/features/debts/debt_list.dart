@@ -465,10 +465,17 @@ class _ListControls extends StatelessWidget {
     final AppPalette palette = context.palette;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
+      // No padding on the trailing side. The sort mark lives inside a 48-pixel
+      // touch target, which centres its 20-pixel glyph, so keeping the usual
+      // 16-pixel inset pushed the visible mark 14 pixels inside the edge while
+      // the amounts below it began at the content edge. With the target flush
+      // to the edge its glyph lands on the same axis as the money; the touch
+      // target still reaches the screen edge, which is what Material expects of
+      // a button at the end of a row.
+      padding: const EdgeInsetsDirectional.fromSTEB(
         AppSpacing.lg,
         AppSpacing.sm,
-        AppSpacing.lg,
+        0,
         AppSpacing.sm,
       ),
       child: Row(
@@ -488,20 +495,23 @@ class _ListControls extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
+          // The controls keep their natural width and sit on the trailing edge,
+          // where the amounts in the rows below them are. Wrapping them in a
+          // loose `Flexible` shared the row in half and packed them at its
+          // start, which put the filter button and the sort mark on the 50%
+          // line with the trailing half of the screen empty.
           if (onOpenFilters != null)
-            Flexible(
-              child: TextButton.icon(
-                onPressed: onOpenFilters,
-                icon: Badge(
-                  isLabelVisible: filter.activeCount > 0,
-                  label: Text(filter.activeCount.toString()),
-                  child: const Icon(Icons.tune, size: 18),
-                ),
-                label: Text(
-                  localizations.filterTitle,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                ),
+            TextButton.icon(
+              onPressed: onOpenFilters,
+              icon: Badge(
+                isLabelVisible: filter.activeCount > 0,
+                label: Text(filter.activeCount.toString()),
+                child: const Icon(Icons.tune, size: 18),
+              ),
+              label: Text(
+                localizations.filterTitle,
+                maxLines: 2,
+                textAlign: TextAlign.center,
               ),
             ),
           if (!sortLocked)

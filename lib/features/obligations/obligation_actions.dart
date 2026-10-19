@@ -110,28 +110,43 @@ class _ObligationActionButtonsState
       );
     }
 
+    // Two labelled actions in a row that can be as narrow as most of a
+    // 320-wide card: they share it equally and each label may take a second
+    // line. At their natural width they ran 230 pixels past the card, and the
+    // second button was simply not drawn.
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: <Widget>[
-        TextButton.icon(
-          onPressed: _busy ? null : () => _run(
-                    () => ref
-                        .read(ledgerServiceProvider)
-                        .markObligationPaid(widget.instance),
-                    localizations.obligationMarkedPaid,
-                  ),
-          icon: const Icon(Icons.task_alt, size: 16),
-          label: Text(localizations.obligationMarkPaid),
+        Expanded(
+          child: TextButton.icon(
+            onPressed: _busy ? null : () => _run(
+                      () => ref
+                          .read(ledgerServiceProvider)
+                          .markObligationPaid(widget.instance),
+                      localizations.obligationMarkedPaid,
+                    ),
+            icon: const Icon(Icons.task_alt, size: 16),
+            label: Text(
+              localizations.obligationMarkPaid,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
-        TextButton.icon(
-          onPressed: _busy ? null : () => _run(
-                    () => ref
-                        .read(ledgerServiceProvider)
-                        .skipObligationPeriod(widget.instance),
-                    localizations.obligationMarkedSkipped,
-                  ),
-          icon: const Icon(Icons.skip_next_outlined, size: 16),
-          label: Text(localizations.obligationSkip),
+        Expanded(
+          child: TextButton.icon(
+            onPressed: _busy ? null : () => _run(
+                      () => ref
+                          .read(ledgerServiceProvider)
+                          .skipObligationPeriod(widget.instance),
+                      localizations.obligationMarkedSkipped,
+                    ),
+            icon: const Icon(Icons.skip_next_outlined, size: 16),
+            label: Text(
+              localizations.obligationSkip,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+            ),
+          ),
         ),
       ],
     );

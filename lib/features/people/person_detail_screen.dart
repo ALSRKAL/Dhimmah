@@ -397,17 +397,23 @@ class _OtherCurrencyLine extends StatelessWidget {
               color: palette.textTertiary,
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: AppSpacing.sm),
           // Which way the balance leans is a phrase, so it is the part that
           // gives way — and beside it the figure, which cannot be shortened
-          // without becoming a different figure, is drawn smaller instead. The
-          // two of them together ran 17 pixels past this row on a narrow phone
-          // at the largest text size.
-          Flexible(
+          // without becoming a different figure, is drawn smaller instead.
+          //
+          // The `Spacer` that used to sit here was the defect: it shared the row
+          // three ways, so after it, this `Flexible` and the figure's `Flexible`
+          // had each taken a third, the figure was packed where the phrase ended
+          // and the trailing edge was left empty. The phrase now fills the space
+          // and the figure sits on the edge, inside a tight half so it still
+          // scales rather than overflowing.
+          Expanded(
             child: Text(
               totals.net.isNegative
                   ? localizations.dashboardAgainstYou
                   : localizations.dashboardInYourFavour,
+              textAlign: TextAlign.end,
               style: theme.textTheme.labelSmall,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -415,11 +421,14 @@ class _OtherCurrencyLine extends StatelessWidget {
           ),
           const SizedBox(width: AppSpacing.sm),
           Flexible(
-            child: MoneyText(
-              Money(totals.net.minorUnits.abs(), totals.currency),
-              style: theme.textTheme.labelLarge,
-              color: totals.net.isNegative ? palette.iOwe : palette.owedToMe,
-              shrinkToFit: true,
+            child: Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: MoneyText(
+                Money(totals.net.minorUnits.abs(), totals.currency),
+                style: theme.textTheme.labelLarge,
+                color: totals.net.isNegative ? palette.iOwe : palette.owedToMe,
+                shrinkToFit: true,
+              ),
             ),
           ),
         ],

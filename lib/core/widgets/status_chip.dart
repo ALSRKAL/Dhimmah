@@ -47,10 +47,21 @@ class StatusChip extends StatelessWidget {
           children: <Widget>[
             Icon(icon, size: dense ? 12 : 14, color: foreground),
             SizedBox(width: dense ? 3 : 5),
-            Text(
-              label,
-              style: (dense ? theme.textTheme.labelSmall : theme.textTheme.labelMedium)
-                  ?.copyWith(color: foreground, fontWeight: FontWeight.w600),
+            // A chip can be squeezed by a row already holding a name and an
+            // amount: on a 320-wide phone the pill ran six pixels past its own
+            // column. The label gives way with an ellipsis rather than the row
+            // breaking; the semantics above still announce it whole, and the
+            // row's own text names the state too.
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: (dense
+                        ? theme.textTheme.labelSmall
+                        : theme.textTheme.labelMedium)
+                    ?.copyWith(color: foreground, fontWeight: FontWeight.w600),
+              ),
             ),
           ],
         ),
