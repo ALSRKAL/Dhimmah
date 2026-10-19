@@ -560,6 +560,10 @@ final monthlyBudgetProvider =
         year: args.year,
         month: args.month,
         currency: args.currency,
+        // Watched, not read: "of which late" is settled against the same clock
+        // every other surface uses, and it moves with it at midnight and on
+        // resume.
+        asOf: ref.watch(todayProvider),
       );
 });
 

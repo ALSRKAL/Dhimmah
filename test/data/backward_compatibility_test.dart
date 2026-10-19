@@ -139,6 +139,7 @@ void main() {
           year: asOf.year,
           month: asOf.month,
           currency: storeDemoCurrency,
+          asOf: asOf,
         )
         .first;
     expect(budget.incomeMinor, 0);

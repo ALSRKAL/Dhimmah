@@ -66,6 +66,7 @@ void main() {
           year: year ?? now.year,
           month: month ?? now.month,
           currency: currency,
+          asOf: dateOnly(now),
         )
         .first;
   }
@@ -235,7 +236,12 @@ void main() {
       }
 
       final MonthlyBudget june = await queries
-          .watchMonthlyBudget(year: 2026, month: 6, currency: AppCurrency.inr)
+          .watchMonthlyBudget(
+            year: 2026,
+            month: 6,
+            currency: AppCurrency.inr,
+            asOf: DateTime(2026, 6, 15),
+          )
           .first;
       expect(june.incomeCount, 2);
       expect(june.incomeMinor, 10 * AmountRules.maxMinor);
@@ -328,6 +334,67 @@ void main() {
           reason: 'a monthly commitment recurs into the next month');
       expect(nextMonth.paidObligationsMinor, 0);
       expect(nextMonth.unpaidObligationsMinor, 200000);
+    });
+
+    test('a period behind us is reported as late, not as merely unpaid',
+        () async {
+      // The line this drives is «منها متأخر» on the budget card, which stayed
+      // dark however late a commitment got: it read the *stored* status, and
+      // nothing ever stores `overdue` — `materialise` writes `upcoming` and the
+      // only later writes are paid, skipped and cancelled. The card therefore
+      // reported zero late money for ever, while the same period showed as late
+      // on the dashboard and in the obligations list.
+      //
+      // The clock is the 15th, so a period on the 1st is behind us and one on
+      // the 25th is ahead.
+      await obligation(name: 'إيجار', amountMinor: 200000, day: 1);
+      await obligation(name: 'إنترنت', amountMinor: 50000, day: 25);
+
+      final MonthlyBudget month = await budget();
+      expect(month.obligationsMinor, 250000);
+      expect(
+        month.overdueObligationsMinor,
+        200000,
+        reason: 'the 1st has passed and is unpaid',
+      );
+      expect(month.unpaidObligationsMinor, 250000);
+      expect(
+        month.paidObligationsMinor,
+        0,
+        reason: 'unpaid is not paid, however late it is',
+      );
+    });
+
+    test('paying a late period moves it out of late', () async {
+      await obligation(name: 'إيجار', amountMinor: 200000, day: 1);
+      expect((await budget()).overdueObligationsMinor, 200000);
+
+      await payFirstPeriod('إيجار');
+
+      final MonthlyBudget month = await budget();
+      // Once the user has acted, the passage of time must not re-open it: the
+      // period is paid, not late, and the two lines never both count it.
+      expect(month.overdueObligationsMinor, 0);
+      expect(month.paidObligationsMinor, 200000);
+      expect(month.obligationsMinor, 200000);
+    });
+
+    test('a period still ahead of us is not late', () async {
+      await obligation(name: 'إنترنت', amountMinor: 50000, day: 25);
+      final MonthlyBudget month = await budget();
+      expect(month.obligationsMinor, 50000);
+      expect(month.overdueObligationsMinor, 0);
+    });
+
+    test('a past month reports its unpaid periods as late against today',
+        () async {
+      // The card always shows the month containing today, but it can be asked
+      // for another one — and "late" is a fact about now, not about the month
+      // being looked at, so a past month's unpaid period is late.
+      await obligation(name: 'إيجار', amountMinor: 200000, day: 1);
+      final MonthlyBudget lastMonth = await budget(month: now.month - 1);
+      expect(lastMonth.obligationsMinor, 0, reason: 'the schedule starts now');
+      expect(lastMonth.overdueObligationsMinor, 0);
     });
 
     test('paying part of the month splits paid from unpaid', () async {

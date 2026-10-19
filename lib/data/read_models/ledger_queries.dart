@@ -280,6 +280,7 @@ class LedgerQueries {
     required int year,
     required int month,
     required AppCurrency currency,
+    required DateTime asOf,
   }) {
     return _watch(() async {
       final DateTime monthStart = DateTime(year, month);
@@ -312,9 +313,20 @@ class LedgerQueries {
         if (!rule.isDue(period)) continue;
         obligationsMinor += period.amountMinor;
         obligationCount++;
-        if (period.isPaid) {
+        // Resolved against today, not read off the row. Nothing ever stores
+        // `overdue` — `materialise` writes `upcoming` and the only other writes
+        // are paid, skipped and cancelled — so testing the stored value made
+        // "of which late" a line that could never render, while the same period
+        // showed as late on the dashboard and in the obligations list. Every
+        // surface that decides lateness goes through `resolveStatus`.
+        final ObligationStatus status = ObligationSchedule.resolveStatus(
+          stored: period.status,
+          dueAt: period.dueAt,
+          asOf: asOf,
+        );
+        if (status == ObligationStatus.paid) {
           paidMinor += period.amountMinor;
-        } else if (period.status == ObligationStatus.overdue) {
+        } else if (status == ObligationStatus.overdue) {
           overdueMinor += period.amountMinor;
         }
       }

@@ -73,11 +73,17 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
         loading: const ListSkeleton(),
         builder: (BuildContext context, MonthlyReport data) {
           final bool isFuture = data.isFuture(ref.watch(todayProvider));
-          // The insight counts what is outstanding today, not at month end, so
-          // it says the same thing the dashboard does.
+          // The insight counts what is outstanding today rather than at month
+          // end, so the number means the same thing the dashboard's does. It is
+          // scoped to the currency on screen: the report is one currency's
+          // month, and an unscoped count let a report for ₹ announce debts that
+          // are only late in $. Archived records are already out — the
+          // calculator resolves `archived` before it resolves overdue.
           final DateTime asOf = ref.watch(todayProvider);
           final List<DebtView> views =
-              ref.watch(debtViewsProvider).value ?? const <DebtView>[];
+              (ref.watch(debtViewsProvider).value ?? const <DebtView>[])
+                  .where((DebtView v) => v.currency == currency)
+                  .toList();
           final int overdueCount = views
               .where((DebtView v) => v.status == DebtLifecycleStatus.overdue)
               .length;

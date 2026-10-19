@@ -65,6 +65,9 @@ void main() {
             year: year ?? 2026,
             month: month ?? 9,
             currency: currency,
+            // The same instant the report helper uses, so a parity failure can
+            // never be an artefact of the two screens reading different days.
+            asOf: today,
           )
           .first;
 

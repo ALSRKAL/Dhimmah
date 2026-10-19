@@ -63,7 +63,7 @@ void main() {
         amountMinor: amountMinor,
         currency: AppCurrency.inr,
         frequency: RecurrenceFrequency.monthly,
-        startAt: DateTime(today.year, today.month, 1),
+        startAt: DateTime(today.year, today.month),
       ),
     );
     await service.ensureOccurrences();

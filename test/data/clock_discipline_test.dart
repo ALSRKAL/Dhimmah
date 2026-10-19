@@ -162,6 +162,7 @@ void main() {
           year: nextMonth.year,
           month: nextMonth.month,
           currency: AppCurrency.inr,
+          asOf: dateOnly(now),
         )
         .first;
 
