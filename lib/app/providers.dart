@@ -585,6 +585,15 @@ final Provider<List<AppCurrency>> budgetCurrenciesProvider =
   }
   for (final Income income
       in ref.watch(incomeListProvider).value ?? const <Income>[]) {
+    // Archived income is the one thing this list has to filter by hand.
+    // `watchMonthlyBudget` reads income with `includeArchived: false`, so an
+    // archived source is worth nothing in every month and its currency would be
+    // a chip that opens the card with nothing on it — the empty screen this list
+    // exists to avoid. The commitments above need no equivalent guard because
+    // `obligationInstancesProvider` already carries no archived records: it
+    // calls `watchObligationInstances` without `includeArchived`, which defaults
+    // to false.
+    if (income.isArchived) continue;
     used.add(income.currency);
   }
   final AppCurrency fallback =
