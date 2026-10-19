@@ -37,7 +37,14 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.35.7'
+          # Pinned to the toolchain the Play Store build was made with, and it
+          # must stay at or above the `environment: sdk:` floor in pubspec.yaml.
+          # That floor is what the app is written against; a runner below it
+          # cannot resolve the packages at all. The first version of this pin was
+          # 3.35.7, which ships Dart 3.9.2 against a ^3.12.2 floor, so every run
+          # died in package resolution rather than in any check this file makes.
+          # 3.44.9 ships Dart 3.12.2. (3.44.0-3.44.9 all do; 3.44.1 does not.)
+          flutter-version: '3.44.9'
           channel: stable
           cache: true
 
@@ -142,13 +149,20 @@ jobs:
           echo "Static safety guard passed."
 
       # ---------------------------------------------------------------------
-      # 2. Strict static analysis.
+      # 2. Resolve dependencies, then analyze strictly.
+      #
+      # `pub get` is its own step and comes first, which is not only tidiness:
+      # `flutter analyze` resolves packages itself when `.dart_tool` is absent, so
+      # on a clean checkout the analysis step was the one that failed, and a
+      # package-resolution error was reported as an analysis failure. Doing it
+      # explicitly keeps the two apart, and the analyze step then fails only on
+      # something the analyzer actually found.
       # ---------------------------------------------------------------------
-      - name: Analyze
-        run: flutter analyze --fatal-infos --fatal-warnings
-
       - name: Resolve dependencies
         run: flutter pub get
+
+      - name: Analyze
+        run: flutter analyze --fatal-infos --fatal-warnings
 
       # ---------------------------------------------------------------------
       # 3. Zero data-loss gate.
