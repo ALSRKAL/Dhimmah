@@ -47,6 +47,18 @@ class AppSheet extends StatelessWidget {
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
     final EdgeInsets viewInsets = MediaQuery.viewInsetsOf(context);
+    final bool hasFooter = primaryAction != null || onPrimary != null;
+
+    // A sheet with no pinned footer ends at the screen edge, where Android 15's
+    // edge-to-edge and the iOS home indicator live. `showModalBottomSheet`'s
+    // `useSafeArea` only insets the top, left and right, and the Scaffold strips
+    // the body's bottom padding whenever there is a navigation bar, so the last
+    // row of a content-only sheet — the add sheet's last option, the PIN pad's
+    // bottom row — sat partly behind system UI. `paddingOf`, not `viewPaddingOf`:
+    // with the keyboard up the inset is zero because the keyboard covers it, and
+    // the sheet has already lifted by `viewInsets`.
+    final double bottomInset =
+        hasFooter ? 0 : MediaQuery.paddingOf(context).bottom;
 
     // The sheet has to *fit*: a tall body (the restore preview with its modes
     // and notes) used to push the primary button below the screen, where it
@@ -100,22 +112,22 @@ class AppSheet extends StatelessWidget {
           ),
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(
+              padding: EdgeInsets.fromLTRB(
                 AppSpacing.xl,
                 0,
                 AppSpacing.xl,
-                AppSpacing.lg,
+                AppSpacing.lg + bottomInset,
               ),
               child: child,
             ),
           ),
-          if (primaryAction != null || onPrimary != null)
+          if (hasFooter)
             Container(
-              padding: EdgeInsets.fromLTRB(
+              padding: const EdgeInsets.fromLTRB(
                 AppSpacing.xl,
                 AppSpacing.md,
                 AppSpacing.xl,
-                AppSpacing.lg + MediaQuery.paddingOf(context).bottom * 0,
+                AppSpacing.lg,
               ),
               decoration: BoxDecoration(
                 color: palette.surfaceRaised,
@@ -139,12 +151,16 @@ class AppSheet extends StatelessWidget {
                                 )
                               : null,
                           child: busy
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: Colors.white,
+                                    // Matches the label beside it, which takes
+                                    // the theme's `onPrimary`. A hardcoded
+                                    // white sat on the dark theme's pastel
+                                    // `overdue` fill at 2.54:1.
+                                    color: palette.textOnBrand,
                                   ),
                                 )
                               : Text(primaryLabel ?? ''),

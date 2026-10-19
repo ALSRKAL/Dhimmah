@@ -143,6 +143,9 @@ class _LockGateState extends ConsumerState<LockGate>
   /// Stays silent on anything but success: the user did not ask for this, and
   /// the PIN pad is already in front of them.
   Future<void> _offerBiometrics() async {
+    // This runs from a post-frame callback, so the frame it was scheduled in can
+    // have ended with this State gone; `ref` and `context` below both need one.
+    if (!mounted) return;
     if (_biometricPrompted || _unlocked) return;
     final AppSettings settings = ref.read(effectiveSettingsProvider);
     // Only over a lock that is really up, and one a PIN stands behind. After a

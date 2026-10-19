@@ -637,7 +637,12 @@ class _DefaultLeadsSheetState extends State<DefaultLeadsSheet> {
             ),
           ),
         ),
-        const SizedBox(height: AppSpacing.xxl),
+        // The sheet is opened without `useSafeArea`, so this spacer was the
+        // Apply button's only bottom clearance — 28dp against a navigation bar
+        // roughly twice that on edge-to-edge Android, which left the button
+        // sitting behind system UI. The inset is added, not replaced: the
+        // spacing is still wanted above the bar.
+        SizedBox(height: AppSpacing.xxl + MediaQuery.paddingOf(context).bottom),
       ],
     );
   }

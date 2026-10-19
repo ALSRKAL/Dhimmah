@@ -269,12 +269,21 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
   Future<void> _openFilters(BuildContext context) async {
     final DebtListFilter? result = await showAppSheet<DebtListFilter>(
       context,
+      // The filter sheet carries Apply and Reset along its bottom edge, and this
+      // is opened from inside the shell's Ledger tab. On the tab's own navigator
+      // the shell's add button paints over that edge — Reset was entirely under
+      // it and a tap there opened the add sheet on top of the open filter sheet.
+      useRootNavigator: true,
       child: DebtFilterSheet(
         initial: _filter,
         currencies: ref.read(currenciesInUseProvider),
       ),
     );
-    if (result != null) setState(() => _filter = result);
+    if (result == null) return;
+    // The sheet can outlive this list — a notification tap can route away while
+    // it is open — and a setState on the way back would throw.
+    if (!mounted) return;
+    setState(() => _filter = result);
   }
 
   Future<void> _openRowActions(BuildContext context, DebtView view) async {
@@ -288,76 +297,89 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
 
     await showAppSheet<void>(
       context,
+      // This menu's last row is its Delete action, and opened on the tab's own
+      // navigator that row sat inside the shell's add button — which swallowed
+      // the tap and opened the add sheet instead.
+      useRootNavigator: true,
       // The sheet grows with its content and scrolls when it cannot fit: a
       // heading and four rows are taller than the default cap at 1.5x text on a
       // short screen, and a menu that clips its last row is a menu with an
       // unreachable action. `test/widget/layout_resilience_test.dart` drives it
       // at the largest scale.
-      child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.xl,
-                  AppSpacing.sm,
-                  AppSpacing.xl,
-                  AppSpacing.md,
-                ),
-                child: Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: Text(
-                    heading,
-                    style: Theme.of(context).textTheme.titleMedium,
+      //
+      // `Builder` is not decoration: this content is built by the *list*, so a
+      // bare `Navigator.of(context)` in a row resolves to the tab's navigator,
+      // while the sheet now lives on the root one. Popping the tab's navigator
+      // removed the page under the sheet instead of the sheet — go_router
+      // asserted that it had no pages left. The builder's context is a child of
+      // the sheet route, so a pop through it is a pop of the sheet.
+      child: Builder(
+        builder: (BuildContext sheetContext) => SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.xl,
+                    AppSpacing.sm,
+                    AppSpacing.xl,
+                    AppSpacing.md,
+                  ),
+                  child: Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: Text(
+                      heading,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
                 ),
-              ),
-              ListTile(
-                leading: const Icon(Icons.edit_outlined),
-                title: Text(localizations.actionEdit),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  context.push(AppRoutes.debtEditPath(view.debt.id));
-                },
-              ),
-              ListTile(
-                leading: Icon(
-                  view.debt.isArchived
-                      ? Icons.unarchive_outlined
-                      : Icons.archive_outlined,
+                ListTile(
+                  leading: const Icon(Icons.edit_outlined),
+                  title: Text(localizations.actionEdit),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    context.push(AppRoutes.debtEditPath(view.debt.id));
+                  },
                 ),
-                title: Text(
-                  view.debt.isArchived
-                      ? localizations.actionUnarchive
-                      : localizations.actionArchive,
+                ListTile(
+                  leading: Icon(
+                    view.debt.isArchived
+                        ? Icons.unarchive_outlined
+                        : Icons.archive_outlined,
+                  ),
+                  title: Text(
+                    view.debt.isArchived
+                        ? localizations.actionUnarchive
+                        : localizations.actionArchive,
+                  ),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    final bool wasArchived = view.debt.isArchived;
+                    await ref
+                        .read(ledgerServiceProvider)
+                        .setDebtArchived(view.debt.id, !wasArchived);
+                    if (!context.mounted) return;
+                    AppFeedback.info(
+                      context,
+                      wasArchived
+                          ? localizations.debtRestored
+                          : localizations.debtArchived,
+                    );
+                  },
                 ),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  final bool wasArchived = view.debt.isArchived;
-                  await ref
-                      .read(ledgerServiceProvider)
-                      .setDebtArchived(view.debt.id, !wasArchived);
-                  if (!context.mounted) return;
-                  AppFeedback.info(
-                    context,
-                    wasArchived
-                        ? localizations.debtRestored
-                        : localizations.debtArchived,
-                  );
-                },
-              ),
-              ListTile(
-                leading: Icon(Icons.delete_outline, color: palette.overdue),
-                textColor: palette.overdue,
-                title: Text(localizations.actionDelete),
-                onTap: () async {
-                  Navigator.of(context).pop();
-                  await _deleteWithUndo(context, view);
-                },
-              ),
-              const SizedBox(height: AppSpacing.sm),
-            ],
+                ListTile(
+                  leading: Icon(Icons.delete_outline, color: palette.overdue),
+                  textColor: palette.overdue,
+                  title: Text(localizations.actionDelete),
+                  onTap: () async {
+                    Navigator.of(sheetContext).pop();
+                    await _deleteWithUndo(context, view);
+                  },
+                ),
+                const SizedBox(height: AppSpacing.sm),
+              ],
+            ),
           ),
         ),
       ),
@@ -633,6 +655,9 @@ class _DebtFilterSheetState extends State<DebtFilterSheet> {
           : null,
     );
     if (range == null) return;
+    // The system date picker hands control back to whatever is on screen now,
+    // which is not necessarily this sheet.
+    if (!mounted) return;
     setState(() {
       _draft = _draft.copyWith(
         window: DateWindow.custom,

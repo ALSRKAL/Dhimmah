@@ -350,6 +350,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       if (!mounted) return;
       if (useIt != true) {
         await ref.read(backupControllerProvider).forgetFolder();
+        // Re-entering the picker reads the localisations off `context` and
+        // calls setState, so the screen has to still be there after forgetting
+        // the folder — which touches the database and can take a moment.
+        if (!mounted) return;
         await _chooseFolder();
         return;
       }

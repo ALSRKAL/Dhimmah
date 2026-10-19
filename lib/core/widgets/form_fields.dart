@@ -384,7 +384,7 @@ class DateField extends StatelessWidget {
       firstDate: first,
       lastDate: last,
     );
-    if (picked != null) onChanged(picked);
+    if (picked != null && context.mounted) onChanged(picked);
   }
 }
 
@@ -452,7 +452,7 @@ class OptionField<T> extends StatelessWidget {
         subtitleOf: subtitleOf,
       ),
     );
-    if (picked != null && picked != value) onChanged(picked);
+    if (picked != null && picked != value && context.mounted) onChanged(picked);
   }
 }
 

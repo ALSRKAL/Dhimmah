@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 /// The Dhimmah brand palette.
@@ -118,4 +120,85 @@ abstract final class BrandColors {
     Color(0xFFC77B33),
     Color(0xFF6B655C),
   ];
+
+  // --- Ink on an accent disc ----------------------------------------------
+
+  /// The smallest fraction of ink that clears [minimum] on [background].
+  ///
+  /// The ladder starts at the fraction the design was drawn with, so a swatch
+  /// that already clears the bar keeps exactly the colour it had; the search
+  /// only walks further for one that does not.
+  static const double _lightBase = 0.28;
+  static const double _darkBase = 0.55;
+  static const double _ladderStep = 0.04;
+
+  /// Far enough that even the lightest swatch reaches the bar — the gold needs
+  /// roughly half its own lightness removed — but not so far that a swatch ever
+  /// reaches pure ink, which would throw away the hue the disc is carrying.
+  static const double _ladderEnd = 0.90;
+
+  /// The disc an accent is washed onto: the accent at a theme-dependent alpha
+  /// over the surface. Exposed so the contrast test measures the real disc
+  /// rather than a second copy of this formula.
+  static Color discColor(
+    Color accent, {
+    required bool dark,
+    Color surface = const Color(0xFFFFFFFF),
+  }) =>
+      Color.alphaBlend(accent.withValues(alpha: dark ? 0.30 : 0.16), surface);
+
+  /// The colour initials take on a disc tinted with [accent].
+  ///
+  /// Two blends stack here — the disc is the accent washed onto the surface, and
+  /// the initials are the accent itself pushed toward the theme's ink — so a
+  /// fixed fraction cannot serve every hue. It does not: `#C8A24A` is a light
+  /// gold, and the light theme's 28% toward black left its initials at 3.88:1
+  /// while the teals sat at 5.1–7.2. Deriving the fraction from the contrast it
+  /// has to reach fixes the whole class rather than retuning one constant.
+  ///
+  /// Answers are cached: there are eight swatches and two themes, and this runs
+  /// inside `build` for every avatar on screen.
+  static Color initialsInk(
+    Color accent, {
+    required bool dark,
+    Color surface = const Color(0xFFFFFFFF),
+  }) {
+    final int key = Object.hash(accent, dark, surface);
+    final Color? cached = _inkCache[key];
+    if (cached != null) return cached;
+
+    final Color background = discColor(accent, dark: dark, surface: surface);
+    final Color towards = dark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+    final double base = dark ? _darkBase : _lightBase;
+
+    Color ink = Color.lerp(accent, towards, base)!;
+    for (double f = base;
+        f <= _ladderEnd && contrastRatio(ink, background) < minimumInitialsContrast;
+        f += _ladderStep) {
+      ink = Color.lerp(accent, towards, f)!;
+    }
+
+    _inkCache[key] = ink;
+    return ink;
+  }
+
+  /// Initials are ~16dp at weight 600, which is neither large text nor
+  /// decoration, so they are held to the WCAG text bar.
+  static const double minimumInitialsContrast = 4.5;
+
+  static final Map<int, Color> _inkCache = <int, Color>{};
+
+  /// WCAG 2.1 relative luminance.
+  static double relativeLuminance(Color c) {
+    double channel(double v) =>
+        v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+    return 0.2126 * channel(c.r) + 0.7152 * channel(c.g) + 0.0722 * channel(c.b);
+  }
+
+  /// WCAG 2.1 contrast ratio between two opaque colours.
+  static double contrastRatio(Color a, Color b) {
+    final double la = relativeLuminance(a);
+    final double lb = relativeLuminance(b);
+    return la > lb ? (la + 0.05) / (lb + 0.05) : (lb + 0.05) / (la + 0.05);
+  }
 }

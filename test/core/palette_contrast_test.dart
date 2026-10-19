@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:dhimmah/core/theme/app_palette.dart';
+import 'package:dhimmah/core/theme/brand_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -115,6 +116,33 @@ void main() {
         );
       });
 
+      test('a glyph on a money-semantics fill clears 4.5:1', () {
+        // Two widgets draw a small glyph *on top of* a semantic fill: the
+        // direction badge on a debt row (on `iOwe` / `owedToMe`) and the busy
+        // spinner inside the destructive primary button (on `overdue`). Both
+        // used to hardcode white, which is right in the light theme and wrong
+        // in the dark one, where those fills are pastels — white on the mint
+        // measures 1.88:1, on the salmon 2.54:1. `textOnBrand` is the token
+        // that already flips white -> brand ink with the theme, and it is what
+        // those two sites now use. This pins the pairing so neither can drift
+        // back to a literal.
+        for (final ({String name, Color fill}) f in <({
+          String name,
+          Color fill
+        })>[
+          (name: 'owedToMe', fill: p.owedToMe),
+          (name: 'iOwe', fill: p.iOwe),
+          (name: 'overdue', fill: p.overdue),
+        ]) {
+          expectAtLeast(
+            p.textOnBrand,
+            f.fill,
+            4.5,
+            'textOnBrand on the ${f.name} fill',
+          );
+        }
+      });
+
       test('every status pair clears 4.5:1 inside its own container', () {
         // These are the pairings a chip or a disc actually renders: the status
         // colour on the container tinted to sit behind it.
@@ -193,6 +221,42 @@ void main() {
 
       test('the hero figure and its label are legible', () {
         expectAtLeast(p.textPrimary, p.background, 7, 'hero figure on background');
+      });
+
+      test('initials stay legible on their accent disc', () {
+        // The avatar blends a stored accent into the active theme for the disc
+        // and then pushes the same accent toward the theme's ink for the
+        // initials — two blends in a row, which is where a hue reads fine on the
+        // swatch and badly on the disc it lands on. This is not hypothetical:
+        // the light theme's fixed 28% toward black left the gold swatch at
+        // 3.88:1, which is why the derivation is now contrast-aware and why
+        // every swatch is checked here rather than the one that happened to be
+        // looked at.
+        for (final Color accent in BrandColors.accentSwatches) {
+          final Color disc = BrandColors.discColor(
+            accent,
+            dark: p.isDark,
+            surface: p.surface,
+          );
+          final Color ink = BrandColors.initialsInk(
+            accent,
+            dark: p.isDark,
+            surface: p.surface,
+          );
+          expectAtLeast(
+            ink,
+            disc,
+            4.5,
+            'initials on the disc for accent '
+                '#${accent.toARGB32().toRadixString(16).padLeft(8, '0')}',
+          );
+        }
+      });
+
+      test('archived initials stay legible on the muted surface', () {
+        // The archived avatar drops the accent and draws tertiary text on
+        // `surfaceMuted`, a pair neither of the tests above covers.
+        expectAtLeast(p.textTertiary, p.surfaceMuted, 4.5, 'archived initials');
       });
 
       test('borders are visible without shouting', () {

@@ -212,7 +212,10 @@ class _DirectionDot extends StatelessWidget {
       child: Icon(
         direction.isIOwe ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
         size: 9,
-        color: Colors.white,
+        // On the direction fill itself, so it has to flip with the theme: the
+        // dark palette's mint and salmon are pastels and a white arrow on them
+        // measures 1.88:1. `palette_contrast_test.dart` holds this pairing.
+        color: palette.textOnBrand,
       ),
     );
   }

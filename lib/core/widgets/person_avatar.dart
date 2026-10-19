@@ -39,15 +39,18 @@ class PersonAvatar extends StatelessWidget {
 
     final Color background = archived
         ? palette.surfaceMuted
-        : Color.alphaBlend(
-            accent.withValues(alpha: palette.isDark ? 0.30 : 0.16),
-            palette.surface,
+        : BrandColors.discColor(
+            accent,
+            dark: palette.isDark,
+            surface: palette.surface,
           );
     final Color foreground = archived
         ? palette.textTertiary
-        : (palette.isDark
-            ? Color.lerp(accent, Colors.white, 0.55)!
-            : Color.lerp(accent, Colors.black, 0.28)!);
+        : BrandColors.initialsInk(
+            accent,
+            dark: palette.isDark,
+            surface: palette.surface,
+          );
 
     return Semantics(
       label: initials,
