@@ -84,7 +84,7 @@ void main() {
     );
     backups = BackupService(
       database: db,
-      appVersion: '1.3.0+6',
+      appVersion: '1.3.1+7',
       clock: () => now,
       directory: dir,
     );
