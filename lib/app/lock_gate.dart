@@ -7,6 +7,7 @@ import '../app/providers.dart';
 import '../core/security/biometric_service.dart';
 import '../core/security/pin_service.dart';
 import '../core/security/window_privacy.dart';
+import '../core/theme/app_icons.dart';
 import '../core/theme/app_palette.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/widgets/dhimmah_logo.dart';
@@ -198,6 +199,29 @@ class _LockGateState extends ConsumerState<LockGate>
     final bool lockEnabled = ref.watch(
       effectiveSettingsProvider.select((AppSettings s) => s.lockEnabled),
     );
+    // The lock being switched on while the app is open.
+    //
+    // The keystore is asked once, at start-up, and on a phone that had no lock
+    // then the answer is "no PIN" — which is what keeps a lock with no key from
+    // engaging. Nothing asked again. So a user who turned the lock on in
+    // Settings was not protected by it: leaving the app and coming back showed
+    // the ledger, not the PIN pad, until the app was next started from cold.
+    // The switch read "on" the whole time. Found on a device; no test covered
+    // turning it on mid-session.
+    //
+    // The PIN is stored before the flag is set, so asking now gets the true
+    // answer. The person who just set it is the one holding the phone, so they
+    // are not asked for it on the spot — the lock engages the next time the app
+    // leaves the foreground, as it does on every later launch.
+    ref.listen<bool>(
+      effectiveSettingsProvider.select((AppSettings s) => s.lockEnabled),
+      (bool? previous, bool next) {
+        if (!next || _pinConfigured == true) return;
+        setState(() => _unlocked = true);
+        _checkPinConfigured();
+      },
+    );
+
     final bool locked = _coversApp(lockEnabled);
 
     // The window follows the lock: out of screenshots and the recent-apps
@@ -330,7 +354,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             if (biometricEnabled)
               TextButton.icon(
                 onPressed: _busy ? null : _useBiometrics,
-                icon: const Icon(Icons.fingerprint, size: 20),
+                icon: const Icon(AppIcons.fingerprint, size: 20),
                 label: Text(localizations.lockUseBiometric),
               )
             else

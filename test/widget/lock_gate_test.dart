@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dhimmah/app/providers.dart';
 import 'package:dhimmah/core/security/biometric_service.dart';
 import 'package:dhimmah/core/security/window_privacy.dart';
 import 'package:dhimmah/data/database/app_database.dart';
@@ -7,6 +8,7 @@ import 'package:dhimmah/domain/entities/app_settings.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
@@ -237,6 +239,44 @@ void main() {
       );
       return told;
     }
+
+    testWidgets('a lock switched on while the app is open locks from then on',
+        (WidgetTester tester) async {
+      // No lock at start-up, which is when the keystore is asked. It used to be
+      // asked only then, so a lock turned on in Settings guarded nothing until
+      // the next cold start.
+      final List<Object?> told = watchWindow(tester);
+      final FakePinService keystore = FakePinService();
+      final ProviderContainer container = await pumpDhimmah(
+        tester,
+        db: db,
+        pinService: keystore,
+      );
+      await settle(tester);
+      expect(find.byType(NavigationBar), findsOneWidget);
+
+      // What Settings does: the PIN first, then the flag.
+      await keystore.setPin('1234');
+      unawaited(
+        container.read(settingsControllerProvider).setLockEnabled(true),
+      );
+      await settle(tester);
+
+      // The person who just set it is not asked for it on the spot.
+      expect(find.text(l10n.lockTitle), findsNothing);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(told.last, isTrue, reason: 'the window is secured at once');
+
+      await leaveAndReturn(tester);
+
+      expect(
+        find.text(l10n.lockTitle),
+        findsOneWidget,
+        reason: 'the lock that was just switched on did not engage',
+      );
+      await enterPin(tester, '1234');
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
 
     testWidgets('no longer the active app: covered at once, not locked yet',
         (WidgetTester tester) async {
