@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../app/providers.dart';
 import '../../core/money/currency.dart';
 import '../../core/pdf/statement_models.dart';
+import '../../core/share/share_origin.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -297,6 +298,8 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
         ShareParams(
           files: <XFile>[XFile(file.path, mimeType: 'application/pdf')],
           subject: localizations.reportStatementTitle,
+          // An iPad does not open a share sheet that has nowhere to point.
+          sharePositionOrigin: shareOriginFallback(),
         ),
       );
     } on Object {

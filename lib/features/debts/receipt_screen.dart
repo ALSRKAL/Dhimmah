@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../app/providers.dart';
 import '../../core/pdf/statement_models.dart';
+import '../../core/share/share_origin.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/bottom_sheet_shell.dart';
@@ -91,7 +92,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
     }
   }
 
-  Future<void> _share(Rect? origin) {
+  Future<void> _share(Rect origin) {
     final String subject = AppLocalizations.of(context).receiptAction;
     return _run(
       (File file) => SharePlus.instance.share(
@@ -191,7 +192,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
                           FilledButton.icon(
                         onPressed: _busy
                             ? null
-                            : () => _share(_originOf(buttonContext)),
+                            : () => _share(shareOriginOf(buttonContext)),
                         icon: const Icon(Icons.ios_share, size: 20),
                         label: Text(localizations.reportSharePdf),
                       ),
@@ -213,13 +214,6 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
         ],
       ),
     );
-  }
-
-  /// Where a widget is on the screen, for a share sheet to point at.
-  static Rect? _originOf(BuildContext context) {
-    final RenderObject? object = context.findRenderObject();
-    if (object is! RenderBox || !object.hasSize) return null;
-    return object.localToGlobal(Offset.zero) & object.size;
   }
 }
 

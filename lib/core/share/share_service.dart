@@ -5,6 +5,7 @@ import '../../domain/entities/payment.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../formatting/app_formatting.dart';
 import '../money/money.dart';
+import 'share_origin.dart';
 
 /// Builds and sends the shareable text for a record or a payment.
 ///
@@ -92,7 +93,12 @@ class ShareService {
   /// Opens the system share sheet.
   Future<ShareResult> shareText(String text, {String? subject}) {
     return SharePlus.instance.share(
-      ShareParams(text: text, subject: subject ?? localizations.shareSubject),
+      ShareParams(
+        text: text,
+        subject: subject ?? localizations.shareSubject,
+        // An iPad does not open a share sheet that has nowhere to point.
+        sharePositionOrigin: shareOriginFallback(),
+      ),
     );
   }
 }

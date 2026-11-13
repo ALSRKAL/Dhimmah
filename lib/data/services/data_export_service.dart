@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/money.dart';
+import '../../core/share/share_origin.dart';
 import '../../core/utils/dates.dart';
 import '../../domain/entities/activity_entry.dart';
 import '../../domain/entities/debt.dart';
@@ -77,6 +78,8 @@ class DataExportService {
       ShareParams(
         files: <XFile>[XFile(path)],
         subject: localizations.settingsExport,
+        // An iPad does not open a share sheet that has nowhere to point.
+        sharePositionOrigin: shareOriginFallback(),
       ),
     );
   }

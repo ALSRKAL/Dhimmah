@@ -2,6 +2,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../domain/services/backup_format.dart';
+import '../share/share_origin.dart';
 import 'document_save_channel.dart';
 
 /// The user's own storage, behind one interface.
@@ -123,7 +124,12 @@ class PlatformFileGateway implements FileGateway {
   @override
   Future<void> shareFile(String path, {String? subject}) {
     return SharePlus.instance.share(
-      ShareParams(files: <XFile>[XFile(path)], subject: subject),
+      ShareParams(
+        files: <XFile>[XFile(path)],
+        subject: subject,
+        // An iPad does not open a share sheet that has nowhere to point.
+        sharePositionOrigin: shareOriginFallback(),
+      ),
     );
   }
 }

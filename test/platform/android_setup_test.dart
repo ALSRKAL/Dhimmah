@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dhimmah/core/files/document_save_channel.dart';
 import 'package:dhimmah/core/security/biometric_service.dart';
+import 'package:dhimmah/core/security/window_privacy.dart';
 import 'package:dhimmah/data/services/play_app_update_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:local_auth/local_auth.dart';
@@ -198,6 +199,37 @@ void main() {
         contains('DocumentsContract.Document.MIME_TYPE_DIR'),
         reason: 'the directory check is what makes the lookup a folder lookup',
       );
+    });
+  });
+
+  group('window privacy', () {
+    test('the channel name agrees on both sides of the bridge', () {
+      final String source = activity.readAsStringSync();
+      expect(source, contains('"${WindowPrivacy.channelName}"'));
+    });
+
+    test('the activity sets and clears FLAG_SECURE, and nothing else', () {
+      // Dart decides when the window is secure; the activity only obeys. If the
+      // clearing half went missing, turning the lock off would leave a user
+      // unable to take a screenshot until the app was killed.
+      final String source = activity.readAsStringSync();
+      expect(
+        source,
+        contains('window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)'),
+      );
+      expect(
+        source,
+        contains('window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)'),
+      );
+    });
+
+    test('it asks for no permission', () {
+      // FLAG_SECURE is a window flag. A permission added "for privacy" would be
+      // one the user cannot justify granting.
+      final String manifest = File(
+        'android/app/src/main/AndroidManifest.xml',
+      ).readAsStringSync();
+      expect(manifest, isNot(contains('SECURE')));
     });
   });
 

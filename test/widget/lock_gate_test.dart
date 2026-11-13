@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dhimmah/core/security/biometric_service.dart';
+import 'package:dhimmah/core/security/window_privacy.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/domain/entities/app_settings.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
@@ -215,6 +216,138 @@ void main() {
             .text,
         'سالم',
       );
+    });
+
+    const ValueKey<String> cover = ValueKey<String>('privacy-cover');
+
+    /// What the window was told, in order, through the privacy channel.
+    List<Object?> watchWindow(WidgetTester tester) {
+      final List<Object?> told = <Object?>[];
+      const MethodChannel channel = MethodChannel(WindowPrivacy.channelName);
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        channel,
+        (MethodCall call) async {
+          if (call.method == 'setSecure') told.add(call.arguments);
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger
+            .setMockMethodCallHandler(channel, null),
+      );
+      return told;
+    }
+
+    testWidgets('no longer the active app: covered at once, not locked yet',
+        (WidgetTester tester) async {
+      final FakePinService keystore = FakePinService();
+      await keystore.setPin('1234');
+      await pumpDhimmah(
+        tester,
+        db: db,
+        settings: AppSettings.initial.copyWith(lockEnabled: true),
+        pinService: keystore,
+      );
+      await enterPin(tester, '1234');
+      expect(find.byKey(cover), findsNothing);
+
+      // The app switcher opens, a system dialog appears, the shade comes down:
+      // this is the frame the system keeps a picture of, and all iOS reports
+      // while the switcher is up.
+      tester.binding
+          .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+
+      expect(find.byKey(cover), findsOneWidget);
+      expect(
+        find.text(l10n.lockTitle),
+        findsNothing,
+        reason: 'a dialog or the shade must not cost the user their PIN',
+      );
+
+      // Back without ever having left: the cover goes, and no PIN is asked.
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+
+      expect(find.byKey(cover), findsNothing);
+      expect(find.text(l10n.lockTitle), findsNothing);
+      expect(find.byType(NavigationBar), findsOneWidget);
+    });
+
+    testWidgets('all the way to the background still locks, as before',
+        (WidgetTester tester) async {
+      final FakePinService keystore = FakePinService();
+      await keystore.setPin('1234');
+      await pumpDhimmah(
+        tester,
+        db: db,
+        settings: AppSettings.initial.copyWith(lockEnabled: true),
+        pinService: keystore,
+      );
+      await enterPin(tester, '1234');
+
+      await leaveAndReturn(tester);
+
+      // The lock, not the cover: the cover is for the moment before this.
+      expect(find.text(l10n.lockTitle), findsOneWidget);
+      expect(find.byKey(cover), findsNothing);
+    });
+
+    testWidgets('without a lock nothing is covered', (WidgetTester tester) async {
+      await pumpDhimmah(tester, db: db, pinService: FakePinService());
+
+      tester.binding
+          .handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+
+      // The user did not ask for a lock, so the app does not start hiding
+      // itself from them.
+      expect(find.byKey(cover), findsNothing);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+    });
+
+    testWidgets('the window is kept out of screenshots only while locked',
+        (WidgetTester tester) async {
+      final List<Object?> told = watchWindow(tester);
+      final FakePinService keystore = FakePinService();
+      await keystore.setPin('1234');
+      await pumpDhimmah(
+        tester,
+        db: db,
+        settings: AppSettings.initial.copyWith(lockEnabled: true),
+        pinService: keystore,
+      );
+      await settle(tester);
+
+      expect(told, isNotEmpty);
+      expect(told.last, isTrue, reason: 'a lock with a PIN secures the window');
+    });
+
+    testWidgets('with no lock the window stays ordinary',
+        (WidgetTester tester) async {
+      final List<Object?> told = watchWindow(tester);
+      await pumpDhimmah(tester, db: db, pinService: FakePinService());
+      await settle(tester);
+
+      // A user without a lock keeps their screenshots.
+      expect(told, isNot(contains(true)));
+    });
+
+    testWidgets('a lock with no PIN behind it does not secure the window',
+        (WidgetTester tester) async {
+      final List<Object?> told = watchWindow(tester);
+      await pumpDhimmah(
+        tester,
+        db: db,
+        settings: AppSettings.initial.copyWith(lockEnabled: true),
+        pinService: FakePinService(),
+      );
+      await settle(tester);
+
+      // The gate takes such a lock down; the window has to follow it.
+      expect(told, isNotEmpty);
+      expect(told.last, isFalse);
     });
 
     testWidgets('a lock with no PIN behind it offers no fingerprint either',

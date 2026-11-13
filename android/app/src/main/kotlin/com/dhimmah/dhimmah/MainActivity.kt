@@ -2,6 +2,7 @@ package com.dhimmah.dhimmah
 
 import android.os.Bundle
 import android.net.Uri
+import android.view.WindowManager
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -118,6 +119,29 @@ class MainActivity : FlutterFragmentActivity() {
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BackupFileChannel.METHOD_CHANNEL)
             .setMethodCallHandler(backupFiles)
+
+        // Keeps the window out of screenshots and the recent-apps thumbnail
+        // while the app lock is on. Dart decides when; this only sets the flag.
+        // FLAG_SECURE is a window flag, not a permission: nothing is declared
+        // in the manifest for it and the user is asked nothing.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, PRIVACY_CHANNEL)
+            .setMethodCallHandler { call, result ->
+                if (call.method == "setSecure") {
+                    if (call.arguments == true) {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    } else {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                    }
+                    result.success(null)
+                } else {
+                    result.notImplemented()
+                }
+            }
+    }
+
+    private companion object {
+        /** The same name `WindowPrivacy.channelName` uses on the Dart side. */
+        const val PRIVACY_CHANNEL = "com.dhimmah.dhimmah/privacy"
     }
 
     override fun onDestroy() {

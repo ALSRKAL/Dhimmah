@@ -414,7 +414,23 @@ static List<DebtView> debtsInScope({
 - **تحقق:** أندرويد — افتح «التطبيقات الأخيرة»: المصغّرة فارغة، ولقطة الشاشة
   مرفوضة؛ بلا قفل: السلوك كما كان. iOS — مبدّل التطبيقات يعرض الغطاء.
 
+> **3.2 نُفِّذ (14 نوفمبر 2026):** `WindowPrivacy` (قناة
+> `com.dhimmah.dhimmah/privacy`) يضبط `FLAG_SECURE` على أندرويد حين يكون القفل
+> مفعّلاً وله PIN، ويرفعه حين لا يكون. وغطاء `_PrivacyCover` في `lock_gate.dart`
+> يُرسم عند `inactive` — وهي اللحظة التي يلتقط فيها مبدّل التطبيقات صورته، وكل
+> ما يبلّغه iOS والمبدّل مفتوح. الغطاء لا يطلب PIN؛ القفل نفسه ما زال عند
+> `paused` كما كان. اختبارات: ستة في `lock_gate_test.dart` وثلاثة في
+> `android_setup_test.dart`.
+
 ### 3.3 مهلة إعادة القفل
+
+> **3.3 لم يُنفَّذ، عن قصد — يحتاج قرار المطوّر.** تعليق الصنف `LockGate` يقول
+> صراحةً إن إعادة القفل فور مغادرة الواجهة **قرار مقصود** («دفتر مفتوح على مكتب
+> مشترك هو بالضبط ما وُجد القفل ليمنعه»)، والكود عالج سلفاً مشكلة منتقي
+> الملفات بإبقاء التطبيق مبنياً تحت القفل. مهلة 30 ثانية تُضعف هذا الضمان مقابل
+> راحة بعد المشاركة. لا تُضاف إلا إن طلبها المطوّر، ويُفضَّل أن تكون خياراً
+> («فوراً / بعد 30 ثانية») — وهذا يحتاج إعداداً مخزَّناً، أي المرحلة 7.
+
 
 - **المشكلة:** `lock_gate.dart:126–134` يقفل عند كل `paused`/`hidden`. يُتوقع أن
   مشاركة PDF أو اختيار ملف يعيد طلب الرمز. **تحقق أولاً على جهاز** قبل التعديل.
@@ -443,7 +459,7 @@ static List<DebtView> debtsInScope({
 
 | # | الملاحظة من الكود | المطلوب | الملفات |
 |---|---|---|---|
-| 4.1 | أربعة استدعاءات `SharePlus.instance.share` بلا `sharePositionOrigin`؛ على الآيباد المشاركة تفشل | دالة مساعدة واحدة `shareOrigin(BuildContext)` تحسب مستطيل الزر من `RenderBox`، وتمريرها في المواضع الأربعة | `file_gateway.dart:125`, `share_service.dart:94`, `data_export_service.dart:76`, `statement_screen.dart:174` |
+| 4.1 ✅ نُفِّذ: `lib/core/share/share_origin.dart` وكل استدعاءات المشاركة الخمسة تمرّر نقطة ارتكاز؛ يبقى التحقق على آيباد حقيقي | أربعة استدعاءات `SharePlus.instance.share` بلا `sharePositionOrigin`؛ على الآيباد المشاركة تفشل | دالة مساعدة واحدة `shareOrigin(BuildContext)` تحسب مستطيل الزر من `RenderBox`، وتمريرها في المواضع الأربعة | `file_gateway.dart:125`, `share_service.dart:94`, `data_export_service.dart:76`, `statement_screen.dart:174` |
 | 4.2 | `DocumentSaveChannel` (حفظ نسخة إلى ملف يختاره المستخدم) له تنفيذ Kotlin فقط؛ على iOS يعيد `unavailable` | تنفيذ Swift بـ`UIDocumentPickerViewController` للتصدير بنفس اسم القناة والطرق، **أو** على iOS استعمال ورقة المشاركة («حفظ في الملفات») وإخفاء الزر غير المدعوم. القرار للمطوّر بعد رؤية المجهود | `ios/Runner/`, `document_save_channel.dart`, `file_gateway.dart:116` |
 | 4.3 | `PlayAppUpdateService` يُسجَّل دائماً في `main.dart`؛ القناة غير موجودة على iOS (الاستثناء ملتقَط) | على iOS سجّل خدمة لا تفعل شيئاً، وأخفِ بطاقة التحديث | `main.dart`, `app_update_controller.dart`, `app_update_card.dart` |
 | 4.4 | `Info.plist` للآيباد: عمودي ومقلوب فقط، بلا `UIRequiresFullScreen`. متجر Apple يرفض ذلك للتطبيقات التي تدعم التعدد | أضف `UIRequiresFullScreen = true` (التطبيق عمودي فقط بقرار من `main.dart`) | `ios/Runner/Info.plist` |

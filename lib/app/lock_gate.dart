@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../app/providers.dart';
 import '../core/security/biometric_service.dart';
 import '../core/security/pin_service.dart';
+import '../core/security/window_privacy.dart';
 import '../core/theme/app_palette.dart';
 import '../core/theme/app_spacing.dart';
 import '../core/widgets/dhimmah_logo.dart';
@@ -31,6 +32,18 @@ class _LockGateState extends ConsumerState<LockGate>
     with WidgetsBindingObserver {
   bool _unlocked = false;
   bool _biometricPrompted = false;
+
+  /// Whether the app has stopped being the active one, even if only just.
+  ///
+  /// The lock itself engages on `paused`. But the system pictures the app for
+  /// its switcher on the way there — at `inactive`, which is also all iOS ever
+  /// reports while the switcher is open — and that picture was of the ledger.
+  /// While this is set and the lock is on, a plain cover is drawn over the app,
+  /// so what is photographed is the cover.
+  bool _obscured = false;
+
+  /// What the window was last told, so it is told only when it changes.
+  bool? _windowSecure;
 
   /// Whether a PIN actually exists in the keystore.
   ///
@@ -129,9 +142,20 @@ class _LockGateState extends ConsumerState<LockGate>
     // again, and may offer biometrics once.
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden) {
-      if (_unlocked) setState(() => _unlocked = false);
+      if (_unlocked || !_obscured) {
+        setState(() {
+          _unlocked = false;
+          _obscured = true;
+        });
+      }
       _biometricPrompted = false;
+    } else if (state == AppLifecycleState.inactive) {
+      // Not locked yet — a system dialog or the notification shade also lands
+      // here, and asking for the PIN after each would be a punishment — but
+      // covered, because this is the frame the app switcher keeps.
+      if (!_obscured) setState(() => _obscured = true);
     } else if (state == AppLifecycleState.resumed) {
+      if (_obscured) setState(() => _obscured = false);
       // A day may have passed while the app was backgrounded.
       ref.read(todayProvider.notifier).refresh();
       _offerBiometrics();
@@ -176,6 +200,15 @@ class _LockGateState extends ConsumerState<LockGate>
     );
     final bool locked = _coversApp(lockEnabled);
 
+    // The window follows the lock: out of screenshots and the recent-apps
+    // thumbnail while a lock with a PIN behind it is on, and ordinary again the
+    // moment it is not. Told only on a change; the call cannot throw.
+    final bool secure = lockEnabled && _pinConfigured != false;
+    if (secure != _windowSecure) {
+      _windowSecure = secure;
+      WindowPrivacy.setSecure(secure: secure);
+    }
+
     if (locked) {
       // Offer biometrics on the first frame of the lock too, not only on resume.
       WidgetsBinding.instance.addPostFrameCallback((_) => _offerBiometrics());
@@ -199,8 +232,30 @@ class _LockGateState extends ConsumerState<LockGate>
           ),
         ),
         if (locked)
-          LockScreen(onUnlocked: () => setState(() => _unlocked = true)),
+          LockScreen(onUnlocked: () => setState(() => _unlocked = true))
+        else if (lockEnabled && _obscured)
+          const _PrivacyCover(key: ValueKey<String>('privacy-cover')),
       ],
+    );
+  }
+}
+
+/// What is shown in place of the ledger while the app is not the active one.
+///
+/// The mark on the page colour and nothing else: it is what the app switcher
+/// photographs, so it carries no figure, no name and no hint of what is behind
+/// it. Not the lock screen — nothing here can be typed into, and it goes away
+/// by itself when the app is active again.
+class _PrivacyCover extends StatelessWidget {
+  const _PrivacyCover({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ColoredBox(
+      color: context.palette.background,
+      child: const Center(
+        child: ExcludeSemantics(child: DhimmahLogo(size: 64)),
+      ),
     );
   }
 }
