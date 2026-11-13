@@ -120,18 +120,28 @@ class _RemindersScreenState extends ConsumerState<RemindersScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push(AppRoutes.reminderNew),
-        backgroundColor: context.palette.brand,
-        foregroundColor: context.palette.textOnBrand,
-        icon: const Icon(Icons.add, size: 20),
-        label: Text(localizations.reminderNew),
-      ),
+      // Not while the list is empty: the empty state already offers the same
+      // action in the middle of the screen, and two buttons with the same words
+      // read as two different things to do.
+      floatingActionButton: _hasVisible(reminders)
+          ? FloatingActionButton.extended(
+              onPressed: () => context.push(AppRoutes.reminderNew),
+              backgroundColor: context.palette.brand,
+              foregroundColor: context.palette.textOnBrand,
+              icon: const Icon(Icons.add, size: 20),
+              label: Text(localizations.reminderNew),
+            )
+          : null,
     );
   }
 
   bool _visible(Reminder reminder) =>
       _showCompleted ? true : !reminder.isCompleted;
+
+  /// Whether the list has anything on it. False while it is still loading, so
+  /// the add button does not appear and then vanish on an empty list.
+  bool _hasVisible(AsyncValue<List<Reminder>> reminders) =>
+      reminders.value?.any(_visible) ?? false;
 
   static Map<ReminderBucket, List<Reminder>> _bucket(
     List<Reminder> reminders,

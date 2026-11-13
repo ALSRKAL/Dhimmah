@@ -528,7 +528,12 @@ class _PersonActions extends ConsumerWidget {
             const SizedBox(width: AppSpacing.sm),
             IconButton.outlined(
               tooltip: localizations.reportShareStatement,
-              onPressed: () => showStatement(context, personId),
+              // A person with no debts has nothing to state: the button used
+              // to open a screen whose only content was an explanation of why
+              // there was no document. Disabled, it says so where it stands.
+              onPressed: ledger.debts.isEmpty
+                  ? null
+                  : () => showStatement(context, personId),
               icon: const Icon(Icons.receipt_long_outlined, size: 20),
               style: IconButton.styleFrom(
                 minimumSize: const Size(52, 52),

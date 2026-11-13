@@ -942,8 +942,8 @@
   "settingsMonthEnd": "ملخص نهاية الشهر",
   "settingsMonthEndBody": "ملخص تلقائي لذمتك في نهاية كل شهر",
   "settingsMonthEndDay": "يوم الإشعار",
-  "settingsMonthEndTime": "وقت الإشعار",
-  "settingsNotificationTime": "وقت الإشعار",
+  "settingsMonthEndTime": "وقت الملخص",
+  "settingsNotificationTime": "وقت التذكير",
   "settingsNotifications": "التنبيهات",
   "settingsNumerals": "شكل الأرقام",
   "settingsPrivacyNote": "بياناتك على جهازك فقط",
@@ -1356,7 +1356,7 @@
     }
   },
   "backupRestoreUnencrypted": "الملف غير مشفّر: من يفتحه يقرأ بياناتك.",
-  "backupRestoreSafetyNote": "سيأخذ Dhimmah نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.",
+  "backupRestoreSafetyNote": "سيأخذ ذِمّة نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.",
   "backupRestoreMode": "طريقة الاستعادة",
   "backupModeReplace": "استبدال",
   "backupModeReplaceBody": "تصبح النسخة هي بياناتك، وتُستبدل بيانات الجهاز الحالية.",
@@ -1397,9 +1397,9 @@
   },
   "backupRestoreFailed": "تعذّرت الاستعادة، ولم تتغيّر بياناتك.",
   "backupRestoreInvalid": "تعذّر استعادة النسخة لأن الملف غير صالح أو تالف.",
-  "backupRestoreNotOurs": "هذا الملف ليس نسخة احتياطية صالحة لـDhimmah.",
-  "backupRestoreTooNew": "هذه النسخة من إصدار أحدث من التطبيق. حدّث Dhimmah ثم حاول مرة أخرى.",
-  "backupRestoreContinue": "متابعة إلى Dhimmah",
+  "backupRestoreNotOurs": "هذا الملف ليس نسخة احتياطية صالحة لتطبيق ذِمّة.",
+  "backupRestoreTooNew": "هذه النسخة من إصدار أحدث من التطبيق. حدّث ذِمّة ثم حاول مرة أخرى.",
+  "backupRestoreContinue": "متابعة إلى ذِمّة",
   "backupFoundTitle": "وجدنا نسخة احتياطية",
   "backupFoundBody": "لا توجد بيانات على هذا الجهاز، وهناك نسخة محفوظة يمكن استعادتها.",
   "backupPrivacyTitle": "أين تُحفظ النسخ؟",
@@ -1570,5 +1570,10 @@
       }
     }
   },
-  "reportNextDue": "أقرب استحقاق"
+  "reportNextDue": "أقرب استحقاق",
+  "detailPaymentsHeader": "الدفعات",
+  "paymentRowTitle": "دفعة",
+  "reportIssuerLabel": "من",
+  "reportOptionIssuer": "اسم المُصدر",
+  "reportOptionIssuerHint": "اسمك كما يظهر في الكشف. اتركه فارغًا لإخفائه."
 }

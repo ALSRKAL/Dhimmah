@@ -3352,13 +3352,13 @@ abstract class AppLocalizations {
   /// No description provided for @settingsMonthEndTime.
   ///
   /// In ar, this message translates to:
-  /// **'وقت الإشعار'**
+  /// **'وقت الملخص'**
   String get settingsMonthEndTime;
 
   /// No description provided for @settingsNotificationTime.
   ///
   /// In ar, this message translates to:
-  /// **'وقت الإشعار'**
+  /// **'وقت التذكير'**
   String get settingsNotificationTime;
 
   /// No description provided for @settingsNotifications.
@@ -4642,7 +4642,7 @@ abstract class AppLocalizations {
   /// No description provided for @backupRestoreSafetyNote.
   ///
   /// In ar, this message translates to:
-  /// **'سيأخذ Dhimmah نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.'**
+  /// **'سيأخذ ذِمّة نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.'**
   String get backupRestoreSafetyNote;
 
   /// No description provided for @backupRestoreMode.
@@ -4726,19 +4726,19 @@ abstract class AppLocalizations {
   /// No description provided for @backupRestoreNotOurs.
   ///
   /// In ar, this message translates to:
-  /// **'هذا الملف ليس نسخة احتياطية صالحة لـDhimmah.'**
+  /// **'هذا الملف ليس نسخة احتياطية صالحة لتطبيق ذِمّة.'**
   String get backupRestoreNotOurs;
 
   /// No description provided for @backupRestoreTooNew.
   ///
   /// In ar, this message translates to:
-  /// **'هذه النسخة من إصدار أحدث من التطبيق. حدّث Dhimmah ثم حاول مرة أخرى.'**
+  /// **'هذه النسخة من إصدار أحدث من التطبيق. حدّث ذِمّة ثم حاول مرة أخرى.'**
   String get backupRestoreTooNew;
 
   /// No description provided for @backupRestoreContinue.
   ///
   /// In ar, this message translates to:
-  /// **'متابعة إلى Dhimmah'**
+  /// **'متابعة إلى ذِمّة'**
   String get backupRestoreContinue;
 
   /// No description provided for @backupFoundTitle.
@@ -5124,6 +5124,36 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أقرب استحقاق'**
   String get reportNextDue;
+
+  /// No description provided for @detailPaymentsHeader.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدفعات'**
+  String get detailPaymentsHeader;
+
+  /// No description provided for @paymentRowTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفعة'**
+  String get paymentRowTitle;
+
+  /// No description provided for @reportIssuerLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'من'**
+  String get reportIssuerLabel;
+
+  /// No description provided for @reportOptionIssuer.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسم المُصدر'**
+  String get reportOptionIssuer;
+
+  /// No description provided for @reportOptionIssuerHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'اسمك كما يظهر في الكشف. اتركه فارغًا لإخفائه.'**
+  String get reportOptionIssuerHint;
 }
 
 class _AppLocalizationsDelegate

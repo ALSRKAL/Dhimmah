@@ -1870,10 +1870,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get settingsMonthEndDay => 'Send on';
 
   @override
-  String get settingsMonthEndTime => 'Send at';
+  String get settingsMonthEndTime => 'Summary time';
 
   @override
-  String get settingsNotificationTime => 'Notification time';
+  String get settingsNotificationTime => 'Reminder time';
 
   @override
   String get settingsNotifications => 'Notifications';
@@ -3013,4 +3013,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportNextDue => 'Next due';
+
+  @override
+  String get detailPaymentsHeader => 'Payments';
+
+  @override
+  String get paymentRowTitle => 'Payment';
+
+  @override
+  String get reportIssuerLabel => 'From';
+
+  @override
+  String get reportOptionIssuer => 'Issued by';
+
+  @override
+  String get reportOptionIssuerHint =>
+      'Your name as it appears on the statement. Leave empty to hide it.';
 }

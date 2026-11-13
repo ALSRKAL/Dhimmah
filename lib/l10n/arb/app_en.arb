@@ -942,8 +942,8 @@
   "settingsMonthEnd": "Month-end summary",
   "settingsMonthEndBody": "An automatic summary of your ledger each month",
   "settingsMonthEndDay": "Send on",
-  "settingsMonthEndTime": "Send at",
-  "settingsNotificationTime": "Notification time",
+  "settingsMonthEndTime": "Summary time",
+  "settingsNotificationTime": "Reminder time",
   "settingsNotifications": "Notifications",
   "settingsNumerals": "Number style",
   "settingsPrivacyNote": "Your data stays on your device",
@@ -1570,5 +1570,10 @@
       }
     }
   },
-  "reportNextDue": "Next due"
+  "reportNextDue": "Next due",
+  "detailPaymentsHeader": "Payments",
+  "paymentRowTitle": "Payment",
+  "reportIssuerLabel": "From",
+  "reportOptionIssuer": "Issued by",
+  "reportOptionIssuerHint": "Your name as it appears on the statement. Leave empty to hide it."
 }

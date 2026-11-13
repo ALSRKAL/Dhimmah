@@ -304,7 +304,9 @@ class _DetailBody extends StatelessWidget {
         _FactsCard(view: view),
         if (detail.payments.isNotEmpty) ...<Widget>[
           const SizedBox(height: AppSpacing.xxl),
-          SectionHeader(title: localizations.paymentTitle),
+          // The list of payments, named as a list. It used to be headed
+          // «تسجيل دفعة», the label of the button that records one.
+          SectionHeader(title: localizations.detailPaymentsHeader),
           AppCard(
             padding: EdgeInsets.zero,
             child: Column(

@@ -347,7 +347,7 @@ class PaymentRow extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   Text(
-                    localizations.paymentTitle,
+                    localizations.paymentRowTitle,
                     style: theme.textTheme.bodyMedium,
                   ),
                   const SizedBox(height: 2),

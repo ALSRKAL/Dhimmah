@@ -1884,10 +1884,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get settingsMonthEndDay => 'يوم الإشعار';
 
   @override
-  String get settingsMonthEndTime => 'وقت الإشعار';
+  String get settingsMonthEndTime => 'وقت الملخص';
 
   @override
-  String get settingsNotificationTime => 'وقت الإشعار';
+  String get settingsNotificationTime => 'وقت التذكير';
 
   @override
   String get settingsNotifications => 'التنبيهات';
@@ -2735,7 +2735,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get backupRestoreSafetyNote =>
-      'سيأخذ Dhimmah نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.';
+      'سيأخذ ذِمّة نسخة من بياناتك الحالية قبل الاستعادة، ويمكنك الرجوع إليها.';
 
   @override
   String get backupRestoreMode => 'طريقة الاستعادة';
@@ -2823,14 +2823,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get backupRestoreNotOurs =>
-      'هذا الملف ليس نسخة احتياطية صالحة لـDhimmah.';
+      'هذا الملف ليس نسخة احتياطية صالحة لتطبيق ذِمّة.';
 
   @override
   String get backupRestoreTooNew =>
-      'هذه النسخة من إصدار أحدث من التطبيق. حدّث Dhimmah ثم حاول مرة أخرى.';
+      'هذه النسخة من إصدار أحدث من التطبيق. حدّث ذِمّة ثم حاول مرة أخرى.';
 
   @override
-  String get backupRestoreContinue => 'متابعة إلى Dhimmah';
+  String get backupRestoreContinue => 'متابعة إلى ذِمّة';
 
   @override
   String get backupFoundTitle => 'وجدنا نسخة احتياطية';
@@ -3075,4 +3075,20 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportNextDue => 'أقرب استحقاق';
+
+  @override
+  String get detailPaymentsHeader => 'الدفعات';
+
+  @override
+  String get paymentRowTitle => 'دفعة';
+
+  @override
+  String get reportIssuerLabel => 'من';
+
+  @override
+  String get reportOptionIssuer => 'اسم المُصدر';
+
+  @override
+  String get reportOptionIssuerHint =>
+      'اسمك كما يظهر في الكشف. اتركه فارغًا لإخفائه.';
 }
