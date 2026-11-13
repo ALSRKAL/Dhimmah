@@ -4896,6 +4896,108 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'الخطوة {step} من {total}'**
   String onboardingStepOf(int step, int total);
+
+  /// No description provided for @reportScopeOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'المفتوحة'**
+  String get reportScopeOpen;
+
+  /// No description provided for @reportScopeAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'الكل'**
+  String get reportScopeAll;
+
+  /// No description provided for @reportScopeSelected.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختيار…'**
+  String get reportScopeSelected;
+
+  /// No description provided for @reportSelectDebts.
+  ///
+  /// In ar, this message translates to:
+  /// **'اختر الديون'**
+  String get reportSelectDebts;
+
+  /// No description provided for @reportOptionArchived.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار المؤرشفة'**
+  String get reportOptionArchived;
+
+  /// No description provided for @reportOptionArchivedHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'الديون المؤرشفة تبقى خارج الكشف ما لم تفعّل هذا.'**
+  String get reportOptionArchivedHint;
+
+  /// No description provided for @reportHiddenSettled.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{دين مسدَّد واحد غير معروض} =2{دينان مسدَّدان غير معروضين} few{{count} ديون مسدَّدة غير معروضة} other{{count} دينًا مسدَّدًا غير معروض}}'**
+  String reportHiddenSettled(int count);
+
+  /// No description provided for @reportHiddenArchived.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{دين مؤرشف واحد غير معروض} =2{دينان مؤرشفان غير معروضين} few{{count} ديون مؤرشفة غير معروضة} other{{count} دينًا مؤرشفًا غير معروض}}'**
+  String reportHiddenArchived(int count);
+
+  /// No description provided for @reportShowThem.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار'**
+  String get reportShowThem;
+
+  /// No description provided for @reportNothingOpenTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا ديون مفتوحة'**
+  String get reportNothingOpenTitle;
+
+  /// No description provided for @reportNothingOpenBody.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل الديون بهذه العملة مسدَّدة أو مؤرشفة.'**
+  String get reportNothingOpenBody;
+
+  /// No description provided for @reportShowSettled.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار المسدَّدة'**
+  String get reportShowSettled;
+
+  /// No description provided for @reportNothingSelectedTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'لم تختر أي دين'**
+  String get reportNothingSelectedTitle;
+
+  /// No description provided for @reportScopeLabel.
+  ///
+  /// In ar, this message translates to:
+  /// **'النطاق'**
+  String get reportScopeLabel;
+
+  /// No description provided for @reportScopeOpenFull.
+  ///
+  /// In ar, this message translates to:
+  /// **'الديون المفتوحة'**
+  String get reportScopeOpenFull;
+
+  /// No description provided for @reportScopeAllFull.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل الديون'**
+  String get reportScopeAllFull;
+
+  /// No description provided for @reportScopeSelectedFull.
+  ///
+  /// In ar, this message translates to:
+  /// **'ديون مختارة'**
+  String get reportScopeSelectedFull;
 }
 
 class _AppLocalizationsDelegate

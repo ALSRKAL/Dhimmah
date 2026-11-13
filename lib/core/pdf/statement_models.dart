@@ -7,10 +7,29 @@ import '../../domain/enums/preference_enums.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
 
-/// Which optional blocks a statement includes.
+/// Which of a person's debts a statement covers.
+enum StatementScope {
+  /// Only what is still outstanding: settled debts are left out.
+  ///
+  /// The default, because a statement is sent to say what remains, and a list
+  /// of debts closed last year is noise to the person reading it.
+  openOnly,
+
+  /// Every debt, settled ones included.
+  all,
+
+  /// Exactly the debts the user ticked, whatever state they are in.
+  selected,
+}
+
+/// Which records and which optional blocks a statement includes.
 ///
 /// The defaults are the privacy-safe ones: a document is often sent to the very
 /// person the debt is with, so nothing is added unless it helps them read it.
+///
+/// Held by the screen for as long as it is open and never stored: nothing here
+/// is written to the database, so choosing what a statement shows cannot change
+/// a record.
 @immutable
 class StatementOptions {
   const StatementOptions({
@@ -18,6 +37,9 @@ class StatementOptions {
     this.includePhone = false,
     this.includeNotes = false,
     this.includeDebtBreakdown = true,
+    this.scope = StatementScope.openOnly,
+    this.includeArchived = false,
+    this.selectedDebtIds = const <String>{},
   });
 
   /// The payment history table.
@@ -33,23 +55,75 @@ class StatementOptions {
   /// One line per debt, shown when a person has more than one.
   final bool includeDebtBreakdown;
 
+  /// Which debts the statement covers.
+  final StatementScope scope;
+
+  /// Whether archived debts may appear.
+  ///
+  /// Off by default: archiving is how the user puts a record out of sight, and
+  /// a document sent to someone else is the last place it should resurface. A
+  /// debt ticked by hand under [StatementScope.selected] is shown regardless —
+  /// ticking it is the user saying so.
+  final bool includeArchived;
+
+  /// The debts to print under [StatementScope.selected]; ignored otherwise.
+  final Set<String> selectedDebtIds;
+
   StatementOptions copyWith({
     bool? includePayments,
     bool? includePhone,
     bool? includeNotes,
     bool? includeDebtBreakdown,
+    StatementScope? scope,
+    bool? includeArchived,
+    Set<String>? selectedDebtIds,
   }) {
     return StatementOptions(
       includePayments: includePayments ?? this.includePayments,
       includePhone: includePhone ?? this.includePhone,
       includeNotes: includeNotes ?? this.includeNotes,
       includeDebtBreakdown: includeDebtBreakdown ?? this.includeDebtBreakdown,
+      scope: scope ?? this.scope,
+      includeArchived: includeArchived ?? this.includeArchived,
+      selectedDebtIds: selectedDebtIds ?? this.selectedDebtIds,
     );
   }
 
   /// Whether any option could change the document.
   bool get isDefault =>
-      includePayments && !includePhone && !includeNotes && includeDebtBreakdown;
+      includePayments &&
+      !includePhone &&
+      !includeNotes &&
+      includeDebtBreakdown &&
+      scope == StatementScope.openOnly &&
+      !includeArchived &&
+      selectedDebtIds.isEmpty;
+
+  /// Compared by value: the preview is keyed on these, and two sets of options
+  /// that print the same document must not rebuild it.
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is StatementOptions &&
+          other.includePayments == includePayments &&
+          other.includePhone == includePhone &&
+          other.includeNotes == includeNotes &&
+          other.includeDebtBreakdown == includeDebtBreakdown &&
+          other.scope == scope &&
+          other.includeArchived == includeArchived &&
+          other.selectedDebtIds.length == selectedDebtIds.length &&
+          other.selectedDebtIds.containsAll(selectedDebtIds);
+
+  @override
+  int get hashCode => Object.hash(
+        includePayments,
+        includePhone,
+        includeNotes,
+        includeDebtBreakdown,
+        scope,
+        includeArchived,
+        Object.hashAllUnordered(selectedDebtIds),
+      );
 }
 
 /// One line of the payment history table.
@@ -158,6 +232,8 @@ class StatementData {
     required this.options,
     this.dueAt,
     this.notes,
+    this.hiddenSettledCount = 0,
+    this.hiddenArchivedCount = 0,
   });
 
   /// Human-readable number, stable for a given person and day.
@@ -187,6 +263,19 @@ class StatementData {
   final List<StatementEntry> entries;
   final StatementOptions options;
   final String? notes;
+
+  /// Settled debts in this currency that the scope left out.
+  ///
+  /// Printed on the document, so a filtered statement never reads as the whole
+  /// account: the person receiving it can see that something was not shown.
+  final int hiddenSettledCount;
+
+  /// Archived debts in this currency that the scope left out.
+  ///
+  /// For the screen only, and deliberately **not** printed: archiving is the
+  /// user's own filing, and a document that told its reader "two archived debts
+  /// not shown" would be telling them about records the user put away.
+  final int hiddenArchivedCount;
 
   Money get total => Money(totalMinor, currency);
   Money get paid => Money(paidMinor, currency);

@@ -17,10 +17,12 @@ import '../../core/widgets/async_value_view.dart';
 import '../../core/widgets/bottom_sheet_shell.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/money_text.dart';
 import '../../core/widgets/settings_tile.dart';
 import '../../data/services/statement_service.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/payment.dart';
+import '../../l10n/enum_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 /// Opens the statement for a person.
@@ -28,32 +30,86 @@ import '../../l10n/generated/app_localizations.dart';
 /// The preview is the real document, built from the same records the app is
 /// showing, so what the user checks before sending is exactly what the other
 /// person receives — not an illustration of it.
-Future<void> showStatement(BuildContext context, String personId) {
+///
+/// With [debtId] the statement opens on that one debt. The person's other debts
+/// are a tap away on the same screen; they are simply not what was asked for.
+Future<void> showStatement(
+  BuildContext context,
+  String personId, {
+  String? debtId,
+}) {
   return Navigator.of(context).push<void>(
     MaterialPageRoute<void>(
-      builder: (BuildContext context) => StatementScreen(personId: personId),
+      builder: (BuildContext context) =>
+          StatementScreen(personId: personId, initialDebtId: debtId),
     ),
   );
 }
 
-/// The statement screen: a live preview, the document options, and the actions.
+/// The statement screen: what it covers, a live preview, and the actions.
 class StatementScreen extends ConsumerStatefulWidget {
-  const StatementScreen({required this.personId, super.key});
+  const StatementScreen({
+    required this.personId,
+    this.initialDebtId,
+    super.key,
+  });
 
   final String personId;
+
+  /// The one debt to open on, when the statement was asked for from a debt.
+  final String? initialDebtId;
 
   @override
   ConsumerState<StatementScreen> createState() => _StatementScreenState();
 }
 
 class _StatementScreenState extends ConsumerState<StatementScreen> {
-  StatementOptions _options = const StatementOptions();
+  /// What the statement shows. Lives here and nowhere else: it is not stored,
+  /// so nothing chosen on this screen can alter a record.
+  late StatementOptions _options = widget.initialDebtId == null
+      ? const StatementOptions()
+      : StatementOptions(
+          scope: StatementScope.selected,
+          selectedDebtIds: <String>{widget.initialDebtId!},
+        );
+
+  /// The currency the user picked, or null while the screen is still choosing
+  /// for them.
   AppCurrency? _currency;
   bool _busy = false;
 
   /// The document as it last rendered. Kept so sharing, printing and the preview
   /// all refer to one build rather than three subtly different ones.
   StatementData? _document;
+
+  void _setOptions(StatementOptions options) {
+    if (options == _options) return;
+    setState(() {
+      _options = options;
+      _document = null;
+    });
+  }
+
+  /// The currency to state: the user's choice while it still has something to
+  /// show, otherwise the first that does. Null when nothing is in scope at all.
+  AppCurrency? _resolveCurrency(
+    PersonLedger ledger,
+    List<AppCurrency> currencies,
+  ) {
+    if (currencies.isEmpty) return null;
+    final AppCurrency? chosen = _currency;
+    if (chosen != null && currencies.contains(chosen)) return chosen;
+    // Opened from a debt: start in that debt's own currency.
+    final String? debtId = widget.initialDebtId;
+    if (chosen == null && debtId != null) {
+      for (final DebtView view in ledger.debts) {
+        if (view.debt.id == debtId && currencies.contains(view.currency)) {
+          return view.currency;
+        }
+      }
+    }
+    return currencies.first;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,10 +136,8 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
         empty: Center(child: Text(localizations.personDeleted)),
         builder: (BuildContext context, PersonLedger? data) {
           if (data == null) return const SizedBox.shrink();
-          final List<AppCurrency> currencies =
-              StatementService.currenciesFor(data);
 
-          if (currencies.isEmpty) {
+          if (StatementService.allCurrenciesFor(data).isEmpty) {
             // A person with no debts gets an explanation, not an empty document.
             return EmptyState(
               title: localizations.personNoDebts,
@@ -93,12 +147,32 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
             );
           }
 
-          final AppCurrency currency = _currency ?? currencies.first;
-          _currency ??= currency;
+          final List<AppCurrency> currencies =
+              StatementService.currenciesFor(data, options: _options);
+          final AppCurrency? currency = _resolveCurrency(data, currencies);
+          final ({int settled, int archived}) hidden = currency == null
+              ? (settled: 0, archived: 0)
+              : StatementService.hiddenCounts(
+                  ledger: data,
+                  currency: currency,
+                  options: _options,
+                );
 
           return Column(
             children: <Widget>[
-              if (currencies.length > 1)
+              _ScopeBar(
+                scope: _options.scope,
+                hiddenSettled: hidden.settled,
+                hiddenArchived: hidden.archived,
+                onScope: (StatementScope scope) => _chooseScope(data, scope),
+                onShowSettled: () => _setOptions(
+                  _options.copyWith(scope: StatementScope.all),
+                ),
+                onShowArchived: () => _setOptions(
+                  _options.copyWith(includeArchived: true),
+                ),
+              ),
+              if (currency != null && currencies.length > 1)
                 _CurrencyPicker(
                   currencies: currencies,
                   selected: currency,
@@ -108,21 +182,67 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                   }),
                 ),
               Expanded(
-                child: _Preview(
-                  // Rebuilds the document whenever the options or currency
-                  // change, which is what makes the preview live.
-                  key: ValueKey<String>('$currency-${_options.hashCode}'),
-                  builder: (PdfPageFormat format) => _buildBytes(data, currency),
-                ),
+                child: currency == null
+                    // Debts exist, but none of them is what the statement is
+                    // set to show. Say which, and offer the way out — never a
+                    // blank page.
+                    ? _NothingInScope(
+                        scope: _options.scope,
+                        onShowSettled: () => _setOptions(
+                          _options.copyWith(
+                            scope: StatementScope.all,
+                            includeArchived: true,
+                          ),
+                        ),
+                        onChoose: () =>
+                            _chooseScope(data, StatementScope.selected),
+                      )
+                    : _Preview(
+                        // Rebuilds the document whenever the options or the
+                        // currency change, which is what makes the preview
+                        // live. Keyed by value, so options that print the same
+                        // document do not rebuild it.
+                        key: ValueKey<Object>((currency, _options)),
+                        builder: (PdfPageFormat format) =>
+                            _buildBytes(data, currency),
+                      ),
               ),
               _ActionBar(
                 busy: _busy,
-                onShare: () => _share(data, currency),
-                onPrintOrSave: () => _printOrSave(data, currency),
+                onShare: currency == null ? null : () => _share(data, currency),
+                onPrintOrSave: currency == null
+                    ? null
+                    : () => _printOrSave(data, currency),
               ),
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Applies a scope. Choosing by hand opens the list of debts first, and keeps
+  /// the previous scope when the user backs out or ticks nothing.
+  Future<void> _chooseScope(PersonLedger ledger, StatementScope scope) async {
+    if (scope != StatementScope.selected) {
+      _setOptions(_options.copyWith(scope: scope));
+      return;
+    }
+    final Set<String>? chosen = await showAppSheet<Set<String>>(
+      context,
+      child: _DebtPickerSheet(
+        personId: widget.personId,
+        debts: ledger.debts,
+        initial: _options.scope == StatementScope.selected
+            ? _options.selectedDebtIds
+            : const <String>{},
+      ),
+    );
+    if (chosen == null || chosen.isEmpty || !mounted) return;
+    _setOptions(
+      _options.copyWith(
+        scope: StatementScope.selected,
+        selectedDebtIds: chosen,
       ),
     );
   }
@@ -156,14 +276,10 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
   Future<void> _openOptions() async {
     final StatementOptions? result = await showAppSheet<StatementOptions>(
       context,
-      isScrollControlled: false,
       child: _OptionsSheet(initial: _options),
     );
     if (result == null || !mounted) return;
-    setState(() {
-      _options = result;
-      _document = null;
-    });
+    _setOptions(result);
   }
 
   Future<void> _share(PersonLedger ledger, AppCurrency currency) async {
@@ -241,8 +357,10 @@ class _ActionBar extends StatelessWidget {
   });
 
   final bool busy;
-  final VoidCallback onShare;
-  final VoidCallback onPrintOrSave;
+
+  /// Null when there is no document to act on, which disables the button.
+  final VoidCallback? onShare;
+  final VoidCallback? onPrintOrSave;
 
   @override
   Widget build(BuildContext context) {
@@ -291,6 +409,214 @@ class _ActionBar extends StatelessWidget {
                 label: Text(localizations.reportSavePdf),
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// What the statement covers, always in view above the preview.
+///
+/// The scope used to be reachable only through the options sheet, where nobody
+/// looked for it: a settled debt on a statement is the first thing a user wants
+/// to change, so the control for it sits beside the document itself.
+class _ScopeBar extends StatelessWidget {
+  const _ScopeBar({
+    required this.scope,
+    required this.hiddenSettled,
+    required this.hiddenArchived,
+    required this.onScope,
+    required this.onShowSettled,
+    required this.onShowArchived,
+  });
+
+  final StatementScope scope;
+  final int hiddenSettled;
+  final int hiddenArchived;
+  final ValueChanged<StatementScope> onScope;
+  final VoidCallback onShowSettled;
+  final VoidCallback onShowArchived;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
+    final AppPalette palette = context.palette;
+
+    Widget chip(StatementScope value, String label) => ChoiceChip(
+          label: Text(label),
+          selected: scope == value,
+          // Tapping the chosen-by-hand chip again reopens the list, so the
+          // selection can be changed without leaving and coming back.
+          onSelected: (_) => onScope(value),
+        );
+
+    Widget hiddenLine(String text, VoidCallback onShow) => Row(
+          children: <Widget>[
+            Expanded(
+              child: Text(
+                text,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: palette.textSecondary,
+                ),
+              ),
+            ),
+            TextButton(
+              onPressed: onShow,
+              child: Text(localizations.reportShowThem),
+            ),
+          ],
+        );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.lg,
+        0,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: <Widget>[
+              chip(StatementScope.openOnly, localizations.reportScopeOpen),
+              chip(StatementScope.all, localizations.reportScopeAll),
+              chip(StatementScope.selected, localizations.reportScopeSelected),
+            ],
+          ),
+          if (hiddenSettled > 0)
+            hiddenLine(
+              localizations.reportHiddenSettled(hiddenSettled),
+              onShowSettled,
+            ),
+          if (hiddenArchived > 0)
+            hiddenLine(
+              localizations.reportHiddenArchived(hiddenArchived),
+              onShowArchived,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown instead of a preview when no debt matches what the statement is set to
+/// cover: every debt settled, or nothing ticked in this currency.
+class _NothingInScope extends StatelessWidget {
+  const _NothingInScope({
+    required this.scope,
+    required this.onShowSettled,
+    required this.onChoose,
+  });
+
+  final StatementScope scope;
+  final VoidCallback onShowSettled;
+  final VoidCallback onChoose;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    if (scope == StatementScope.selected) {
+      return EmptyState(
+        title: localizations.reportNothingSelectedTitle,
+        actionLabel: localizations.reportSelectDebts,
+        onAction: onChoose,
+      );
+    }
+    return EmptyState(
+      title: localizations.reportNothingOpenTitle,
+      body: localizations.reportNothingOpenBody,
+      actionLabel: localizations.reportShowSettled,
+      onAction: onShowSettled,
+      tone: EmptyTone.positive,
+    );
+  }
+}
+
+/// The person's debts, to tick the ones a statement should cover.
+///
+/// Every debt is listed, in every state and currency: this is the one place a
+/// settled or an archived debt can be put on a statement deliberately. Each row
+/// says what state it is in, so nothing is ticked by mistake.
+class _DebtPickerSheet extends StatefulWidget {
+  const _DebtPickerSheet({
+    required this.personId,
+    required this.debts,
+    required this.initial,
+  });
+
+  final String personId;
+  final List<DebtView> debts;
+  final Set<String> initial;
+
+  @override
+  State<_DebtPickerSheet> createState() => _DebtPickerSheetState();
+}
+
+class _DebtPickerSheetState extends State<_DebtPickerSheet> {
+  late final Set<String> _chosen = <String>{...widget.initial};
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
+    final AppPalette palette = context.palette;
+
+    return AppSheet(
+      title: localizations.reportSelectDebts,
+      // Its own button rather than the sheet's default: the default disappears
+      // when it has nothing to do, and a button that waits for a choice should
+      // stay where it is, disabled, so the sheet does not jump.
+      primaryAction: SizedBox(
+        width: double.infinity,
+        child: FilledButton(
+          // Nothing ticked is not a statement.
+          onPressed: _chosen.isEmpty
+              ? null
+              : () => Navigator.of(context).pop(<String>{..._chosen}),
+          child: Text(localizations.filterApply),
+        ),
+      ),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * 0.5,
+        ),
+        child: ListView(
+          shrinkWrap: true,
+          children: <Widget>[
+            for (final DebtView view in widget.debts)
+              CheckboxListTile(
+                value: _chosen.contains(view.debt.id),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(
+                  view.displayNameFor(widget.personId),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  view.status.label(localizations),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: palette.textSecondary,
+                  ),
+                ),
+                secondary: MoneyText(
+                  view.isSettled ? view.principal : view.remaining,
+                  showCode: true,
+                  style: theme.textTheme.titleSmall,
+                ),
+                onChanged: (bool? ticked) => setState(() {
+                  if (ticked ?? false) {
+                    _chosen.add(view.debt.id);
+                  } else {
+                    _chosen.remove(view.debt.id);
+                  }
+                }),
+              ),
           ],
         ),
       ),
@@ -387,6 +713,17 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             value: _draft.includeDebtBreakdown,
             onChanged: (bool value) => setState(
               () => _draft = _draft.copyWith(includeDebtBreakdown: value),
+            ),
+          ),
+          SettingsSwitchTile(
+            // Off by default: archiving is how a record is put out of sight, and
+            // a document sent to someone else must not bring it back unasked.
+            title: localizations.reportOptionArchived,
+            subtitle: localizations.reportOptionArchivedHint,
+            icon: Icons.archive_outlined,
+            value: _draft.includeArchived,
+            onChanged: (bool value) => setState(
+              () => _draft = _draft.copyWith(includeArchived: value),
             ),
           ),
           SettingsSwitchTile(

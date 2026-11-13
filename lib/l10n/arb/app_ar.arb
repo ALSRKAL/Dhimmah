@@ -1462,5 +1462,36 @@
         "type": "int"
       }
     }
-  }
+  },
+  "reportScopeOpen": "المفتوحة",
+  "reportScopeAll": "الكل",
+  "reportScopeSelected": "اختيار…",
+  "reportSelectDebts": "اختر الديون",
+  "reportOptionArchived": "إظهار المؤرشفة",
+  "reportOptionArchivedHint": "الديون المؤرشفة تبقى خارج الكشف ما لم تفعّل هذا.",
+  "reportHiddenSettled": "{count, plural, =1{دين مسدَّد واحد غير معروض} =2{دينان مسدَّدان غير معروضين} few{{count} ديون مسدَّدة غير معروضة} other{{count} دينًا مسدَّدًا غير معروض}}",
+  "@reportHiddenSettled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportHiddenArchived": "{count, plural, =1{دين مؤرشف واحد غير معروض} =2{دينان مؤرشفان غير معروضين} few{{count} ديون مؤرشفة غير معروضة} other{{count} دينًا مؤرشفًا غير معروض}}",
+  "@reportHiddenArchived": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportShowThem": "إظهار",
+  "reportNothingOpenTitle": "لا ديون مفتوحة",
+  "reportNothingOpenBody": "كل الديون بهذه العملة مسدَّدة أو مؤرشفة.",
+  "reportShowSettled": "إظهار المسدَّدة",
+  "reportNothingSelectedTitle": "لم تختر أي دين",
+  "reportScopeLabel": "النطاق",
+  "reportScopeOpenFull": "الديون المفتوحة",
+  "reportScopeAllFull": "كل الديون",
+  "reportScopeSelectedFull": "ديون مختارة"
 }

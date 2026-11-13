@@ -2923,4 +2923,77 @@ class AppLocalizationsAr extends AppLocalizations {
   String onboardingStepOf(int step, int total) {
     return 'الخطوة $step من $total';
   }
+
+  @override
+  String get reportScopeOpen => 'المفتوحة';
+
+  @override
+  String get reportScopeAll => 'الكل';
+
+  @override
+  String get reportScopeSelected => 'اختيار…';
+
+  @override
+  String get reportSelectDebts => 'اختر الديون';
+
+  @override
+  String get reportOptionArchived => 'إظهار المؤرشفة';
+
+  @override
+  String get reportOptionArchivedHint =>
+      'الديون المؤرشفة تبقى خارج الكشف ما لم تفعّل هذا.';
+
+  @override
+  String reportHiddenSettled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دينًا مسدَّدًا غير معروض',
+      few: '$count ديون مسدَّدة غير معروضة',
+      two: 'دينان مسدَّدان غير معروضين',
+      one: 'دين مسدَّد واحد غير معروض',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String reportHiddenArchived(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دينًا مؤرشفًا غير معروض',
+      few: '$count ديون مؤرشفة غير معروضة',
+      two: 'دينان مؤرشفان غير معروضين',
+      one: 'دين مؤرشف واحد غير معروض',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportShowThem => 'إظهار';
+
+  @override
+  String get reportNothingOpenTitle => 'لا ديون مفتوحة';
+
+  @override
+  String get reportNothingOpenBody =>
+      'كل الديون بهذه العملة مسدَّدة أو مؤرشفة.';
+
+  @override
+  String get reportShowSettled => 'إظهار المسدَّدة';
+
+  @override
+  String get reportNothingSelectedTitle => 'لم تختر أي دين';
+
+  @override
+  String get reportScopeLabel => 'النطاق';
+
+  @override
+  String get reportScopeOpenFull => 'الديون المفتوحة';
+
+  @override
+  String get reportScopeAllFull => 'كل الديون';
+
+  @override
+  String get reportScopeSelectedFull => 'ديون مختارة';
 }

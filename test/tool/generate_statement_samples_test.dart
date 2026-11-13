@@ -220,15 +220,24 @@ void main() {
       fileName: 'en-multipage.pdf',
       options: const StatementOptions(includeNotes: true, includePhone: true),
     );
+    // A statement leaves settled debts out unless asked, and this person's
+    // only debt is settled: with the default scope there would be no row to
+    // print, which is the case the screen answers with an explanation instead
+    // of a document. The sample is what the user gets after choosing "all".
+    const StatementOptions everything = StatementOptions(
+      scope: StatementScope.all,
+    );
     await write(
       target: settled,
       language: AppLanguage.arabic,
       fileName: 'ar-settled.pdf',
+      options: everything,
     );
     await write(
       target: settled,
       language: AppLanguage.english,
       fileName: 'en-settled.pdf',
+      options: everything,
     );
 
     await db.close();

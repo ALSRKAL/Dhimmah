@@ -2866,4 +2866,72 @@ class AppLocalizationsEn extends AppLocalizations {
   String onboardingStepOf(int step, int total) {
     return 'Step $step of $total';
   }
+
+  @override
+  String get reportScopeOpen => 'Open';
+
+  @override
+  String get reportScopeAll => 'All';
+
+  @override
+  String get reportScopeSelected => 'Choose…';
+
+  @override
+  String get reportSelectDebts => 'Choose debts';
+
+  @override
+  String get reportOptionArchived => 'Include archived';
+
+  @override
+  String get reportOptionArchivedHint =>
+      'Archived debts stay out of the statement unless this is on.';
+
+  @override
+  String reportHiddenSettled(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count settled debts not shown',
+      one: '1 settled debt not shown',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String reportHiddenArchived(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count archived debts not shown',
+      one: '1 archived debt not shown',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportShowThem => 'Show';
+
+  @override
+  String get reportNothingOpenTitle => 'Nothing outstanding';
+
+  @override
+  String get reportNothingOpenBody => 'Every debt here is settled or archived.';
+
+  @override
+  String get reportShowSettled => 'Show settled debts';
+
+  @override
+  String get reportNothingSelectedTitle => 'No debts chosen';
+
+  @override
+  String get reportScopeLabel => 'Covers';
+
+  @override
+  String get reportScopeOpenFull => 'Open debts';
+
+  @override
+  String get reportScopeAllFull => 'All debts';
+
+  @override
+  String get reportScopeSelectedFull => 'Selected debts';
 }

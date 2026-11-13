@@ -55,15 +55,27 @@ class StatementService {
     required DateTime now,
     StatementOptions options = const StatementOptions(),
   }) {
-    // Every record this person is on, in the currency being stated — one line
-    // each, counted once. A record they share with other people is still a
-    // record between the two of them as far as this statement is concerned, so
-    // it is printed and totalled like any other; the other people on it are not
-    // this statement's business and are not named.
-    final List<DebtView> inCurrency = <DebtView>[
-      for (final DebtView view in ledger.debts)
-        if (view.currency == currency) view,
-    ];
+    // The records this statement covers: the person's debts in the currency
+    // being stated, narrowed to what the options ask for. One line each,
+    // counted once. A record they share with other people is still a record
+    // between the two of them as far as this statement is concerned, so it is
+    // printed and totalled like any other; the other people on it are not this
+    // statement's business and are not named.
+    //
+    // Everything below — the totals, the status, the history — is derived from
+    // this list and nothing else, so a debt that is left out is left out of
+    // every figure too. A statement can never show a total that includes a row
+    // it did not print.
+    final List<DebtView> inCurrency = debtsInScope(
+      ledger: ledger,
+      currency: currency,
+      options: options,
+    );
+    final ({int settled, int archived}) hidden = hiddenCounts(
+      ledger: ledger,
+      currency: currency,
+      options: options,
+    );
 
     final int total = inCurrency.fold<int>(
       0,
@@ -123,22 +135,113 @@ class StatementService {
       notes: options.includeNotes
           ? _collectedNotes(inCurrency)
           : null,
+      hiddenSettledCount: hidden.settled,
+      hiddenArchivedCount: hidden.archived,
     );
   }
 
-  /// The currencies this person has debts in, so the caller can offer a choice
-  /// when there is more than one.
-  static List<AppCurrency> currenciesFor(PersonLedger ledger) {
-    final List<AppCurrency> currencies = <AppCurrency>[
-      for (final DebtView view in ledger.debts)
-        if (!view.debt.isArchived) view.currency,
-    ];
-    final List<AppCurrency> unique = <AppCurrency>{
-      ...currencies,
-    }.toList()
-      ..sort((AppCurrency a, AppCurrency b) => a.code.compareTo(b.code));
+  /// How many of the person's debts in [currency] the scope leaves out, by why.
+  ///
+  /// An archived debt that is also settled is one hidden record, not two: it is
+  /// counted as archived, since that is the option that would bring it back.
+  static ({int settled, int archived}) hiddenCounts({
+    required PersonLedger ledger,
+    required AppCurrency currency,
+    required StatementOptions options,
+  }) {
+    final Set<String> shown = <String>{
+      for (final DebtView view in debtsInScope(
+        ledger: ledger,
+        currency: currency,
+        options: options,
+      ))
+        view.debt.id,
+    };
+    int settled = 0;
+    int archived = 0;
+    for (final DebtView view in ledger.debts) {
+      if (view.currency != currency || shown.contains(view.debt.id)) continue;
+      if (view.debt.isArchived) {
+        archived++;
+      } else if (view.isSettled) {
+        settled++;
+      }
+    }
+    return (settled: settled, archived: archived);
+  }
+
+  /// The debts of [ledger] in [currency] that [options] put on a statement.
+  ///
+  /// The one place the scope is decided. The rules, in order:
+  ///
+  ///  1. Only the currency being stated.
+  ///  2. [StatementScope.selected] means exactly the ticked debts, and stops
+  ///     there: ticking a settled or an archived debt is the user asking for
+  ///     it, so the two rules below do not apply.
+  ///  3. An archived debt is left out unless [StatementOptions.includeArchived].
+  ///  4. Under [StatementScope.openOnly] a settled debt is left out.
+  ///
+  /// Reads the ledger it is given and returns a new list; it writes nothing.
+  static List<DebtView> debtsInScope({
+    required PersonLedger ledger,
+    required AppCurrency currency,
+    required StatementOptions options,
+  }) {
+    final Iterable<DebtView> inCurrency = ledger.debts.where(
+      (DebtView view) => view.currency == currency,
+    );
+    if (options.scope == StatementScope.selected) {
+      return inCurrency
+          .where(
+            (DebtView view) => options.selectedDebtIds.contains(view.debt.id),
+          )
+          .toList();
+    }
+    return inCurrency.where((DebtView view) {
+      if (view.debt.isArchived && !options.includeArchived) return false;
+      if (options.scope == StatementScope.openOnly && view.isSettled) {
+        return false;
+      }
+      return true;
+    }).toList();
+  }
+
+  /// The currencies a statement can be made in under [options], so the caller
+  /// can offer a choice when there is more than one.
+  ///
+  /// Follows the same scope as the document: a currency whose every debt is
+  /// left out is not offered, because choosing it would produce an empty page.
+  static List<AppCurrency> currenciesFor(
+    PersonLedger ledger, {
+    StatementOptions options = const StatementOptions(),
+  }) {
+    final Set<AppCurrency> all = <AppCurrency>{
+      for (final DebtView view in ledger.debts) view.currency,
+    };
+    final List<AppCurrency> unique = <AppCurrency>[
+      for (final AppCurrency currency in all)
+        if (debtsInScope(
+          ledger: ledger,
+          currency: currency,
+          options: options,
+        ).isNotEmpty)
+          currency,
+    ]..sort((AppCurrency a, AppCurrency b) => a.code.compareTo(b.code));
     return unique;
   }
+
+  /// Every currency this person has a debt in, whatever its state.
+  ///
+  /// What tells "this person has nothing at all" apart from "nothing matches
+  /// what the statement is set to show".
+  static List<AppCurrency> allCurrenciesFor(PersonLedger ledger) =>
+      currenciesFor(
+        ledger,
+        options: const StatementOptions(
+          scope: StatementScope.all,
+          includeArchived: true,
+        ),
+      );
 
   /// Renders the statement to a PDF file and returns its path.
   ///
@@ -191,6 +294,12 @@ class StatementService {
   /// The most demanding status among the debts shown.
   static DebtLifecycleStatus _worstStatus(List<DebtView> views) {
     if (views.isEmpty) return DebtLifecycleStatus.active;
+    // A statement of nothing but archived debts — possible when they were
+    // ticked by hand — is archived, not "paid": the loop below skips them and
+    // would otherwise leave the starting value standing.
+    if (views.every((DebtView view) => view.debt.isArchived)) {
+      return DebtLifecycleStatus.archived;
+    }
     DebtLifecycleStatus worst = DebtLifecycleStatus.paid;
     for (final DebtView view in views) {
       if (view.debt.isArchived) continue;

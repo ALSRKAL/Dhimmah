@@ -204,7 +204,7 @@ skip in this gate as a **failure**, not a pass.
 flutter test
 ```
 
-The suite is currently **1208 passing / 10 skipped** (13 November 2026; the
+The suite is currently **1226 passing / 10 skipped** (13 November 2026; the
 data-loss gate alone is 107 passing with nothing skipped). Record the real number; do
 not quote this one from memory if you have just changed something.
 

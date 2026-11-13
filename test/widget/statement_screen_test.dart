@@ -87,6 +87,21 @@ void main() {
 
   tearDown(() async => db.close());
 
+  /// The app installs this above every route, in `MaterialApp.builder`; the
+  /// sheets this screen opens read amounts through it.
+  Widget withFormatting(BuildContext context, Widget? child) {
+    final AppLocalizations l10n = AppLocalizations.of(context);
+    return AppFormattingScope(
+      formatting: AppFormatting(
+        language: AppLanguage.arabic,
+        numerals: NumeralsStyle.latin,
+        defaultCurrency: AppCurrency.inr,
+        localizations: l10n,
+      ),
+      child: child ?? const SizedBox.shrink(),
+    );
+  }
+
   Future<void> pumpStatement(WidgetTester tester) async {
     final ProviderContainer container = ProviderContainer(
       overrides: [databaseProvider.overrideWithValue(db)],
@@ -102,6 +117,7 @@ void main() {
           locale: const Locale('ar'),
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
+          builder: withFormatting,
           home: StatementScreen(personId: person.id),
         ),
       ),
@@ -205,6 +221,163 @@ void main() {
     expect(notes.value, isTrue);
   });
 
+  Future<void> pumpFor(
+    WidgetTester tester,
+    String personId, {
+    String? debtId,
+  }) async {
+    final ProviderContainer container = ProviderContainer(
+      overrides: [databaseProvider.overrideWithValue(db)],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: AppTheme.light(),
+          locale: const Locale('ar'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          builder: withFormatting,
+          home: StatementScreen(personId: personId, initialDebtId: debtId),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+  }
+
+  /// A second person, with one debt paid off in full.
+  Future<({Person person, Debt debt})> personWithSettledDebt() async {
+    final Person other = await service.createPerson(
+      const PersonDraft(name: 'خالد'),
+    );
+    final DateTime today = dateOnly(DateTime.now());
+    final Debt paidOff = await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.owedToMe,
+        personIds: <String>[other.id],
+        title: 'فاتورة قديمة',
+        principalMinor: 900000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -40),
+      ),
+    );
+    await service.recordPayment(
+      paidOff.id,
+      PaymentDraft(amountMinor: 900000, paidAt: addDays(today, -3)),
+    );
+    return (person: other, debt: paidOff);
+  }
+
+  bool chipSelected(WidgetTester tester, String label) => tester
+      .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, label))
+      .selected;
+
+  testWidgets('what the statement covers is chosen beside the document',
+      (WidgetTester tester) async {
+    await pumpStatement(tester);
+
+    // Not behind the options sheet: a settled debt on a statement is the first
+    // thing a user wants to change.
+    expect(find.widgetWithText(ChoiceChip, 'الكل'), findsOneWidget);
+    expect(find.widgetWithText(ChoiceChip, 'اختيار…'), findsOneWidget);
+    expect(
+      chipSelected(tester, 'المفتوحة'),
+      isTrue,
+      reason: 'a statement opens on what is still outstanding',
+    );
+  });
+
+  testWidgets('a settled debt is left out, said so, and one tap brings it back',
+      (WidgetTester tester) async {
+    final DateTime today = dateOnly(DateTime.now());
+    final Debt paidOff = await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[person.id],
+        title: 'دين قديم',
+        principalMinor: 400000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -90),
+      ),
+    );
+    await service.recordPayment(
+      paidOff.id,
+      PaymentDraft(amountMinor: 400000, paidAt: addDays(today, -60)),
+    );
+
+    await pumpStatement(tester);
+
+    expect(find.text('دين مسدَّد واحد غير معروض'), findsOneWidget);
+    expect(find.byType(PdfPreview), findsOneWidget);
+
+    await tester.tap(find.text('إظهار'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('دين مسدَّد واحد غير معروض'), findsNothing);
+    expect(chipSelected(tester, 'الكل'), isTrue);
+  });
+
+  testWidgets('every debt settled: an explanation and a way to show them',
+      (WidgetTester tester) async {
+    final ({Person person, Debt debt}) other = await personWithSettledDebt();
+    await pumpFor(tester, other.person.id);
+
+    // Not the "no debts" message — this person has one — and not a blank page.
+    expect(find.text('لا ديون مفتوحة'), findsOneWidget);
+    expect(find.text('لا توجد ديون مرتبطة بهذا الشخص.'), findsNothing);
+    expect(find.byType(PdfPreview), findsNothing);
+
+    await tester.tap(find.text('إظهار المسدَّدة'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.byType(PdfPreview), findsOneWidget);
+    expect(find.text('لا ديون مفتوحة'), findsNothing);
+  });
+
+  testWidgets('opened from a debt, the statement is about that debt',
+      (WidgetTester tester) async {
+    final ({Person person, Debt debt}) other = await personWithSettledDebt();
+    await pumpFor(tester, other.person.id, debtId: other.debt.id);
+
+    // The debt is settled, and it was asked for by name: it is shown.
+    expect(find.byType(PdfPreview), findsOneWidget);
+    expect(chipSelected(tester, 'اختيار…'), isTrue);
+  });
+
+  testWidgets('choosing by hand lists the debts and waits for a tick',
+      (WidgetTester tester) async {
+    await pumpStatement(tester);
+
+    await tester.tap(find.widgetWithText(ChoiceChip, 'اختيار…'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(find.text('اختر الديون'), findsOneWidget);
+    final Finder row = find.widgetWithText(CheckboxListTile, 'سلفة');
+    expect(row, findsOneWidget);
+    final Finder apply = find.widgetWithText(FilledButton, 'تطبيق');
+    expect(
+      tester.widget<FilledButton>(apply).onPressed,
+      isNull,
+      reason: 'nothing ticked is not a statement',
+    );
+
+    await tester.tap(row);
+    await tester.pump();
+    expect(tester.widget<FilledButton>(apply).onPressed, isNotNull);
+
+    await tester.tap(apply);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+
+    expect(chipSelected(tester, 'اختيار…'), isTrue);
+    expect(find.byType(PdfPreview), findsOneWidget);
+  });
+
   testWidgets('a person with no debts gets an explanation, not a blank document',
       (WidgetTester tester) async {
     final Person empty = await service.createPerson(
@@ -223,6 +396,7 @@ void main() {
           locale: const Locale('ar'),
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: AppLocalizations.localizationsDelegates,
+          builder: withFormatting,
           home: StatementScreen(personId: empty.id),
         ),
       ),

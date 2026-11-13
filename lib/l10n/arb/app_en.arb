@@ -1462,5 +1462,36 @@
         "type": "int"
       }
     }
-  }
+  },
+  "reportScopeOpen": "Open",
+  "reportScopeAll": "All",
+  "reportScopeSelected": "Choose…",
+  "reportSelectDebts": "Choose debts",
+  "reportOptionArchived": "Include archived",
+  "reportOptionArchivedHint": "Archived debts stay out of the statement unless this is on.",
+  "reportHiddenSettled": "{count, plural, =1{1 settled debt not shown} other{{count} settled debts not shown}}",
+  "@reportHiddenSettled": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportHiddenArchived": "{count, plural, =1{1 archived debt not shown} other{{count} archived debts not shown}}",
+  "@reportHiddenArchived": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportShowThem": "Show",
+  "reportNothingOpenTitle": "Nothing outstanding",
+  "reportNothingOpenBody": "Every debt here is settled or archived.",
+  "reportShowSettled": "Show settled debts",
+  "reportNothingSelectedTitle": "No debts chosen",
+  "reportScopeLabel": "Covers",
+  "reportScopeOpenFull": "Open debts",
+  "reportScopeAllFull": "All debts",
+  "reportScopeSelectedFull": "Selected debts"
 }

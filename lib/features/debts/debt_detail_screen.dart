@@ -142,7 +142,7 @@ class DebtDetailScreen extends ConsumerWidget {
         AppFeedback.error(context, localizations.somethingWentWrong);
         return;
       }
-      await showStatement(context, personId);
+      await showStatement(context, personId, debtId: data.view.debt.id);
       return;
     }
     final ShareService service = ShareService(

@@ -101,6 +101,12 @@ void main() {
       payments: await service.payments.getAll(),
       currency: AppCurrency.inr,
       now: now,
+      // Every debt, settled ones included. These tests are about what a split
+      // payment writes on a statement, and a split is exactly what settles a
+      // debt: under the default scope the debt it cleared would be left off
+      // the page, and with it the line being checked. What the default leaves
+      // out is `statement_scope_test.dart`'s subject, not this file's.
+      options: const StatementOptions(scope: StatementScope.all),
     );
   }
 

@@ -587,6 +587,11 @@ class StatementDocument {
             data.debts.single.title.trim(),
           ),
         ],
+        // What the statement covers, stated on the page. A filtered statement
+        // that did not say so would read as the whole account, and the person
+        // holding it would have no way to know a settled debt was left off.
+        pw.SizedBox(height: 4),
+        _summaryFact(localizations.reportScopeLabel, _scopeText()),
         pw.SizedBox(height: 8),
         _row(children: data.isMixed ? _twoSidedCells() : _oneSidedCells()),
         pw.SizedBox(height: 10),
@@ -601,6 +606,21 @@ class StatementDocument {
         ]),
       ],
     );
+  }
+
+  /// The scope in words, and how many settled debts it left out.
+  ///
+  /// Archived debts are not counted here on purpose: archiving is the user's
+  /// own filing, and this page is read by someone else.
+  String _scopeText() {
+    final String scope = switch (data.options.scope) {
+      StatementScope.openOnly => localizations.reportScopeOpenFull,
+      StatementScope.all => localizations.reportScopeAllFull,
+      StatementScope.selected => localizations.reportScopeSelectedFull,
+    };
+    if (data.hiddenSettledCount <= 0) return scope;
+    return '$scope · '
+        '${localizations.reportHiddenSettled(data.hiddenSettledCount)}';
   }
 
   /// One labelled line of the summary, on the reading side: the currency, or
