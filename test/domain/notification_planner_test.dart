@@ -410,6 +410,45 @@ void main() {
       );
     });
 
+    // The literal value, not only its stability. The test above still passes if
+    // `_identity()` is reformatted, because both passes would move together —
+    // and every alarm already armed on a user's phone would be stranded under
+    // its old id. These numbers are the 31-bit FNV-1a of
+    // `payload|kind.name|when.toIso8601String()` as the shipped builds compute
+    // it. If one of them changes, the id scheme changed: stop and raise it.
+    test('the id of a known reminder is the value shipped builds armed', () {
+      expect(
+        NotificationComposer.idFor(
+          NotificationIntent(
+            kind: NotificationKind.debtDueSoon,
+            when: DateTime(2026, 1, 15, 8),
+            payload: 'debt:abc123',
+          ),
+        ),
+        641686451,
+      );
+      expect(
+        NotificationComposer.idFor(
+          NotificationIntent(
+            kind: NotificationKind.obligationOverdue,
+            when: DateTime(2026, 12, 31, 20, 30),
+            payload: 'obligation:xyz',
+          ),
+        ),
+        129788558,
+      );
+      expect(
+        NotificationComposer.idFor(
+          NotificationIntent(
+            kind: NotificationKind.reminderDue,
+            when: DateTime(2027, 2, 28, 9, 5),
+            payload: 'reminder:r1',
+          ),
+        ),
+        697050003,
+      );
+    });
+
     test('two different reminders never share an id', () async {
       final Person person = await service.createPerson(
         const PersonDraft(name: 'أحمد'),

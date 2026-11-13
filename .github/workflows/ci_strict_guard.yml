@@ -176,9 +176,9 @@ jobs:
       # ---------------------------------------------------------------------
       - name: Seed the legacy database fixture
         run: |
-          # backward_compatibility_test.dart reads build/demo/dhimmah_v2.sqlite and
-          # markTestSkipped()s itself when it is absent — on a clean checkout that
-          # would make the data-loss gate silently vacuous. Produce it first.
+          # backward_compatibility_test.dart now writes its own fixture and can no
+          # longer skip. This step stays as a second, independent proof that the
+          # fixture writer itself works on a clean checkout.
           flutter test test/tool/seed_demo_data_test.dart
           test -f build/demo/dhimmah_v2.sqlite \
             || { echo "::error::fixture build/demo/dhimmah_v2.sqlite was not produced."; exit 1; }
@@ -250,3 +250,35 @@ jobs:
             echo "  gate covers backup round-trip, hardening and kill-matrix."
             echo "* A skipped data-loss test fails the build."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # -------------------------------------------------------------------------
+  # iOS build.
+  #
+  # The app is developed on Linux, where an iOS build cannot be made at all, so
+  # without this job nothing proves the iOS target still compiles: a Kotlin-only
+  # platform channel, a plugin without an iOS implementation or a broken
+  # Info.plist would only surface on the release engineer's Mac. No signing is
+  # involved — the question here is "does it build", not "can it ship".
+  # -------------------------------------------------------------------------
+  ios_build:
+    name: iOS build (no codesign)
+    runs-on: macos-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # The same pin as the guard job; see the note there.
+          flutter-version: '3.44.9'
+          channel: stable
+          cache: true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Build iOS without signing
+        run: flutter build ios --release --no-codesign

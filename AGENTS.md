@@ -63,10 +63,10 @@ text (`textEnum`) requires **all** of:
    Assert that a real record survives with its amounts intact.
 
 **A test that silently skips proves nothing.** `backward_compatibility_test.dart`
-currently skips itself when `build/demo/dhimmah_v2.sqlite` is absent (it calls
-`markTestSkipped`). Any new coverage you add there must either generate its own
-fixture or fail loudly rather than skip. CI generates the fixture before running
-this file — see §4.2.
+used to skip itself when `build/demo/dhimmah_v2.sqlite` was absent. It now writes
+its own fixture through `test/support/legacy_fixture.dart` and cannot skip — see
+§4.2. Any new coverage you add to the gate must do the same: generate its own
+fixture or fail loudly, never `markTestSkipped`.
 
 ### 1.3 Files that are part of a user's data — treat as a wire format
 
@@ -204,7 +204,8 @@ skip in this gate as a **failure**, not a pass.
 flutter test
 ```
 
-The suite is currently **983 passing / 10 skipped**. Record the real number; do
+The suite is currently **1208 passing / 10 skipped** (13 November 2026; the
+data-loss gate alone is 107 passing with nothing skipped). Record the real number; do
 not quote this one from memory if you have just changed something.
 
 ### 3.4 After anything touching notifications
@@ -232,13 +233,20 @@ The removals are now conditional on the version that introduced the object, and 
 index on the link table. **Keep the conditionals** when you add a version:
 `drop` belongs to `version < n`, never to the function body.
 
-### 4.2 OPEN — `backward_compatibility_test.dart` skips on a clean checkout
+### 4.2 FIXED — `backward_compatibility_test.dart` skipped on a clean checkout
 
-It needs `build/demo/dhimmah_v2.sqlite`, produced by
-`test/tool/seed_demo_data_test.dart`. Without it the whole file reports
-`All tests skipped` and the gate is a no-op. The CI workflow seeds the fixture
-first and fails the gate on any skip — **any new gate you add must do the same**,
-or verify its fixtures exist.
+It needed `build/demo/dhimmah_v2.sqlite`, produced by
+`test/tool/seed_demo_data_test.dart`. Without it the whole file reported
+`All tests skipped` and the gate was a no-op.
+
+The fixture writer now lives in `test/support/legacy_fixture.dart`, shared by the
+seed tool and the test. The test writes its own copy into a temporary directory
+on every run, so it runs or fails and never depends on another test having run
+first. The CI workflow still fails the gate on any skip — **any new gate you add
+must generate or verify its own fixtures the same way.**
+
+When a schema version is added, `writeDemoDatabases()` is the one place the
+"shape of the previous version" is described: extend its removals there.
 
 ### 4.3 OPEN — `migration_test.dart` seeds a small fixture
 
@@ -248,13 +256,16 @@ exercise `payments`, `obligations`, `obligation_occurrences`, `reminders`,
 never changed shape, which is why this is survivable — but a future change to any
 of them must add coverage here first.
 
-### 4.4 OPEN — `_identity()` is only pinned for stability, not for value
+### 4.4 FIXED — `_identity()` was only pinned for stability, not for value
 
-`notification_planner_test.dart` proves an id repeats across planning passes. It
-does not assert the literal id, so reformatting `_identity()` would pass every
-test while stranding every alarm already armed on a user's phone. The CI guard
-asserts the shipped form of the function as a string — keep that check in step
-with the code (§1.4).
+`notification_planner_test.dart` proved an id repeats across planning passes but
+did not assert the literal id, so reformatting `_identity()` would have passed
+every test while stranding every alarm already armed on a user's phone.
+
+"the id of a known reminder is the value shipped builds armed" now asserts three
+literal ids for fixed `payload`, `kind` and `when`. If that test fails, the id
+scheme changed: **do not update the numbers** — stop and raise it (§1.4). The CI
+guard still asserts the shipped form of the function as a string as well.
 
 ### 4.5 Checked and sound — the restore is atomic
 

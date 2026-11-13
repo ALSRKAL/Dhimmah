@@ -25,6 +25,7 @@ import 'package:drift/native.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../support/legacy_fixture.dart';
 import '../support/store_demo_seed.dart';
 
 /// Backward compatibility.
@@ -34,25 +35,30 @@ import '../support/store_demo_seed.dart';
 /// existing install must keep every record and the app must be able to build a
 /// statement from it.
 ///
-/// The file is produced by `test/tool/seed_demo_data_test.dart`, which writes two
-/// copies: the current one, and one in the shape of the previous version. This
-/// opens the **old** copy, so what it proves is not only that the records survive
-/// but that the upgrade that adds the link table put every debt's person where
-/// the app now reads it.
+/// The file is written by `test/support/legacy_fixture.dart`, the same code the
+/// seed tool runs: the demo ledger, then a copy in the shape of the previous
+/// version. This opens the **old** copy, so what it proves is not only that the
+/// records survive but that the upgrade that adds the link table put every
+/// debt's person where the app now reads it.
 ///
-/// If the file is absent the test is skipped rather than failing, so a clean
-/// checkout still passes.
+/// The test writes its own fixture, into its own temporary directory. It used to
+/// read `build/demo/dhimmah_v2.sqlite` and skip itself when the seed tool had
+/// not been run, so on a clean checkout the data-loss gate reported
+/// `All tests skipped` and proved nothing. It now runs or fails; it cannot skip.
 void main() {
-  final File databaseFile = File('build/demo/dhimmah_v2.sqlite');
-
   test('an existing database opens and every record survives', () async {
-    if (!databaseFile.existsSync()) {
-      markTestSkipped('no sample database; run the seed tool first');
-      return;
-    }
+    final Directory temp = await Directory.systemTemp.createTemp('dhimmah-compat');
+    final File databaseFile = (await writeDemoDatabases(
+      Directory('${temp.path}/fixture'),
+    ))
+        .legacy;
+    expect(
+      databaseFile.existsSync(),
+      isTrue,
+      reason: 'the version 2 fixture was not written; this test must never skip',
+    );
 
     // Copied so the fixture is never mutated by a read.
-    final Directory temp = await Directory.systemTemp.createTemp('dhimmah-compat');
     final File copy = await databaseFile.copy('${temp.path}/dhimmah.sqlite');
     final AppDatabase db = AppDatabase(NativeDatabase(copy));
     final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
