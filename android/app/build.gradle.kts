@@ -64,6 +64,19 @@ android {
     }
 
     buildTypes {
+        debug {
+            // A debug build installs **beside** the published app, as
+            // `com.dhimmah.dhimmah.debug`, with its own empty data.
+            //
+            // Without this a debug build has the store app's package name and a
+            // different signature, so a phone that already has Dhimmah refuses
+            // it — and the only way round that is to uninstall the store app,
+            // which deletes the one copy of that person's ledger. A developer's
+            // own phone is exactly where that happens.
+            //
+            // The release id is untouched: `applicationId` above is what ships.
+            applicationIdSuffix = ".debug"
+        }
         release {
             signingConfig = if (hasReleaseSigning) {
                 signingConfigs.getByName("release")
