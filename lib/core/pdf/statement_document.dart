@@ -615,6 +615,19 @@ class StatementDocument {
               ),
             ),
           ],
+          // Who it is from, when the user gave a name. Under a hairline, so the
+          // two parties read as two, and absent altogether otherwise: an empty
+          // "From:" would look like a field somebody forgot to fill in.
+          if (data.options.issuerName.trim().isNotEmpty) ...<pw.Widget>[
+            pw.SizedBox(height: 8),
+            pw.Container(height: 0.6, color: DocumentColors.border),
+            pw.SizedBox(height: 8),
+            _summaryFact(
+              localizations.reportIssuerLabel,
+              data.options.issuerName.trim(),
+              width: _partyWidth,
+            ),
+          ],
         ],
       ),
     );

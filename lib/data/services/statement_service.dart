@@ -273,10 +273,74 @@ class StatementService {
     return file;
   }
 
+  /// The folder, inside the app's documents directory, that generated
+  /// statements are written to. Nothing else is ever put in it.
+  static const String generatedFolder = 'statements';
+
+  /// Deletes generated statement files, and returns how many it removed.
+  ///
+  /// A statement is written to a file so it can be shared, and that file used
+  /// to stay for good: a name and a balance, in plain sight of anything that
+  /// can read the app's storage, long after the debt was settled — and still
+  /// there after the user chose "delete all data". With [olderThan], only files
+  /// last written before that long ago are removed, which is what start-up
+  /// asks for so a document being shared right now is left alone; without it,
+  /// every one is removed.
+  ///
+  /// What it may touch is deliberately narrow, because this is a delete and the
+  /// same directory tree holds the ledger:
+  ///
+  ///  * only the [generatedFolder] directly under [root] — never [root] itself,
+  ///    where the database lives, and never the backups folder beside it;
+  ///  * only regular files whose name ends in `.pdf`, one level deep, links
+  ///    not followed;
+  ///  * the folder itself is left in place.
+  ///
+  /// It never throws. A file that cannot be removed is skipped: failing to tidy
+  /// up must not become a reason the app does not start, or a reason the user
+  /// cannot clear their data.
+  ///
+  /// [root] is the documents directory; it is a parameter so a test can point
+  /// this at a directory of its own and prove what is left standing.
+  static Future<int> purgeGenerated({
+    Duration? olderThan,
+    Directory? root,
+    DateTime? now,
+  }) async {
+    int removed = 0;
+    try {
+      final Directory base = root ?? await getApplicationDocumentsDirectory();
+      final Directory statements =
+          Directory(p.join(base.path, generatedFolder));
+      if (!await statements.exists()) return 0;
+      final DateTime? cutoff =
+          olderThan == null ? null : (now ?? DateTime.now()).subtract(olderThan);
+      await for (final FileSystemEntity entity
+          in statements.list(followLinks: false)) {
+        if (entity is! File) continue;
+        if (p.extension(entity.path).toLowerCase() != '.pdf') continue;
+        try {
+          if (cutoff != null &&
+              !(await entity.lastModified()).isBefore(cutoff)) {
+            continue;
+          }
+          await entity.delete();
+          removed++;
+        } on Object {
+          // One stubborn file is not a reason to leave the rest.
+        }
+      }
+    } on Object {
+      // No documents directory, no permission, a folder that vanished mid-way:
+      // nothing was promised, so nothing is reported.
+    }
+    return removed;
+  }
+
   /// A directory that survives for as long as the app is installed.
   Future<Directory> _outputDirectory() async {
     final Directory base = await getApplicationDocumentsDirectory();
-    final Directory statements = Directory(p.join(base.path, 'statements'));
+    final Directory statements = Directory(p.join(base.path, generatedFolder));
     if (!await statements.exists()) {
       await statements.create(recursive: true);
     }

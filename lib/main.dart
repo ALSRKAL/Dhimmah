@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,6 +12,7 @@ import 'app/providers.dart';
 import 'app/startup_failure.dart';
 import 'data/services/ledger_service.dart';
 import 'data/services/play_app_update_service.dart';
+import 'data/services/statement_service.dart';
 import 'domain/entities/app_settings.dart';
 
 
@@ -84,6 +87,14 @@ Future<void> _boot() async {
       container: container,
       child: DhimmahApp(onboardingCompleted: onboardingCompleted),
     ),
+  );
+
+  // Statements generated more than a day ago, removed once the app is already
+  // on screen. Not awaited and unable to throw: it is housekeeping, and must
+  // cost the first frame nothing. A day, so a document that is being shared
+  // right now — or was opened from another app an hour ago — is left alone.
+  unawaited(
+    StatementService.purgeGenerated(olderThan: const Duration(hours: 24)),
   );
 }
 

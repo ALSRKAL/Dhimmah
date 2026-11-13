@@ -380,6 +380,52 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       );
     });
 
+    test('who it is from is printed when a name is given, and only then',
+        () async {
+      final AppLocalizations l10n = lookupAppLocalizations(const Locale('en'));
+      final PdfInspection named = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            options: const StatementOptions(issuerName: '  Mohammed Alsrkal '),
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      // The label and the name are set at different sizes, so they are two
+      // runs on two baselines: each is looked for on its own.
+      final String label = '${l10n.reportIssuerLabel}:';
+      expect(
+        named.lineContaining('Alsrkal').map((PdfRun run) => run.text).join(' '),
+        'Mohammed Alsrkal',
+        reason: 'trimmed, and printed as typed',
+      );
+      expect(named.runs.where((PdfRun run) => run.text == label), hasLength(1));
+      expectInsideMargins(named, 'issuer');
+
+      // No name, no label: an empty "From:" reads as a field left blank.
+      final PdfInspection anonymous = inspectPdf(
+        await render(
+          _arabicStatement(language: AppLanguage.english),
+          language: AppLanguage.english,
+        ),
+      );
+      expect(anonymous.runs.where((PdfRun run) => run.text == label), isEmpty);
+    });
+
+    test('a long issuer name wraps inside the page', () async {
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            options: StatementOptions(
+              issuerName: 'محمد عبد الله السركال ' * 6,
+            ),
+          ),
+        ),
+      );
+      expectInsideMargins(page, 'long issuer');
+    });
+
     test('a statement of one debt names the debt', () async {
       // With one debt there is no breakdown table, and the title used to
       // appear nowhere on the page.

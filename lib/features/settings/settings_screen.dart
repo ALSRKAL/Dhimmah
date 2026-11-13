@@ -17,6 +17,7 @@ import '../../core/widgets/feedback.dart';
 import '../../core/widgets/form_fields.dart';
 import '../../core/widgets/settings_tile.dart';
 import '../../data/services/data_export_service.dart';
+import '../../data/services/statement_service.dart';
 import '../../domain/entities/app_settings.dart';
 import '../../domain/enums/preference_enums.dart';
 import '../../domain/enums/recurrence.dart';
@@ -572,6 +573,12 @@ class SettingsScreen extends ConsumerWidget {
     }
     if (!context.mounted) return;
     await ref.read(ledgerServiceProvider).clearAllData();
+    // And the statements that were generated from those records. They are files
+    // beside the database rather than rows in it, so clearing the ledger left
+    // every one of them behind, names and balances intact. After the ledger,
+    // never before it: this cannot fail, but if it could, the records the user
+    // asked to delete would already be gone.
+    await StatementService.purgeGenerated();
     if (!context.mounted) return;
     AppFeedback.info(context, localizations.recordDeleted);
   }

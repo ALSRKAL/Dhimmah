@@ -340,6 +340,11 @@ void main() {
       expect(a.hashCode, b.hashCode);
       expect(a == b.copyWith(includeArchived: true), isFalse);
       expect(a == b.copyWith(selectedDebtIds: <String>{'x'}), isFalse);
+      expect(a == b.copyWith(issuerName: 'محمد'), isFalse);
+      expect(
+        b.copyWith(issuerName: 'محمد'),
+        a.copyWith(issuerName: 'محمد'),
+      );
     });
 
     test('the default is the private one', () {

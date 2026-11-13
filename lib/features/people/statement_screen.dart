@@ -17,6 +17,7 @@ import '../../core/widgets/async_value_view.dart';
 import '../../core/widgets/bottom_sheet_shell.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/feedback.dart';
+import '../../core/widgets/form_fields.dart';
 import '../../core/widgets/money_text.dart';
 import '../../core/widgets/settings_tile.dart';
 import '../../data/services/statement_service.dart';
@@ -81,6 +82,10 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
   /// The document as it last rendered. Kept so sharing, printing and the preview
   /// all refer to one build rather than three subtly different ones.
   StatementData? _document;
+
+  /// Counts the times the user asked for the preview again after it failed.
+  /// Part of the preview's key, so a new number builds a new document.
+  int _attempt = 0;
 
   void _setOptions(StatementOptions options) {
     if (options == _options) return;
@@ -202,9 +207,10 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                         // currency change, which is what makes the preview
                         // live. Keyed by value, so options that print the same
                         // document do not rebuild it.
-                        key: ValueKey<Object>((currency, _options)),
+                        key: ValueKey<Object>((currency, _options, _attempt)),
                         builder: (PdfPageFormat format) =>
                             _buildBytes(data, currency),
+                        onRetry: () => setState(() => _attempt++),
                       ),
               ),
               _ActionBar(
@@ -326,9 +332,13 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
 /// Drawn by the platform's own PDF renderer, so the user is looking at the file
 /// rather than a reconstruction of it.
 class _Preview extends StatelessWidget {
-  const _Preview({required this.builder, super.key});
+  const _Preview({required this.builder, required this.onRetry, super.key});
 
   final LayoutCallback builder;
+
+  /// Builds the document again. A failure used to leave a line of text and no
+  /// way forward but leaving the screen.
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -343,8 +353,12 @@ class _Preview extends StatelessWidget {
       dynamicLayout: false,
       padding: const EdgeInsets.all(AppSpacing.md),
       loadingWidget: const Center(child: CircularProgressIndicator()),
-      onError: (BuildContext context, Object error) =>
-          Center(child: Text(AppLocalizations.of(context).exportFailed)),
+      onError: (BuildContext context, Object error) => EmptyState(
+        title: AppLocalizations.of(context).exportFailed,
+        actionLabel: AppLocalizations.of(context).actionRetry,
+        onAction: onRetry,
+        icon: Icons.error_outline,
+      ),
     );
   }
 }
@@ -686,6 +700,14 @@ class _OptionsSheet extends StatefulWidget {
 
 class _OptionsSheetState extends State<_OptionsSheet> {
   late StatementOptions _draft = widget.initial;
+  late final TextEditingController _issuer =
+      TextEditingController(text: widget.initial.issuerName);
+
+  @override
+  void dispose() {
+    _issuer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -693,10 +715,22 @@ class _OptionsSheetState extends State<_OptionsSheet> {
     return AppSheet(
       title: localizations.reportOptionsTitle,
       primaryLabel: localizations.filterApply,
-      onPrimary: () => Navigator.of(context).pop(_draft),
+      onPrimary: () => Navigator.of(context).pop(
+        _draft.copyWith(issuerName: _issuer.text.trim()),
+      ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
+          AppTextField(
+            label: localizations.reportOptionIssuer,
+            controller: _issuer,
+            helperText: localizations.reportOptionIssuerHint,
+            prefixIcon: Icons.person_outline,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+            maxLength: 60,
+          ),
+          const SizedBox(height: AppSpacing.sm),
           SettingsSwitchTile(
             title: localizations.reportOptionPayments,
             subtitle: localizations.reportPaymentHistory,

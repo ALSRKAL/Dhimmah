@@ -40,6 +40,7 @@ class StatementOptions {
     this.scope = StatementScope.openOnly,
     this.includeArchived = false,
     this.selectedDebtIds = const <String>{},
+    this.issuerName = '',
   });
 
   /// The payment history table.
@@ -69,6 +70,14 @@ class StatementOptions {
   /// The debts to print under [StatementScope.selected]; ignored otherwise.
   final Set<String> selectedDebtIds;
 
+  /// Who the statement is from, as the user typed it; empty to leave it off.
+  ///
+  /// The page names the person it is about and, without this, nobody else: a
+  /// statement forwarded once no longer says whose records it is. Typed on the
+  /// screen and kept only while it is open — the app stores no name for its
+  /// own user, and adding one is a schema change this does not make.
+  final String issuerName;
+
   StatementOptions copyWith({
     bool? includePayments,
     bool? includePhone,
@@ -77,6 +86,7 @@ class StatementOptions {
     StatementScope? scope,
     bool? includeArchived,
     Set<String>? selectedDebtIds,
+    String? issuerName,
   }) {
     return StatementOptions(
       includePayments: includePayments ?? this.includePayments,
@@ -86,6 +96,7 @@ class StatementOptions {
       scope: scope ?? this.scope,
       includeArchived: includeArchived ?? this.includeArchived,
       selectedDebtIds: selectedDebtIds ?? this.selectedDebtIds,
+      issuerName: issuerName ?? this.issuerName,
     );
   }
 
@@ -97,7 +108,8 @@ class StatementOptions {
       includeDebtBreakdown &&
       scope == StatementScope.openOnly &&
       !includeArchived &&
-      selectedDebtIds.isEmpty;
+      selectedDebtIds.isEmpty &&
+      issuerName.trim().isEmpty;
 
   /// Compared by value: the preview is keyed on these, and two sets of options
   /// that print the same document must not rebuild it.
@@ -111,6 +123,7 @@ class StatementOptions {
           other.includeDebtBreakdown == includeDebtBreakdown &&
           other.scope == scope &&
           other.includeArchived == includeArchived &&
+          other.issuerName == issuerName &&
           other.selectedDebtIds.length == selectedDebtIds.length &&
           other.selectedDebtIds.containsAll(selectedDebtIds);
 
@@ -122,6 +135,7 @@ class StatementOptions {
         includeDebtBreakdown,
         scope,
         includeArchived,
+        issuerName,
         Object.hashAllUnordered(selectedDebtIds),
       );
 }
