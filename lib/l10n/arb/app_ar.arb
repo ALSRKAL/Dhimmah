@@ -1575,5 +1575,16 @@
   "paymentRowTitle": "دفعة",
   "reportIssuerLabel": "من",
   "reportOptionIssuer": "اسم المُصدر",
-  "reportOptionIssuerHint": "اسمك كما يظهر في الكشف. اتركه فارغًا لإخفائه."
+  "reportOptionIssuerHint": "اسمك كما يظهر في الكشف. اتركه فارغًا لإخفائه.",
+  "receiptTitleIn": "سند قبض",
+  "receiptTitleOut": "سند دفع",
+  "receiptReceivedFrom": "استُلم من",
+  "receiptPaidTo": "دُفع إلى",
+  "receiptReceivedBy": "المستلم",
+  "receiptPaidBy": "الدافع",
+  "receiptPaidOn": "تاريخ الدفع",
+  "receiptFor": "وذلك عن",
+  "receiptRemainingNow": "المتبقي من الدين حاليًا",
+  "receiptSignature": "التوقيع",
+  "receiptAction": "إيصال PDF"
 }

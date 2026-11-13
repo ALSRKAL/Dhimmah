@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/brand/brand_mark.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
+import '../../core/money/money.dart';
 import '../../core/pdf/statement_document.dart';
 import '../../core/pdf/statement_models.dart';
 import '../../domain/entities/debt.dart';
@@ -267,6 +268,57 @@ class StatementService {
     );
 
     final Uint8List bytes = await document.build().save();
+    final Directory directory = await _outputDirectory();
+    final File file = File(p.join(directory.path, data.fileName));
+    await file.writeAsBytes(bytes, flush: true);
+    return file;
+  }
+
+  /// Assembles the receipt for one [payment] on the debt in [view].
+  ///
+  /// Read from the stored payment and the debt as it stands: nothing is written
+  /// and no receipt number is kept. The same payment issued in the same minute
+  /// gets the same number; issued again later it gets a later one.
+  ReceiptData buildReceipt({
+    required DebtView view,
+    required Payment payment,
+    required String personName,
+    required DateTime now,
+    String issuerName = '',
+  }) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    final String day =
+        '${now.year.toString().padLeft(4, '0')}${two(now.month)}${two(now.day)}';
+    final String title = view.debt.title.trim();
+    final String? note = payment.note?.trim();
+    return ReceiptData(
+      number: 'RCP-$day-${two(now.hour)}${two(now.minute)}-'
+          '${StatementData.stableCode(payment.id)}',
+      issuedAt: now,
+      language: formatting.language,
+      personName: personName,
+      issuerName: issuerName,
+      direction: view.debt.direction,
+      amount: Money(payment.amountMinor, payment.currency),
+      paidAt: payment.paidAt,
+      remainingNow: view.remaining,
+      debtTitle: title.isEmpty ? null : title,
+      note: note == null || note.isEmpty ? null : note,
+    );
+  }
+
+  /// Renders a receipt to a PDF file and returns it.
+  ///
+  /// Into the same folder as statements, so the same clean-up removes it.
+  Future<File> renderReceipt(ReceiptData data) async {
+    final Uint8List bytes = await ReceiptDocument(
+      data: data,
+      localizations: localizations,
+      formatting: formatting,
+      regularFont: await _regularFont(),
+      semiBoldFont: await _semiBoldFont(),
+      mark: await _mark(),
+    ).build().save();
     final Directory directory = await _outputDirectory();
     final File file = File(p.join(directory.path, data.fileName));
     await file.writeAsBytes(bytes, flush: true);

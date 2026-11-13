@@ -17,9 +17,12 @@ import 'package:dhimmah/data/repositories/settings_repository_impl.dart';
 import 'package:dhimmah/data/services/ledger_service.dart';
 import 'package:dhimmah/domain/entities/debt.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
+import 'package:dhimmah/domain/entities/payment.dart';
 import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
+import 'package:dhimmah/domain/services/debt_calculator.dart';
+import 'package:dhimmah/features/debts/receipt_screen.dart';
 import 'package:dhimmah/features/people/statement_screen.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
 import 'package:flutter/material.dart';
@@ -376,6 +379,68 @@ void main() {
 
     expect(chipSelected(tester, 'اختيار…'), isTrue);
     expect(find.byType(PdfPreview), findsOneWidget);
+  });
+
+  testWidgets('a payment has a receipt, named for which way the money moved',
+      (WidgetTester tester) async {
+    final DateTime today = dateOnly(DateTime.now());
+
+    Future<void> pumpReceipt(DebtDirection direction) async {
+      final Debt debt = await service.createDebt(
+        DebtDraft(
+          direction: direction,
+          personIds: <String>[person.id],
+          title: 'فاتورة',
+          principalMinor: 900000,
+          currency: AppCurrency.inr,
+          issuedAt: addDays(today, -20),
+        ),
+      );
+      final Payment payment = await service.recordPayment(
+        debt.id,
+        PaymentDraft(amountMinor: 300000, paidAt: addDays(today, -2)),
+      );
+      final ProviderContainer container = ProviderContainer(
+        overrides: [databaseProvider.overrideWithValue(db)],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            theme: AppTheme.light(),
+            locale: const Locale('ar'),
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            builder: withFormatting,
+            home: ReceiptScreen(
+              view: DebtCalculator.buildView(
+                debt: debt,
+                payments: <Payment>[payment],
+                participants: <Person>[person],
+                asOf: today,
+                dueSoonWindowDays: 7,
+              ),
+              payment: payment,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+    }
+
+    // Owed to the user: the user received it.
+    await pumpReceipt(DebtDirection.owedToMe);
+    expect(find.text('سند قبض'), findsOneWidget);
+    expect(find.byType(PdfPreview), findsOneWidget);
+    expect(find.text('مشاركة PDF'), findsOneWidget);
+    expect(find.byTooltip('اسم المُصدر'), findsOneWidget);
+
+    // Owed by the user: the user paid it.
+    await pumpReceipt(DebtDirection.iOwe);
+    expect(find.text('سند دفع'), findsOneWidget);
+    expect(find.text('سند قبض'), findsNothing);
   });
 
   testWidgets('a person with no debts gets an explanation, not a blank document',

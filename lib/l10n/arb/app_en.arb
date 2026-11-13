@@ -1575,5 +1575,16 @@
   "paymentRowTitle": "Payment",
   "reportIssuerLabel": "From",
   "reportOptionIssuer": "Issued by",
-  "reportOptionIssuerHint": "Your name as it appears on the statement. Leave empty to hide it."
+  "reportOptionIssuerHint": "Your name as it appears on the statement. Leave empty to hide it.",
+  "receiptTitleIn": "Payment receipt",
+  "receiptTitleOut": "Payment voucher",
+  "receiptReceivedFrom": "Received from",
+  "receiptPaidTo": "Paid to",
+  "receiptReceivedBy": "Received by",
+  "receiptPaidBy": "Paid by",
+  "receiptPaidOn": "Paid on",
+  "receiptFor": "For",
+  "receiptRemainingNow": "Remaining on the debt now",
+  "receiptSignature": "Signature",
+  "receiptAction": "PDF receipt"
 }

@@ -387,6 +387,71 @@ class StatementData {
   }
 }
 
+/// Everything a receipt for one payment needs, already resolved.
+///
+/// A receipt is the smallest document the app makes: one payment, who it was
+/// between, and what it leaves on the debt. Like a statement it is read from
+/// stored records and writes nothing — it has no number in the database, so its
+/// number is derived from the payment and the moment it was issued.
+@immutable
+class ReceiptData {
+  const ReceiptData({
+    required this.number,
+    required this.issuedAt,
+    required this.language,
+    required this.personName,
+    required this.direction,
+    required this.amount,
+    required this.paidAt,
+    required this.remainingNow,
+    this.issuerName = '',
+    this.debtTitle,
+    this.note,
+  });
+
+  final String number;
+  final DateTime issuedAt;
+  final AppLanguage language;
+
+  /// The other party to the debt.
+  final String personName;
+
+  /// Who is issuing the receipt, as typed; empty to leave it off.
+  final String issuerName;
+
+  /// The side the debt is on, which decides which way the money moved.
+  final DebtDirection direction;
+
+  final Money amount;
+  final DateTime paidAt;
+
+  /// What the debt still has on it at the moment the receipt is issued.
+  ///
+  /// "Now", not "after this payment": a receipt can be issued for an old
+  /// payment with later ones after it, and the balance straight after that one
+  /// is no longer what anyone owes.
+  final Money remainingNow;
+
+  final String? debtTitle;
+  final String? note;
+
+  /// Whether the user received this payment, rather than made it.
+  ///
+  /// A debt owed to the user is paid *to* the user: the document is a receipt.
+  /// A debt the user owes is paid *by* the user: it is a payment voucher.
+  bool get isReceived => !direction.isIOwe;
+
+  /// The filename a shared copy gets.
+  String get fileName {
+    final String safeName = StatementData.sanitiseFileName(personName);
+    final String date =
+        '${paidAt.year.toString().padLeft(4, '0')}-'
+        '${paidAt.month.toString().padLeft(2, '0')}-'
+        '${paidAt.day.toString().padLeft(2, '0')}';
+    return 'Dhimmah_Receipt_${safeName}_$date.pdf';
+  }
+}
+
 /// Builds the statement's history from real records.
 ///
 /// One list, oldest first, with a running balance, so the table reads as the

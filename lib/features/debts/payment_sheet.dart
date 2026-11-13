@@ -18,6 +18,7 @@ import '../../../domain/entities/drafts.dart';
 import '../../../domain/entities/ledger_views.dart';
 import '../../../domain/entities/payment.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import 'receipt_screen.dart';
 
 /// Records a payment against a debt.
 ///
@@ -394,6 +395,14 @@ class PaymentRow extends ConsumerWidget {
                 // sheet opened as "record a payment" and saving added a second
                 // payment beside the one being corrected.
                 await showPaymentSheet(context, view: view, existing: payment);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.receipt_long_outlined),
+              title: Text(localizations.receiptAction),
+              onTap: () async {
+                Navigator.of(context).pop();
+                await showReceipt(context, view: view, payment: payment);
               },
             ),
             ListTile(

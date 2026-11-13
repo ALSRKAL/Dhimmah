@@ -3029,4 +3029,37 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get reportOptionIssuerHint =>
       'Your name as it appears on the statement. Leave empty to hide it.';
+
+  @override
+  String get receiptTitleIn => 'Payment receipt';
+
+  @override
+  String get receiptTitleOut => 'Payment voucher';
+
+  @override
+  String get receiptReceivedFrom => 'Received from';
+
+  @override
+  String get receiptPaidTo => 'Paid to';
+
+  @override
+  String get receiptReceivedBy => 'Received by';
+
+  @override
+  String get receiptPaidBy => 'Paid by';
+
+  @override
+  String get receiptPaidOn => 'Paid on';
+
+  @override
+  String get receiptFor => 'For';
+
+  @override
+  String get receiptRemainingNow => 'Remaining on the debt now';
+
+  @override
+  String get receiptSignature => 'Signature';
+
+  @override
+  String get receiptAction => 'PDF receipt';
 }

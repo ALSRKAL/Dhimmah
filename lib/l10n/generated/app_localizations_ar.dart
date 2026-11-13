@@ -3091,4 +3091,37 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get reportOptionIssuerHint =>
       'اسمك كما يظهر في الكشف. اتركه فارغًا لإخفائه.';
+
+  @override
+  String get receiptTitleIn => 'سند قبض';
+
+  @override
+  String get receiptTitleOut => 'سند دفع';
+
+  @override
+  String get receiptReceivedFrom => 'استُلم من';
+
+  @override
+  String get receiptPaidTo => 'دُفع إلى';
+
+  @override
+  String get receiptReceivedBy => 'المستلم';
+
+  @override
+  String get receiptPaidBy => 'الدافع';
+
+  @override
+  String get receiptPaidOn => 'تاريخ الدفع';
+
+  @override
+  String get receiptFor => 'وذلك عن';
+
+  @override
+  String get receiptRemainingNow => 'المتبقي من الدين حاليًا';
+
+  @override
+  String get receiptSignature => 'التوقيع';
+
+  @override
+  String get receiptAction => 'إيصال PDF';
 }

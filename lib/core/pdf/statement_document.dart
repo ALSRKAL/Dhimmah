@@ -12,6 +12,8 @@ import '../money/money.dart';
 import 'pdf_text.dart';
 import 'statement_models.dart';
 
+part 'receipt_document.dart';
+
 /// The Dhimmah document palette.
 ///
 /// A printed statement is read on paper and in other people's viewers, so these
@@ -41,30 +43,17 @@ abstract final class DocumentColors {
   static const PdfColor neutral = PdfColor.fromInt(0xFF6B655C);
 }
 
-/// Renders a debt statement as a real document.
+/// The width of the text area, in points: A4, less a 38pt margin either side.
+const double _contentWidth = 595.276 - 38 * 2;
+
+/// What every Dhimmah document is set with.
 ///
-/// The output is deliberately not a picture of the app: it is a financial
-/// statement with its own header, summary, ledger table and footer, laid out for
-/// the page rather than for a phone.
-///
-/// Two directions are in play, and the renderer handles neither well enough:
-///
-///  * **Text** with Arabic in it is set here. It is shaped ([pdfText]), broken
-///    into lines, and each line's words are put in drawing order
-///    ([visualWordOrder]) and drawn one by one, left to right. The renderer's
-///    own right-to-left handling spaces words by their ink, re-shapes what it
-///    is given and throws on some lines; it is used only for a word this file
-///    cannot order, such as one mixing letters and digits, and for a word too
-///    wide to fit a line. Latin and numeric text goes to the renderer as it is.
-///  * **Layout** is explicit. The renderer's `Row` and `Column` take no
-///    direction and the only way to give them one is a `Directionality`
-///    ancestor — which cannot be used here, because it would hide the tables
-///    from the multi-page splitter and a long payment history would throw
-///    instead of flowing onto a second page. So rows are reversed here and
-///    alignments are named sides rather than relative ones.
-class StatementDocument {
-  StatementDocument({
-    required this.data,
+/// The text setting — shaping, line breaking, word order — and the header and
+/// footer, shared by the statement and the receipt so the two are one family
+/// and so a fix to how Arabic is drawn is made once. Everything about *what* a
+/// document says stays in the document.
+abstract class _Sheet {
+  _Sheet({
     required this.localizations,
     required this.formatting,
     required this.regularFont,
@@ -72,7 +61,6 @@ class StatementDocument {
     required this.mark,
   });
 
-  final StatementData data;
   final AppLocalizations localizations;
   final AppFormatting formatting;
   final ByteData regularFont;
@@ -81,7 +69,9 @@ class StatementDocument {
   /// The brand mark, as the artwork rather than a redrawing of it.
   final BrandMark mark;
 
-  bool get _isRtl => data.language.isRtl;
+  /// Whether the document reads right to left: its language, not its content.
+  bool get _isRtl;
+
 
   /// The fonts in use.
   late final pw.Font _regular = pw.Font.ttf(regularFont);
@@ -107,23 +97,6 @@ class StatementDocument {
     }
     return em * (style.fontSize ?? 12);
   }
-
-  /// The width of the text area, in points.
-  static const double _contentWidth = 595.276 - 38 * 2;
-
-  /// The room inside the party card, inside its padding.
-  static const double _partyWidth = _contentWidth - 14 * 2;
-
-  /// The room inside one of the two fact cards, inside its padding.
-  static const double _factCellWidth = (_contentWidth - 10) / 2 - 11 * 2;
-
-  /// The room inside the headline block, inside its padding.
-  static const double _heroWidth = _contentWidth - 16 * 2;
-
-  /// The person the statement is about. Every sentence on the page that says
-  /// who owes whom names them, rather than saying "I" or "me": the page is read
-  /// by the other party, for whom those words point the wrong way.
-  String get _name => data.personName.trim();
 
   /// An amount for a printed page: plain text, no bidi controls.
   String _money(Money money) => formatting.documentAmount(money);
@@ -348,6 +321,234 @@ class StatementDocument {
     );
   }
 
+  /// The top of a first page: the mark and what the document is on the
+  /// reading side, its number and date on the other, and the two rules.
+  pw.Widget _headerOf({
+    required String title,
+    required String number,
+    required DateTime issuedAt,
+  }) {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: <pw.Widget>[
+        _row(
+          children: <pw.Widget>[
+            _brandLockupOf(title),
+            pw.Spacer(),
+            _identityOf(number, issuedAt),
+          ],
+        ),
+        pw.SizedBox(height: 12),
+        pw.Container(height: 2, color: DocumentColors.brand),
+        pw.SizedBox(height: 2),
+        // The gold rule sits under the mark, on the reading side. It is the
+        // document's one flourish and it should lead, not trail.
+        _row(
+          children: <pw.Widget>[
+            pw.Container(width: 92, height: 1, color: DocumentColors.gold),
+            pw.Spacer(),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Logo mark, app name and document type, on the reading side of the page.
+  ///
+  /// The document type is the larger of the two lines: a page is identified by
+  /// what it is — a statement — before by what made it.
+  pw.Widget _brandLockupOf(String title) {
+    return _row(
+      children: <pw.Widget>[
+        mark.widget(height: 34),
+        pw.SizedBox(width: 10),
+        pw.Column(
+          crossAxisAlignment: _crossStart,
+          children: <pw.Widget>[
+            _text(
+              localizations.appName,
+              style: pw.TextStyle(
+                fontSize: 11,
+                fontWeight: pw.FontWeight.bold,
+                color: DocumentColors.brand,
+              ),
+            ),
+            _text(
+              title,
+              style: pw.TextStyle(
+                fontSize: 19,
+                fontWeight: pw.FontWeight.bold,
+                color: DocumentColors.ink,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Document number and date, on the opposite side.
+  pw.Widget _identityOf(String number, DateTime issuedAt) {
+    pw.Widget line(String label, String value) => _row(
+          children: <pw.Widget>[
+            _text(
+              label,
+              style: const pw.TextStyle(
+                fontSize: 9,
+                color: DocumentColors.secondary,
+              ),
+            ),
+            pw.SizedBox(width: 6),
+            _text(
+              value,
+              style: pw.TextStyle(
+                fontSize: 9.5,
+                fontWeight: pw.FontWeight.bold,
+                color: DocumentColors.ink,
+              ),
+            ),
+          ],
+        );
+
+    return pw.Column(
+      crossAxisAlignment: _crossStart,
+      children: <pw.Widget>[
+        line(localizations.reportDocumentNumber, number),
+        pw.SizedBox(height: 3),
+        line(
+          localizations.reportIssuedOn,
+          formatting.date(issuedAt),
+        ),
+      ],
+    );
+  }
+
+  /// One labelled line of the summary, on the reading side: the currency, or
+  /// the one debt a statement is about.
+  pw.Widget _summaryFact(
+    String label,
+    String value, {
+    double width = _contentWidth,
+  }) {
+    const pw.TextStyle labelStyle = pw.TextStyle(
+      fontSize: 9,
+      color: DocumentColors.secondary,
+    );
+    final String labelText = '$label:';
+    return _rowOnReadingSide(<pw.Widget>[
+      _text(labelText, style: labelStyle),
+      pw.SizedBox(width: 5),
+      pw.Flexible(
+        child: _text(
+          value,
+          style: pw.TextStyle(
+            fontSize: 9.5,
+            fontWeight: pw.FontWeight.bold,
+            color: DocumentColors.ink,
+          ),
+          maxWidth: width - _advance(labelText, labelStyle) - 5,
+        ),
+      ),
+    ]);
+  }
+
+  /// The foot of every page: who made it, its number, and the page count.
+  pw.Widget _footerOf(pw.Context context, String number) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 12),
+      padding: const pw.EdgeInsets.only(top: 6),
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(
+          top: pw.BorderSide(color: DocumentColors.border, width: 0.8),
+        ),
+      ),
+      child: _row(
+        children: <pw.Widget>[
+          _text(
+            localizations.reportGeneratedBy,
+            style: const pw.TextStyle(
+              fontSize: 8,
+              color: DocumentColors.secondary,
+            ),
+          ),
+          pw.Spacer(),
+          // The number the header gives, on every page. A second, unexplained
+          // code used to follow it.
+          _text(
+            number,
+            style: const pw.TextStyle(
+              fontSize: 8,
+              color: DocumentColors.secondary,
+            ),
+          ),
+          pw.SizedBox(width: 10),
+          _text(
+            localizations.reportPageOf(
+              context.pageNumber,
+              context.pagesCount,
+            ),
+            style: const pw.TextStyle(
+              fontSize: 8,
+              color: DocumentColors.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Renders a debt statement as a real document.
+///
+/// The output is deliberately not a picture of the app: it is a financial
+/// statement with its own header, summary, ledger table and footer, laid out for
+/// the page rather than for a phone.
+///
+/// Two directions are in play, and the renderer handles neither well enough:
+///
+///  * **Text** with Arabic in it is set here. It is shaped ([pdfText]), broken
+///    into lines, and each line's words are put in drawing order
+///    ([visualWordOrder]) and drawn one by one, left to right. The renderer's
+///    own right-to-left handling spaces words by their ink, re-shapes what it
+///    is given and throws on some lines; it is used only for a word this file
+///    cannot order, such as one mixing letters and digits, and for a word too
+///    wide to fit a line. Latin and numeric text goes to the renderer as it is.
+///  * **Layout** is explicit. The renderer's `Row` and `Column` take no
+///    direction and the only way to give them one is a `Directionality`
+///    ancestor — which cannot be used here, because it would hide the tables
+///    from the multi-page splitter and a long payment history would throw
+///    instead of flowing onto a second page. So rows are reversed here and
+///    alignments are named sides rather than relative ones.
+class StatementDocument extends _Sheet {
+  StatementDocument({
+    required this.data,
+    required super.localizations,
+    required super.formatting,
+    required super.regularFont,
+    required super.semiBoldFont,
+    required super.mark,
+  });
+
+  final StatementData data;
+
+  @override
+  bool get _isRtl => data.language.isRtl;
+
+
+  /// The room inside the party card, inside its padding.
+  static const double _partyWidth = _contentWidth - 14 * 2;
+
+  /// The room inside one of the two fact cards, inside its padding.
+  static const double _factCellWidth = (_contentWidth - 10) / 2 - 11 * 2;
+
+  /// The room inside the headline block, inside its padding.
+  static const double _heroWidth = _contentWidth - 16 * 2;
+
+  /// The person the statement is about. Every sentence on the page that says
+  /// who owes whom names them, rather than saying "I" or "me": the page is read
+  /// by the other party, for whom those words point the wrong way.
+  String get _name => data.personName.trim();
+
   /// Builds the document.
   ///
   /// The footer is drawn by the page theme rather than by the body content, so a
@@ -444,101 +645,11 @@ class StatementDocument {
 
   // --- Header --------------------------------------------------------------
 
-  pw.Widget _header() {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: <pw.Widget>[
-        _row(
-          children: <pw.Widget>[
-            _brandLockup(),
-            pw.Spacer(),
-            _documentIdentity(),
-          ],
-        ),
-        pw.SizedBox(height: 12),
-        pw.Container(height: 2, color: DocumentColors.brand),
-        pw.SizedBox(height: 2),
-        // The gold rule sits under the mark, on the reading side. It is the
-        // document's one flourish and it should lead, not trail.
-        _row(
-          children: <pw.Widget>[
-            pw.Container(width: 92, height: 1, color: DocumentColors.gold),
-            pw.Spacer(),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// Logo mark, app name and document type, on the reading side of the page.
-  ///
-  /// The document type is the larger of the two lines: a page is identified by
-  /// what it is — a statement — before by what made it.
-  pw.Widget _brandLockup() {
-    return _row(
-      children: <pw.Widget>[
-        mark.widget(height: 34),
-        pw.SizedBox(width: 10),
-        pw.Column(
-          crossAxisAlignment: _crossStart,
-          children: <pw.Widget>[
-            _text(
-              localizations.appName,
-              style: pw.TextStyle(
-                fontSize: 11,
-                fontWeight: pw.FontWeight.bold,
-                color: DocumentColors.brand,
-              ),
-            ),
-            _text(
-              localizations.reportStatementTitle,
-              style: pw.TextStyle(
-                fontSize: 19,
-                fontWeight: pw.FontWeight.bold,
-                color: DocumentColors.ink,
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  /// Document number and date, on the opposite side.
-  pw.Widget _documentIdentity() {
-    pw.Widget line(String label, String value) => _row(
-          children: <pw.Widget>[
-            _text(
-              label,
-              style: const pw.TextStyle(
-                fontSize: 9,
-                color: DocumentColors.secondary,
-              ),
-            ),
-            pw.SizedBox(width: 6),
-            _text(
-              value,
-              style: pw.TextStyle(
-                fontSize: 9.5,
-                fontWeight: pw.FontWeight.bold,
-                color: DocumentColors.ink,
-              ),
-            ),
-          ],
-        );
-
-    return pw.Column(
-      crossAxisAlignment: _crossStart,
-      children: <pw.Widget>[
-        line(localizations.reportDocumentNumber, data.documentNumber),
-        pw.SizedBox(height: 3),
-        line(
-          localizations.reportIssuedOn,
-          formatting.date(data.generatedAt),
-        ),
-      ],
-    );
-  }
+  pw.Widget _header() => _headerOf(
+        title: localizations.reportStatementTitle,
+        number: data.documentNumber,
+        issuedAt: data.generatedAt,
+      );
 
   pw.Widget _runningHeader() {
     return pw.Container(
@@ -897,35 +1008,6 @@ class StatementDocument {
     if (data.hiddenSettledCount <= 0) return scope;
     return '$scope · '
         '${localizations.reportHiddenSettled(data.hiddenSettledCount)}';
-  }
-
-  /// One labelled line of the summary, on the reading side: the currency, or
-  /// the one debt a statement is about.
-  pw.Widget _summaryFact(
-    String label,
-    String value, {
-    double width = _contentWidth,
-  }) {
-    const pw.TextStyle labelStyle = pw.TextStyle(
-      fontSize: 9,
-      color: DocumentColors.secondary,
-    );
-    final String labelText = '$label:';
-    return _rowOnReadingSide(<pw.Widget>[
-      _text(labelText, style: labelStyle),
-      pw.SizedBox(width: 5),
-      pw.Flexible(
-        child: _text(
-          value,
-          style: pw.TextStyle(
-            fontSize: 9.5,
-            fontWeight: pw.FontWeight.bold,
-            color: DocumentColors.ink,
-          ),
-          maxWidth: width - _advance(labelText, labelStyle) - 5,
-        ),
-      ),
-    ]);
   }
 
   /// Status as a word plus a shape.
@@ -1328,47 +1410,6 @@ class StatementDocument {
     );
   }
 
-  pw.Widget _footer(pw.Context context) {
-    return pw.Container(
-      margin: const pw.EdgeInsets.only(top: 12),
-      padding: const pw.EdgeInsets.only(top: 6),
-      decoration: const pw.BoxDecoration(
-        border: pw.Border(
-          top: pw.BorderSide(color: DocumentColors.border, width: 0.8),
-        ),
-      ),
-      child: _row(
-        children: <pw.Widget>[
-          _text(
-            localizations.reportGeneratedBy,
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
-            ),
-          ),
-          pw.Spacer(),
-          // The number the header gives, on every page. A second, unexplained
-          // code used to follow it.
-          _text(
-            data.documentNumber,
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
-            ),
-          ),
-          pw.SizedBox(width: 10),
-          _text(
-            localizations.reportPageOf(
-              context.pageNumber,
-              context.pagesCount,
-            ),
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  pw.Widget _footer(pw.Context context) =>
+      _footerOf(context, data.documentNumber);
 }

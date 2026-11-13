@@ -270,6 +270,75 @@ void main() {
       options: everything,
     );
 
+    // The receipt for one payment, both ways round and in both languages: the
+    // settled person paid the user, and the user paid Ahmed.
+    Future<void> writeReceipt({
+      required Person target,
+      required Debt debt,
+      required AppLanguage language,
+      required String fileName,
+      String issuerName = '',
+    }) async {
+      final PersonLedger? ledger = await queries
+          .watchPersonLedger(target.id, dueSoonWindowDays: 7, asOf: today)
+          .first;
+      final DebtView view = ledger!.debts.firstWhere(
+        (DebtView candidate) => candidate.debt.id == debt.id,
+      );
+      final Payment payment =
+          (await queries.payments.forDebt(debt.id)).first;
+      final AppLocalizations l10n =
+          lookupAppLocalizations(Locale(language.code));
+      final AppFormatting formatting = AppFormatting(
+        language: language,
+        numerals: NumeralsStyle.latin,
+        defaultCurrency: AppCurrency.inr,
+        localizations: l10n,
+      );
+      final ReceiptData data = StatementService(
+        localizations: l10n,
+        formatting: formatting,
+      ).buildReceipt(
+        view: view,
+        payment: payment,
+        personName: target.name,
+        now: today,
+        issuerName: issuerName,
+      );
+      final Uint8List bytes = await ReceiptDocument(
+        data: data,
+        localizations: l10n,
+        formatting: formatting,
+        regularFont: regular,
+        semiBoldFont: semiBold,
+        mark: mark,
+      ).build().save();
+      await File('${out.path}/$fileName').writeAsBytes(bytes, flush: true);
+      // ignore: avoid_print
+      print('WROTE ${out.path}/$fileName  (${bytes.length} bytes) '
+          'name=${data.fileName} number=${data.number}');
+    }
+
+    await writeReceipt(
+      target: settled,
+      debt: paid,
+      language: AppLanguage.arabic,
+      fileName: 'ar-receipt-in.pdf',
+      issuerName: 'محمد السركال',
+    );
+    await writeReceipt(
+      target: settled,
+      debt: paid,
+      language: AppLanguage.english,
+      fileName: 'en-receipt-in.pdf',
+    );
+    await writeReceipt(
+      target: ahmed,
+      debt: second,
+      language: AppLanguage.arabic,
+      fileName: 'ar-receipt-out.pdf',
+    );
+
     await db.close();
   });
 }

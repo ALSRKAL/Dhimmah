@@ -5154,6 +5154,72 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'اسمك كما يظهر في الكشف. اتركه فارغًا لإخفائه.'**
   String get reportOptionIssuerHint;
+
+  /// No description provided for @receiptTitleIn.
+  ///
+  /// In ar, this message translates to:
+  /// **'سند قبض'**
+  String get receiptTitleIn;
+
+  /// No description provided for @receiptTitleOut.
+  ///
+  /// In ar, this message translates to:
+  /// **'سند دفع'**
+  String get receiptTitleOut;
+
+  /// No description provided for @receiptReceivedFrom.
+  ///
+  /// In ar, this message translates to:
+  /// **'استُلم من'**
+  String get receiptReceivedFrom;
+
+  /// No description provided for @receiptPaidTo.
+  ///
+  /// In ar, this message translates to:
+  /// **'دُفع إلى'**
+  String get receiptPaidTo;
+
+  /// No description provided for @receiptReceivedBy.
+  ///
+  /// In ar, this message translates to:
+  /// **'المستلم'**
+  String get receiptReceivedBy;
+
+  /// No description provided for @receiptPaidBy.
+  ///
+  /// In ar, this message translates to:
+  /// **'الدافع'**
+  String get receiptPaidBy;
+
+  /// No description provided for @receiptPaidOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'تاريخ الدفع'**
+  String get receiptPaidOn;
+
+  /// No description provided for @receiptFor.
+  ///
+  /// In ar, this message translates to:
+  /// **'وذلك عن'**
+  String get receiptFor;
+
+  /// No description provided for @receiptRemainingNow.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتبقي من الدين حاليًا'**
+  String get receiptRemainingNow;
+
+  /// No description provided for @receiptSignature.
+  ///
+  /// In ar, this message translates to:
+  /// **'التوقيع'**
+  String get receiptSignature;
+
+  /// No description provided for @receiptAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيصال PDF'**
+  String get receiptAction;
 }
 
 class _AppLocalizationsDelegate
