@@ -239,16 +239,35 @@ is wrong.
 
 ## Iconography
 
-One family: **Material Icons**, and only the outlined weight, with two
-deliberate exceptions:
+One family, reached through one file. Every icon in the app is named in
+`lib/core/theme/app_icons.dart`, and no screen writes `Icons.something` itself
+— `test/core/motion_and_icons_test.dart` fails if one does. The family can then
+be changed in one place, and two screens cannot pick two different pictures for
+the same idea, which is how an icon set drifts.
 
-* A navigation destination shows the **filled** icon when selected and the
-  outlined one when not — that is the platform convention for "you are here".
-* A **selected** choice (a ticked language) is filled; an unselected one is
-  outlined.
+The names are, for now, those of the pictures (`AppIcons.calendarToday`),
+carried over one for one from the Material set so that introducing the file
+changed nothing on screen. The set itself is still Material; replacing it is a
+change to that one file.
+
+The rules the names follow:
+
+* **One weight.** The regular (outlined) weight everywhere.
+* **Filled means "this one".** A navigation destination shows the filled form
+  when selected and the regular one when not — the platform convention for "you
+  are here" — and so does a ticked choice. Nothing else is filled.
+* **Direction follows the language.** An icon that points — back, forward, a
+  chevron on a row — points the other way in Arabic. An icon that depicts — a
+  wallet, a bell, a calendar — never mirrors.
+* **Categorical icons only where the category is real.** An obligation's
+  category has its own icon; a settings row does not get one for decoration.
 
 Icons carry no text of their own, so every icon that is the only label for an
 action has a tooltip and a semantic label.
+
+The app's own icon and the notification icons under `android/.../res/drawable*`
+are not part of this: they are platform resources, referred to by name from
+builds already on users' phones, and are not renamed.
 
 ## Layout of a screen
 
@@ -269,25 +288,56 @@ this.
 
 ## Motion
 
-Motion explains a change; it never performs. `AppMotion` holds four durations
-(140/220/280/320 ms) and two curves. The whole app uses:
+Motion explains a change, or marks one moment worth marking. It never
+performs, and it never competes with a figure someone is trying to read.
 
-* a bottom sheet sliding up (the platform's own),
-* a screen transition (the platform's own),
-* `AnimatedSize` + `AnimatedRotation` on the one disclosure in the debt form,
-* `AnimatedContainer` on the PIN dots,
-* onboarding's step slide and its progress segments — and with the system's
-  "remove animations" on, the step changes without the slide.
+This used to say "nothing animates on first paint" and list five places motion
+was allowed. That was right for a ledger that had to earn trust first; it also
+left the app feeling inert at the moments something actually happened — a debt
+paid off looked exactly like a debt edited. The rule is now a test rather than
+a list. An animation belongs if it passes all four:
 
-Nothing bounces, nothing loops, nothing animates on first paint.
+1. **It says something a still frame cannot.** A bar that fills shows a
+   payment arriving; a row that slides in shows where it came from. A logo that
+   pulses says nothing.
+2. **It runs once.** Nothing loops, nothing idles, nothing waits for attention.
+   The one exception is a progress indicator for work that is really in
+   progress.
+3. **It is over before it is noticed as waiting.** Durations come from
+   `AppMotion` (140 / 220 / 280 / 320 ms) and nowhere else; the two curves are
+   `standard` and `emphasized`. Nothing bounces or overshoots.
+4. **It can be switched off.** With the system's "remove animations" on, every
+   one of these jumps straight to its end state. An implicit animation takes its
+   duration from `AppMotion.of(context, duration)`, which is zero then; the
+   widgets in `lib/core/widgets/motion.dart` check for themselves.
+
+What the app animates:
+
+* the platform's own sheet and screen transitions;
+* a **figure counting** to its new value when the amount changes — never on
+  first paint, where there is no old value to count from;
+* a **progress bar moving** to its new value when a payment changes it — not
+  on first paint, for the same reason;
+* **rows arriving** when the ledger list is first shown, a few milliseconds
+  apart, the first eight only — a long list does not make the reader wait for
+  row forty, and a row scrolled away and back does not arrive twice;
+* a **tick drawing itself** once when a payment settles a debt in full, the one
+  moment in the app that is good news;
+* `AnimatedSize` on disclosures and `AnimatedContainer` on the PIN dots;
+* onboarding's step slide and progress segments.
+
+Illustrative animation files (Lottie and the like) are held to the same four
+rules and one more: **a file is added only with its source and licence written
+down** in `assets/lottie/README.md`, and only if that licence allows commercial
+use. None is bundled yet.
 
 ## Feedback
 
 * A short `SnackBar` confirms anything that was saved, and carries the **undo**
   for anything deleted. Deleting is reversible for six seconds rather than
   gated behind a second dialog.
-* One light haptic on a successful write, and nowhere else. It keeps meaning
-  "that was saved".
+* A light haptic on a successful write. It keeps meaning "that was saved". A
+  payment that settles a debt in full gets the tick described above as well.
 * Errors say what the user can do, never what went wrong inside.
 
 ---
