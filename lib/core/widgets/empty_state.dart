@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_icons.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 
@@ -146,7 +147,7 @@ class ErrorStateView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Icon(Icons.error_outline, size: 24, color: palette.overdue),
+            Icon(AppIcons.error, size: 24, color: palette.overdue),
             const SizedBox(height: AppSpacing.md),
             Text(
               message,

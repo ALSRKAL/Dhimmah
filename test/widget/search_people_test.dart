@@ -1,4 +1,5 @@
 import 'package:dhimmah/core/money/currency.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
 import 'package:flutter/material.dart';
@@ -37,7 +38,7 @@ void main() {
     await pumpDhimmah(tester, db: db);
     await settle(tester);
 
-    await tester.tap(find.byIcon(Icons.search_outlined));
+    await tester.tap(find.byIcon(AppIcons.search));
     await settle(tester);
 
     await tester.enterText(find.byType(TextField).first, 'سارة');
@@ -52,7 +53,7 @@ void main() {
     Future<void> search(WidgetTester tester, String query) async {
       await pumpDhimmah(tester, db: db);
       await settle(tester);
-      await tester.tap(find.byIcon(Icons.search_outlined));
+      await tester.tap(find.byIcon(AppIcons.search));
       await settle(tester);
       await tester.enterText(find.byType(TextField).first, query);
       await settle(tester);

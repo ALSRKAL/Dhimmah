@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -50,7 +51,7 @@ class _ObligationsScreenState extends ConsumerState<ObligationsScreen> {
           IconButton(
             tooltip: localizations.filterArchived,
             icon: Icon(
-              _showArchived ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+              _showArchived ? AppIcons.visibilityOff : AppIcons.visibility,
               size: 20,
             ),
             onPressed: () => setState(() => _showArchived = !_showArchived),

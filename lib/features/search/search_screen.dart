@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/search_text.dart';
@@ -138,7 +139,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           if (searching)
             IconButton(
               tooltip: localizations.actionClear,
-              icon: const Icon(Icons.close, size: 20),
+              icon: const Icon(AppIcons.close, size: 20),
               onPressed: () {
                 _controller.clear();
                 setState(() => _query = '');
@@ -148,13 +149,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       ),
       body: !searching
           ? EmptyState(
-              icon: Icons.search,
+              icon: AppIcons.searchFilled,
               title: localizations.searchTitle,
               body: localizations.searchHint,
             )
           : !hasResults
               ? EmptyState(
-                  icon: Icons.search_off,
+                  icon: AppIcons.searchOff,
                   title: localizations.searchEmptyTitle,
                   body: localizations.searchEmptyBody,
                 )
@@ -252,7 +253,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                                 children: <Widget>[
                                   ListTile(
                                     leading: Icon(
-                                      Icons.notifications_none,
+                                      AppIcons.notificationsNone,
                                       color: palette.textSecondary,
                                     ),
                                     title: Text(reminderHits[i].title),

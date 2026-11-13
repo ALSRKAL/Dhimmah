@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_icons.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 
@@ -168,7 +169,7 @@ class SettingsTile extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Icon(
                 // Mirrored automatically in RTL by the icon's own text direction.
-                Icons.chevron_right,
+                AppIcons.chevronRight,
                 size: 20,
                 color: palette.textTertiary,
               ),

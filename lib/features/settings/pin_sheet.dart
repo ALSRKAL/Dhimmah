@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
 import '../../core/security/pin_service.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/bottom_sheet_shell.dart';
@@ -327,7 +328,7 @@ class _Keypad extends StatelessWidget {
                   '',
                   onTap: onBackspace,
                   child: Icon(
-                    Icons.backspace_outlined,
+                    AppIcons.backspace,
                     size: 20,
                     color: palette.textSecondary,
                   ),

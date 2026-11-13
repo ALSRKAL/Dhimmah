@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/money/currency.dart';
+import '../core/theme/app_icons.dart';
 import '../domain/enums/activity_enums.dart';
 import '../domain/enums/debt_enums.dart';
 import '../domain/enums/obligation_enums.dart';
@@ -92,16 +93,16 @@ extension ObligationCategoryL10n on ObligationCategory {
   /// A single-line glyph for the category chip. Deliberately from one icon
   /// family so nothing looks borrowed from another app.
   IconData get icon => switch (this) {
-        ObligationCategory.housing => Icons.home_outlined,
-        ObligationCategory.utilities => Icons.bolt_outlined,
-        ObligationCategory.telecom => Icons.wifi_outlined,
-        ObligationCategory.subscription => Icons.autorenew_outlined,
-        ObligationCategory.loan => Icons.account_balance_outlined,
-        ObligationCategory.installment => Icons.calendar_month_outlined,
-        ObligationCategory.salary => Icons.badge_outlined,
-        ObligationCategory.insurance => Icons.shield_outlined,
-        ObligationCategory.tax => Icons.receipt_long_outlined,
-        ObligationCategory.other => Icons.more_horiz_outlined,
+        ObligationCategory.housing => AppIcons.home,
+        ObligationCategory.utilities => AppIcons.bolt,
+        ObligationCategory.telecom => AppIcons.wifi,
+        ObligationCategory.subscription => AppIcons.autorenew,
+        ObligationCategory.loan => AppIcons.accountBalance,
+        ObligationCategory.installment => AppIcons.calendarMonth,
+        ObligationCategory.salary => AppIcons.badge,
+        ObligationCategory.insurance => AppIcons.shield,
+        ObligationCategory.tax => AppIcons.receiptLong,
+        ObligationCategory.other => AppIcons.moreHoriz,
       };
 }
 
@@ -197,31 +198,31 @@ extension ActivityTypeL10n on ActivityType {
 
   /// One icon per event, from the same family as everything else.
   IconData get icon => switch (this) {
-        ActivityType.debtCreated => Icons.add_circle_outline,
-        ActivityType.debtUpdated => Icons.edit_outlined,
-        ActivityType.debtClosed => Icons.check_circle_outline,
-        ActivityType.debtReopened => Icons.refresh,
-        ActivityType.debtArchived => Icons.inventory_2_outlined,
-        ActivityType.debtDeleted => Icons.delete_outline,
-        ActivityType.paymentRecorded => Icons.payments_outlined,
-        ActivityType.paymentDeleted => Icons.money_off_outlined,
-        ActivityType.personCreated => Icons.person_add_alt,
-        ActivityType.personUpdated => Icons.person_outline,
-        ActivityType.personDeleted => Icons.person_remove_outlined,
-        ActivityType.obligationCreated => Icons.event_repeat_outlined,
-        ActivityType.obligationPaid => Icons.task_alt,
-        ActivityType.obligationSkipped => Icons.skip_next_outlined,
-        ActivityType.incomeCreated => Icons.savings_outlined,
-        ActivityType.incomeUpdated => Icons.edit_outlined,
-        ActivityType.incomeArchived => Icons.inventory_2_outlined,
-        ActivityType.incomeRestored => Icons.unarchive_outlined,
-        ActivityType.incomeDeleted => Icons.delete_outline,
-        ActivityType.reminderCreated => Icons.notifications_none,
-        ActivityType.reminderCompleted => Icons.done_all,
-        ActivityType.dataImported => Icons.file_download_outlined,
-        ActivityType.dataExported => Icons.file_upload_outlined,
-        ActivityType.dataCleared => Icons.delete_forever_outlined,
-        ActivityType.monthSummaryGenerated => Icons.insights_outlined,
+        ActivityType.debtCreated => AppIcons.addCircle,
+        ActivityType.debtUpdated => AppIcons.edit,
+        ActivityType.debtClosed => AppIcons.checkCircle,
+        ActivityType.debtReopened => AppIcons.refresh,
+        ActivityType.debtArchived => AppIcons.inventory2,
+        ActivityType.debtDeleted => AppIcons.delete,
+        ActivityType.paymentRecorded => AppIcons.payments,
+        ActivityType.paymentDeleted => AppIcons.moneyOff,
+        ActivityType.personCreated => AppIcons.personAddAlt,
+        ActivityType.personUpdated => AppIcons.person,
+        ActivityType.personDeleted => AppIcons.personRemove,
+        ActivityType.obligationCreated => AppIcons.eventRepeat,
+        ActivityType.obligationPaid => AppIcons.taskAlt,
+        ActivityType.obligationSkipped => AppIcons.skipNext,
+        ActivityType.incomeCreated => AppIcons.savings,
+        ActivityType.incomeUpdated => AppIcons.edit,
+        ActivityType.incomeArchived => AppIcons.inventory2,
+        ActivityType.incomeRestored => AppIcons.unarchive,
+        ActivityType.incomeDeleted => AppIcons.delete,
+        ActivityType.reminderCreated => AppIcons.notificationsNone,
+        ActivityType.reminderCompleted => AppIcons.doneAll,
+        ActivityType.dataImported => AppIcons.fileDownload,
+        ActivityType.dataExported => AppIcons.fileUpload,
+        ActivityType.dataCleared => AppIcons.deleteForever,
+        ActivityType.monthSummaryGenerated => AppIcons.insights,
       };
 }
 
@@ -271,9 +272,9 @@ extension AppThemeModeL10n on AppThemeMode {
       };
 
   IconData get icon => switch (this) {
-        AppThemeMode.system => Icons.brightness_auto_outlined,
-        AppThemeMode.light => Icons.light_mode_outlined,
-        AppThemeMode.dark => Icons.dark_mode_outlined,
+        AppThemeMode.system => AppIcons.brightnessAuto,
+        AppThemeMode.light => AppIcons.lightMode,
+        AppThemeMode.dark => AppIcons.darkMode,
       };
 }
 

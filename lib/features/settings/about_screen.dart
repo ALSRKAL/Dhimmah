@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -69,7 +70,7 @@ class AboutScreen extends ConsumerWidget {
           AppCard(
             child: Column(
               children: <Widget>[
-                Icon(Icons.verified_user_outlined, size: 22, color: palette.brand),
+                Icon(AppIcons.verifiedUser, size: 22, color: palette.brand),
                 const SizedBox(height: AppSpacing.md),
                 Text(
                   localizations.brandPromise,
@@ -92,12 +93,12 @@ class AboutScreen extends ConsumerWidget {
               SettingsTile(
                 title: localizations.noInternetNeeded,
                 subtitle: localizations.settingsPrivacyNote,
-                icon: Icons.cloud_off_outlined,
+                icon: AppIcons.cloudOff,
               ),
               SettingsTile(
                 title: localizations.settingsNotifications,
                 subtitle: localizations.settingsRemindersEnabledBody,
-                icon: Icons.notifications_none,
+                icon: AppIcons.notificationsNone,
                 valueText: _notificationLabel(context, ref, localizations),
               ),
             ],
@@ -114,8 +115,8 @@ class AboutScreen extends ConsumerWidget {
                       ? localizations.exportJsonBody
                       : localizations.exportCsvBody,
                   icon: format == ExportFormat.json
-                      ? Icons.data_object
-                      : Icons.table_chart_outlined,
+                      ? AppIcons.dataObject
+                      : AppIcons.tableChart,
                   onTap: () => _export(context, ref, format),
                 ),
             ],
@@ -125,7 +126,7 @@ class AboutScreen extends ConsumerWidget {
             children: <Widget>[
               SettingsTile(
                 title: localizations.settingsLicenses,
-                icon: Icons.description_outlined,
+                icon: AppIcons.description,
                 onTap: () => showLicensePage(
                   context: context,
                   applicationName: localizations.appName,
@@ -138,7 +139,7 @@ class AboutScreen extends ConsumerWidget {
               ),
               SettingsTile(
                 title: localizations.navSettings,
-                icon: Icons.settings_outlined,
+                icon: AppIcons.settings,
                 onTap: () => context.push(AppRoutes.settings),
               ),
             ],
@@ -211,13 +212,13 @@ class ExportFormatSheet extends StatelessWidget {
           SettingsTile(
             title: localizations.exportJson,
             subtitle: localizations.exportJsonBody,
-            icon: Icons.data_object,
+            icon: AppIcons.dataObject,
             onTap: () => Navigator.of(context).pop(ExportFormat.json),
           ),
           SettingsTile(
             title: localizations.exportCsv,
             subtitle: localizations.exportCsvBody,
-            icon: Icons.table_chart_outlined,
+            icon: AppIcons.tableChart,
             onTap: () => Navigator.of(context).pop(ExportFormat.csv),
           ),
           const SizedBox(height: AppSpacing.lg),

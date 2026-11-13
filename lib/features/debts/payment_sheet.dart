@@ -18,6 +18,7 @@ import '../../../domain/entities/drafts.dart';
 import '../../../domain/entities/ledger_views.dart';
 import '../../../domain/entities/payment.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../core/theme/app_icons.dart';
 import 'receipt_screen.dart';
 
 /// Records a payment against a debt.
@@ -141,7 +142,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
             alignment: AlignmentDirectional.centerEnd,
             child: TextButton.icon(
               onPressed: () => _setAmount(remainingBefore),
-              icon: const Icon(Icons.done_all, size: 16),
+              icon: const Icon(AppIcons.doneAll, size: 16),
               label: Text(localizations.paymentPayFull),
             ),
           ),
@@ -173,7 +174,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
           Row(
             children: <Widget>[
               Icon(
-                Icons.lock_outline,
+                AppIcons.lock,
                 size: 13,
                 color: palette.textTertiary,
               ),
@@ -215,17 +216,19 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       }
       if (!mounted) return;
       Navigator.of(context).pop(true);
-      AppFeedback.info(
-        context,
-        _settles
-            ? localizations.debtSettled
-            // A correction is saved, not recorded: "payment recorded" after an
-            // edit reads as though a second payment had been added.
-            : existing == null
-                ? localizations.paymentSaved
-                : localizations.recordSaved,
-        icon: _settles ? Icons.check_circle_outline : Icons.payments_outlined,
-      );
+      if (_settles) {
+        AppFeedback.settled(context, localizations.debtSettled);
+      } else {
+        AppFeedback.info(
+          context,
+          // A correction is saved, not recorded: "payment recorded" after an
+          // edit reads as though a second payment had been added.
+          existing == null
+              ? localizations.paymentSaved
+              : localizations.recordSaved,
+          icon: AppIcons.payments,
+        );
+      }
     } on SharedDebtPaymentBlockedException {
       // A legacy shared debt refuses new and corrected payments until it is
       // split: the sheet stays open on the amount, saying why it did not save.
@@ -285,7 +288,7 @@ class _ConsequenceCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Icon(
-            settles ? Icons.verified_outlined : Icons.info_outline,
+            settles ? AppIcons.verified : AppIcons.info,
             size: 18,
             color: accent,
           ),
@@ -336,7 +339,7 @@ class PaymentRow extends ConsumerWidget {
                 borderRadius: AppRadius.rSm,
               ),
               child: Icon(
-                Icons.payments_outlined,
+                AppIcons.payments,
                 size: 17,
                 color: palette.settled,
               ),
@@ -387,7 +390,7 @@ class PaymentRow extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
+              leading: const Icon(AppIcons.edit),
               title: Text(localizations.actionEdit),
               onTap: () async {
                 Navigator.of(context).pop();
@@ -398,7 +401,7 @@ class PaymentRow extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.receipt_long_outlined),
+              leading: const Icon(AppIcons.receiptLong),
               title: Text(localizations.receiptAction),
               onTap: () async {
                 Navigator.of(context).pop();
@@ -406,7 +409,7 @@ class PaymentRow extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: Icon(Icons.undo, color: palette.overdue),
+              leading: Icon(AppIcons.undo, color: palette.overdue),
               textColor: palette.overdue,
               title: Text(localizations.paymentDeleteTitle),
               onTap: () async {

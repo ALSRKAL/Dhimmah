@@ -1,4 +1,5 @@
 import 'package:dhimmah/core/money/currency.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/core/widgets/app_card.dart';
 import 'package:dhimmah/core/widgets/money_text.dart';
@@ -531,8 +532,8 @@ void main() {
       of: budgetCard,
       matching: find.byIcon(
         direction == TextDirection.rtl
-            ? Icons.chevron_left
-            : Icons.chevron_right,
+            ? AppIcons.chevronLeft
+            : AppIcons.chevronRight,
       ),
     );
     expect(chevron, findsOneWidget);

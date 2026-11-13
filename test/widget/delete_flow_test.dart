@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dhimmah/core/money/currency.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -46,12 +47,12 @@ void main() {
 
     // The device path went through an edit-save first: the edit is pushed on
     // top of this very detail, and saving pops back to it.
-    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.tap(find.byIcon(AppIcons.edit));
     await settle(tester);
     await tester.tap(find.text('حفظ التعديلات'));
     await settle(tester);
 
-    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.tap(find.byIcon(AppIcons.moreVert));
     await settle(tester);
 
     await tester.tap(find.text('حذف').last);
@@ -80,7 +81,7 @@ void main() {
       await settle(tester);
       await tester.tap(find.textContaining('خالد العلي').first);
       await settle(tester);
-      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.tap(find.byIcon(AppIcons.moreVert));
       await settle(tester);
       await tester.tap(find.text('حذف').last);
       await settle(tester);

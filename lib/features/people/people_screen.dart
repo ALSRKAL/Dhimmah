@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -122,7 +123,7 @@ class _PersonRow extends StatelessWidget {
                       if (entry.hasOverdue) ...<Widget>[
                         const SizedBox(width: AppSpacing.sm),
                         Icon(
-                          Icons.error_outline,
+                          AppIcons.error,
                           size: 14,
                           color: palette.overdue,
                         ),

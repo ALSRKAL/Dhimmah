@@ -5,6 +5,7 @@ import '../../app/providers.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/dates.dart';
@@ -245,7 +246,7 @@ class _IncomeTileState extends ConsumerState<_IncomeTile> {
                                 : localizations.incomeArchivedToast,
                           ),
                   icon: Icon(
-                    archived ? Icons.unarchive_outlined : Icons.inventory_2_outlined,
+                    archived ? AppIcons.unarchive : AppIcons.inventory2,
                     size: 16,
                   ),
                   label: Text(
@@ -260,7 +261,7 @@ class _IncomeTileState extends ConsumerState<_IncomeTile> {
               Expanded(
                 child: TextButton.icon(
                   onPressed: _busy ? null : _confirmDelete,
-                  icon: Icon(Icons.delete_outline, size: 16, color: palette.overdue),
+                  icon: Icon(AppIcons.delete, size: 16, color: palette.overdue),
                   label: Text(
                     localizations.actionDelete,
                     style: TextStyle(color: palette.overdue),
@@ -426,7 +427,7 @@ class _IncomeFormState extends ConsumerState<_IncomeForm> {
               label: localizations.fieldIncomeName,
               controller: _name,
               hint: localizations.fieldIncomeNameHint,
-              prefixIcon: Icons.label_outline,
+              prefixIcon: AppIcons.label,
               // Deliberately not autofocused, unlike the obligation form. The
               // presets above are the first thing to reach for, and focusing
               // this field opened the keyboard and scrolled the sheet far enough
@@ -476,9 +477,9 @@ class _IncomeFormState extends ConsumerState<_IncomeForm> {
                 RecurrenceFrequency.yearly,
               ],
               labelOf: (RecurrenceFrequency value) => value.label(localizations),
-              iconOf: (RecurrenceFrequency _) => Icons.autorenew,
+              iconOf: (RecurrenceFrequency _) => AppIcons.autorenewFilled,
               title: localizations.fieldFrequency,
-              icon: Icons.autorenew,
+              icon: AppIcons.autorenewFilled,
               onChanged: (RecurrenceFrequency value) =>
                   setState(() => _frequency = value),
             ),
@@ -486,7 +487,7 @@ class _IncomeFormState extends ConsumerState<_IncomeForm> {
             DateField(
               label: localizations.fieldStartDate,
               value: _startAt,
-              icon: Icons.play_circle_outline,
+              icon: AppIcons.playCircle,
               onChanged: (DateTime? value) {
                 if (value == null) return;
                 setState(() {
@@ -511,7 +512,7 @@ class _IncomeFormState extends ConsumerState<_IncomeForm> {
                   '${localizations.fieldNote} · ${localizations.fieldOptional}',
               controller: _note,
               hint: localizations.fieldNoteHint,
-              prefixIcon: Icons.notes,
+              prefixIcon: AppIcons.notesFilled,
               maxLines: 3,
               maxLength: 300,
               keyboardType: TextInputType.multiline,

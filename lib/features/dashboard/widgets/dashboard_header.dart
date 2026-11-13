@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/formatting/app_formatting.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/money/money.dart';
+import '../../../core/theme/app_icons.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/dhimmah_logo.dart';
@@ -140,12 +141,12 @@ class _IdentityRow extends StatelessWidget {
         IconButton(
           tooltip: localizations.searchTitle,
           onPressed: onSearch,
-          icon: const Icon(Icons.search_outlined, size: 22),
+          icon: const Icon(AppIcons.search, size: 22),
         ),
         IconButton(
           tooltip: localizations.settingsTitle,
           onPressed: onSettings,
-          icon: const Icon(Icons.settings_outlined, size: 22),
+          icon: const Icon(AppIcons.settings, size: 22),
         ),
       ],
     );
@@ -172,7 +173,7 @@ class _SideBySide extends StatelessWidget {
             label: localizations.dashboardIOwe,
             money: totals.iOwe,
             color: palette.iOwe,
-            icon: Icons.arrow_upward_rounded,
+            icon: AppIcons.arrowUpward,
           ),
         ),
         Container(width: 1, height: 42, color: palette.border),
@@ -181,7 +182,7 @@ class _SideBySide extends StatelessWidget {
             label: localizations.dashboardOwedToMe,
             money: totals.owedToMe,
             color: palette.owedToMe,
-            icon: Icons.arrow_downward_rounded,
+            icon: AppIcons.arrowDownward,
             alignEnd: true,
           ),
         ),

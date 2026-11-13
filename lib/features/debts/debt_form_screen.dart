@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../core/money/currency.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/dates.dart';
@@ -324,7 +325,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                     '${localizations.fieldTitle} · ${localizations.fieldOptional}',
                 controller: _title,
                 hint: localizations.fieldTitleHint,
-                prefixIcon: Icons.label_outline,
+                prefixIcon: AppIcons.label,
                 maxLength: 120,
                 onChanged: (_) => setState(() => _dirty = true),
               ),
@@ -349,7 +350,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                 value: _dueAt,
                 placeholder: localizations.fieldDueDateNone,
                 clearable: true,
-                icon: Icons.event_outlined,
+                icon: AppIcons.event,
                 onChanged: (DateTime? value) => setState(() {
                   _dirty = true;
                   _dueAt = value;
@@ -412,9 +413,9 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                       ],
                       labelOf: (RecurrenceFrequency value) =>
                           value.label(localizations, interval: _interval),
-                      iconOf: (RecurrenceFrequency _) => Icons.autorenew,
+                      iconOf: (RecurrenceFrequency _) => AppIcons.autorenewFilled,
                       title: localizations.fieldRecurrence,
-                      icon: Icons.autorenew,
+                      icon: AppIcons.autorenewFilled,
                       onChanged: (RecurrenceFrequency value) => setState(() {
                         _dirty = true;
                         _recurrence = value;
@@ -426,7 +427,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                           '${localizations.fieldNote} · ${localizations.fieldOptional}',
                       controller: _note,
                       hint: localizations.fieldNoteHint,
-                      prefixIcon: Icons.notes,
+                      prefixIcon: AppIcons.notesFilled,
                       maxLines: 3,
                       maxLength: 500,
                       keyboardType: TextInputType.multiline,
@@ -741,12 +742,12 @@ class _DirectionField extends StatelessWidget {
               ButtonSegment<DebtDirection>(
                 value: DebtDirection.iOwe,
                 label: Text(localizations.ledgerSwitchIOwe),
-                icon: const Icon(Icons.arrow_upward_rounded, size: 18),
+                icon: const Icon(AppIcons.arrowUpward, size: 18),
               ),
               ButtonSegment<DebtDirection>(
                 value: DebtDirection.owedToMe,
                 label: Text(localizations.ledgerSwitchOwedToMe),
-                icon: const Icon(Icons.arrow_downward_rounded, size: 18),
+                icon: const Icon(AppIcons.arrowDownward, size: 18),
               ),
             ],
             selected: value == null
@@ -863,7 +864,7 @@ class _PeopleField extends ConsumerWidget {
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      Icons.person_add_alt,
+                      AppIcons.personAddAlt,
                       size: 18,
                       color: palette.onBrandContainer,
                     ),
@@ -879,7 +880,7 @@ class _PeopleField extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Icon(Icons.expand_more, size: 20, color: palette.textTertiary),
+                  Icon(AppIcons.expandMore, size: 20, color: palette.textTertiary),
                 ],
               ),
             ),
@@ -904,7 +905,7 @@ class _PeopleField extends ConsumerWidget {
             alignment: AlignmentDirectional.centerStart,
             child: TextButton.icon(
               onPressed: () => onAdd(localizations),
-              icon: const Icon(Icons.person_add_alt, size: 18),
+              icon: const Icon(AppIcons.personAddAlt, size: 18),
               label: Text(
                 expanded
                     ? localizations.participantsAdd
@@ -952,7 +953,7 @@ class _MissingFieldsBanner extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Icon(Icons.error_outline, size: 20, color: palette.overdue),
+            Icon(AppIcons.error, size: 20, color: palette.overdue),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Text(
@@ -1080,7 +1081,7 @@ class _AdvancedSection extends StatelessWidget {
                     turns: expanded ? 0.5 : 0,
                     duration: const Duration(milliseconds: 180),
                     child: Icon(
-                      Icons.expand_more,
+                      AppIcons.expandMore,
                       size: 20,
                       color: palette.textSecondary,
                     ),

@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/dates.dart';
@@ -116,7 +117,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
                   child: Row(
                     children: <Widget>[
                       Icon(
-                        Icons.info_outline,
+                        AppIcons.info,
                         size: 18,
                         color: context.palette.textSecondary,
                       ),
@@ -191,7 +192,7 @@ class _MonthPicker extends StatelessWidget {
         children: <Widget>[
           IconButton(
             tooltip: MaterialLocalizations.of(context).previousMonthTooltip,
-            icon: const Icon(Icons.chevron_left, size: 22),
+            icon: const Icon(AppIcons.chevronLeft, size: 22),
             onPressed: () =>
                 onChanged(addMonths(month, -1)),
           ),
@@ -205,7 +206,7 @@ class _MonthPicker extends StatelessWidget {
           ),
           IconButton(
             tooltip: MaterialLocalizations.of(context).nextMonthTooltip,
-            icon: const Icon(Icons.chevron_right, size: 22),
+            icon: const Icon(AppIcons.chevronRight, size: 22),
             // The future has no report, so the control stops at this month.
             onPressed: month.isBefore(DateTime(DateTime.now().year, DateTime.now().month))
                 ? () => onChanged(addMonths(month, 1))
@@ -283,7 +284,7 @@ class _HighlightCard extends StatelessWidget {
                   label: localizations.reportReceived,
                   money: Money(report.receivedMinor, currency),
                   color: palette.owedToMe,
-                  icon: Icons.arrow_downward_rounded,
+                  icon: AppIcons.arrowDownward,
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -292,7 +293,7 @@ class _HighlightCard extends StatelessWidget {
                   label: localizations.reportPaidOut,
                   money: Money(report.paidOutMinor, currency),
                   color: palette.iOwe,
-                  icon: Icons.arrow_upward_rounded,
+                  icon: AppIcons.arrowUpward,
                 ),
               ),
             ],
@@ -363,37 +364,37 @@ class _ReportGrid extends StatelessWidget {
       _GridItem(
         label: localizations.reportNewDebts,
         value: context.formatting.amount(Money(report.newDebtMinor, currency)),
-        icon: Icons.add_circle_outline,
+        icon: AppIcons.addCircle,
         color: palette.brand,
       ),
       _GridItem(
         label: localizations.reportObligations,
         value: context.formatting.amount(Money(report.obligationsMinor, currency)),
-        icon: Icons.event_repeat_outlined,
+        icon: AppIcons.eventRepeat,
         color: palette.brand,
       ),
       _GridItem(
         label: localizations.reportOverdue,
         value: context.formatting.amount(Money(report.overdueMinor, currency)),
-        icon: Icons.error_outline,
+        icon: AppIcons.error,
         color: palette.overdue,
       ),
       _GridItem(
         label: localizations.reportClosedDebts,
         value: context.formatting.count(report.closedDebts),
-        icon: Icons.check_circle_outline,
+        icon: AppIcons.checkCircle,
         color: palette.settled,
       ),
       _GridItem(
         label: localizations.reportActiveDebts,
         value: context.formatting.count(report.activeDebts),
-        icon: Icons.pending_outlined,
+        icon: AppIcons.pending,
         color: palette.neutralStatus,
       ),
       _GridItem(
         label: localizations.reportPeopleCount,
         value: context.formatting.count(report.peopleCount),
-        icon: Icons.people_outline,
+        icon: AppIcons.people,
         color: palette.neutralStatus,
       ),
     ];
@@ -674,13 +675,13 @@ class _PositionCard extends StatelessWidget {
       child: Column(
         children: <Widget>[
           DetailRow(
-            icon: Icons.arrow_upward_rounded,
+            icon: AppIcons.arrowUpward,
             label: localizations.dashboardIOwe,
             value: context.formatting.amount(Money(report.openIOweMinor, currency)),
             valueColor: palette.iOwe,
           ),
           DetailRow(
-            icon: Icons.arrow_downward_rounded,
+            icon: AppIcons.arrowDownward,
             label: localizations.dashboardOwedToMe,
             value:
                 context.formatting.amount(Money(report.openOwedToMeMinor, currency)),
@@ -689,7 +690,7 @@ class _PositionCard extends StatelessWidget {
           const AppDivider(),
           const SizedBox(height: AppSpacing.xs),
           DetailRow(
-            icon: Icons.balance,
+            icon: AppIcons.balance,
             label: localizations.dashboardNetPosition,
             value: context.formatting
                 .amount(Money(report.openOwedToMeMinor - report.openIOweMinor, currency)),
@@ -727,27 +728,27 @@ class _InsightLine extends StatelessWidget {
 
     final (IconData icon, Color color, String text) = switch (insight) {
       MonthlyInsight.overdue => (
-          Icons.error_outline,
+          AppIcons.error,
           palette.overdue,
           localizations.reportInsightOverdue(overdueCount),
         ),
       MonthlyInsight.upcomingSoon => (
-          Icons.schedule_outlined,
+          AppIcons.schedule,
           palette.dueSoon,
           localizations.reportInsightUpcoming(dueSoonCount),
         ),
       MonthlyInsight.manyClosed => (
-          Icons.check_circle_outline,
+          AppIcons.checkCircle,
           palette.settled,
           localizations.reportInsightClosed(closedCount),
         ),
       MonthlyInsight.allClear => (
-          Icons.verified_outlined,
+          AppIcons.verified,
           palette.settled,
           localizations.reportInsightAllClear,
         ),
       MonthlyInsight.quiet => (
-          Icons.info_outline,
+          AppIcons.info,
           palette.textSecondary,
           localizations.reportInsightQuiet,
         ),

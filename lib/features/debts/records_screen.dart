@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../app/router.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/widgets/async_value_view.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/enums/debt_enums.dart';
@@ -58,7 +59,7 @@ class RecordsScreen extends ConsumerWidget {
               onPressed: () => context.push(
                 '${AppRoutes.debtNew}?direction=${direction.name}',
               ),
-              icon: const Icon(Icons.add, size: 20),
+              icon: const Icon(AppIcons.add, size: 20),
               label: Text(localizations.addDebtAction),
             ),
     );

@@ -46,11 +46,20 @@ class DebtProgressBar extends StatelessWidget {
           child: Semantics(
             label: localizations.progressLabel,
             value: context.formatting.percent(view.progress),
-            child: LinearProgressIndicator(
-              value: view.progress,
-              minHeight: thickness,
-              backgroundColor: palette.surfaceMuted,
-              valueColor: AlwaysStoppedAnimation<Color>(fill),
+            // Moves to a new value rather than jumping to it, so a payment is
+            // seen arriving. With no `begin` the first frame is already at the
+            // value: nothing plays when the bar is merely shown.
+            child: TweenAnimationBuilder<double>(
+              tween: Tween<double>(end: view.progress),
+              duration: AppMotion.of(context, AppMotion.slow),
+              curve: AppMotion.standard,
+              builder: (BuildContext context, double value, Widget? child) =>
+                  LinearProgressIndicator(
+                value: value,
+                minHeight: thickness,
+                backgroundColor: palette.surfaceMuted,
+                valueColor: AlwaysStoppedAnimation<Color>(fill),
+              ),
             ),
           ),
         ),

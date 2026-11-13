@@ -7,6 +7,7 @@ import 'package:dhimmah/app/app_update_controller.dart';
 import 'package:dhimmah/app/providers.dart';
 import 'package:dhimmah/app/router.dart';
 import 'package:dhimmah/core/money/currency.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/core/widgets/record_rows.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/data/mappers/db_mappers.dart';
@@ -17,6 +18,7 @@ import 'package:dhimmah/features/shell/add_action_sheet.dart';
 import 'package:dhimmah/l10n/generated/app_localizations.dart';
 import 'package:drift/drift.dart' show Table, TableInfo;
 import 'package:flutter/foundation.dart';
+
 // drift names its schema table `Table` too; in this file the name means drift's.
 import 'package:flutter/material.dart' hide Table;
 import 'package:flutter/rendering.dart';
@@ -253,7 +255,7 @@ void main() {
       // aimed inside the sheet rather than at the icon in general.
       await tester.tap(find.descendant(
         of: find.byType(AddActionSheet),
-        matching: find.byIcon(Icons.arrow_upward_rounded),
+        matching: find.byIcon(AppIcons.arrowUpward),
       ));
       await settle();
       await capture('02_add_debt');
@@ -263,19 +265,19 @@ void main() {
 
     // 03 — People: the directory of who owes and who is owed.
     if (wanted('03_people')) {
-      await goTab(Icons.people_outline, Icons.people);
+      await goTab(AppIcons.people, AppIcons.peopleFilled);
       await capture('03_people');
     }
 
     // 06 — Ledger: the full list, before opening a record from it.
     if (wanted('06_ledger')) {
-      await goTab(Icons.receipt_long_outlined, Icons.receipt_long);
+      await goTab(AppIcons.receiptLong, AppIcons.receiptLongFilled);
       await capture('06_ledger');
     }
 
     // 04 — A debt with a payment in it: paid and remaining side by side.
     if (wanted('04_debt_detail')) {
-      await goTab(Icons.receipt_long_outlined, Icons.receipt_long);
+      await goTab(AppIcons.receiptLong, AppIcons.receiptLongFilled);
       // On the mixed ledger a row leads with the person's name and carries the
       // debt's own title in its subtitle, so the row is found by whichever of
       // the two the list actually shows.
@@ -296,7 +298,7 @@ void main() {
 
     // 05 — Obligations: the recurring month.
     if (wanted('05_obligations')) {
-      await goTab(Icons.event_repeat_outlined, Icons.event_repeat);
+      await goTab(AppIcons.eventRepeat, AppIcons.eventRepeatFilled);
       await capture('05_obligations');
     }
 

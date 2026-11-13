@@ -11,6 +11,7 @@ import '../../core/money/currency.dart';
 import '../../core/money/region_currency.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/security/biometric_service.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/feedback.dart';
@@ -71,7 +72,7 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: settings.languagePreference.followsDevice
                     ? localizations.languageFollowsDevice
                     : null,
-                icon: Icons.translate,
+                icon: AppIcons.translate,
                 valueText: ref.watch(appLanguageProvider).endonym,
                 onTap: () => _pickLanguage(context, ref, controller, settings),
               ),
@@ -83,19 +84,19 @@ class SettingsScreen extends ConsumerWidget {
               ),
               SettingsTile(
                 title: localizations.settingsNumerals,
-                icon: Icons.pin_outlined,
+                icon: AppIcons.pin,
                 valueText: settings.numerals.label(localizations),
                 onTap: () => _pickNumerals(context, controller, settings),
               ),
               SettingsTile(
                 title: localizations.settingsCurrency,
-                icon: Icons.payments_outlined,
+                icon: AppIcons.payments,
                 valueText: settings.defaultCurrency.codeAndSymbol,
                 onTap: () => _pickCurrency(context, ref, controller, settings),
               ),
               SettingsTile(
                 title: localizations.settingsDueSoonWindow,
-                icon: Icons.hourglass_bottom_outlined,
+                icon: AppIcons.hourglassBottom,
                 valueText: localizations.dateDayCount(settings.dueSoonWindowDays),
                 onTap: () => _pickDueSoonWindow(context, controller, settings),
               ),
@@ -108,7 +109,7 @@ class SettingsScreen extends ConsumerWidget {
               SettingsSwitchTile(
                 title: localizations.settingsRemindersEnabled,
                 subtitle: localizations.settingsRemindersEnabledBody,
-                icon: Icons.notifications_none,
+                icon: AppIcons.notificationsNone,
                 value: settings.notificationsEnabled,
                 onChanged: (bool value) async {
                   if (value) {
@@ -127,7 +128,7 @@ class SettingsScreen extends ConsumerWidget {
               SettingsTile(
                 title: localizations.settingsNotificationTime,
                 subtitle: localizations.settingsReminderLead,
-                icon: Icons.schedule_outlined,
+                icon: AppIcons.schedule,
                 enabled: settings.notificationsEnabled,
                 valueText: context.formatting.dates.time(
                   context,
@@ -149,7 +150,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
               SettingsTile(
                 title: localizations.settingsReminderLead,
-                icon: Icons.notifications_active_outlined,
+                icon: AppIcons.notificationsActive,
                 enabled: settings.notificationsEnabled,
                 valueText: settings.defaultReminderLeads.isEmpty
                     ? localizations.leadNone
@@ -159,20 +160,20 @@ class SettingsScreen extends ConsumerWidget {
               SettingsSwitchTile(
                 title: localizations.settingsMonthEnd,
                 subtitle: localizations.settingsMonthEndBody,
-                icon: Icons.insights_outlined,
+                icon: AppIcons.insights,
                 value: settings.monthEndSummaryEnabled,
                 onChanged: controller.setMonthEndEnabled,
               ),
               if (settings.monthEndSummaryEnabled) ...<Widget>[
                 SettingsTile(
                   title: localizations.settingsMonthEndDay,
-                  icon: Icons.event_outlined,
+                  icon: AppIcons.event,
                   valueText: settings.monthEndDay.label(localizations),
                   onTap: () => _pickMonthEndDay(context, controller, settings),
                 ),
                 SettingsTile(
                   title: localizations.settingsMonthEndTime,
-                  icon: Icons.schedule_outlined,
+                  icon: AppIcons.schedule,
                   valueText: context.formatting.dates.time(
                     context,
                     settings.monthEndHour,
@@ -203,7 +204,7 @@ class SettingsScreen extends ConsumerWidget {
               SettingsSwitchTile(
                 title: localizations.settingsAppLock,
                 subtitle: localizations.settingsAppLockBody,
-                icon: Icons.lock_outline,
+                icon: AppIcons.lock,
                 value: settings.lockEnabled,
                 onChanged: (bool value) =>
                     _toggleLock(context, ref, controller, value),
@@ -211,7 +212,7 @@ class SettingsScreen extends ConsumerWidget {
               SettingsSwitchTile(
                 title: localizations.settingsBiometric,
                 subtitle: localizations.settingsBiometricBody,
-                icon: Icons.fingerprint,
+                icon: AppIcons.fingerprint,
                 enabled: settings.lockEnabled,
                 value: settings.biometricEnabled,
                 onChanged: (bool value) =>
@@ -220,7 +221,7 @@ class SettingsScreen extends ConsumerWidget {
               if (settings.lockEnabled)
                 SettingsTile(
                   title: localizations.settingsChangePin,
-                  icon: Icons.password_outlined,
+                  icon: AppIcons.password,
                   onTap: () => changePin(context, ref),
                 ),
             ],
@@ -231,7 +232,7 @@ class SettingsScreen extends ConsumerWidget {
               SettingsTile(
                 title: localizations.settingsBackup,
                 subtitle: localizations.backupSectionHint,
-                icon: Icons.cloud_off_outlined,
+                icon: AppIcons.cloudOff,
                 onTap: () => context.push(AppRoutes.backup),
               ),
             ],
@@ -242,24 +243,24 @@ class SettingsScreen extends ConsumerWidget {
               SettingsTile(
                 title: localizations.settingsExport,
                 subtitle: localizations.settingsExportBody,
-                icon: Icons.ios_share,
+                icon: AppIcons.iosShare,
                 onTap: () => _export(context, ref),
               ),
               SettingsTile(
                 title: localizations.settingsAbout,
                 subtitle: localizations.settingsPrivacyNote,
-                icon: Icons.info_outline,
+                icon: AppIcons.info,
                 onTap: () => context.push(AppRoutes.about),
               ),
               SettingsTile(
                 title: localizations.settingsPrivacyPolicy,
                 subtitle: localizations.settingsPrivacyPolicyBody,
-                icon: Icons.privacy_tip_outlined,
+                icon: AppIcons.privacyTip,
                 onTap: () => _openPrivacyPolicy(context, ref),
               ),
               SettingsTile(
                 title: localizations.settingsLicenses,
-                icon: Icons.description_outlined,
+                icon: AppIcons.description,
                 onTap: () => showLicensePage(
                   context: context,
                   applicationName: localizations.appName,
@@ -273,7 +274,7 @@ class SettingsScreen extends ConsumerWidget {
             children: <Widget>[
               SettingsTile(
                 title: localizations.settingsClearData,
-                icon: Icons.delete_forever_outlined,
+                icon: AppIcons.deleteForever,
                 destructive: true,
                 onTap: () => _clearData(context, ref),
               ),

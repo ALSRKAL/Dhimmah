@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/feedback.dart';
@@ -52,7 +53,7 @@ class _ObligationActionButtonsState
                             .undoObligationPayment(widget.instance),
                         localizations.recordSaved,
                       ),
-              icon: const Icon(Icons.undo, size: 16),
+              icon: const Icon(AppIcons.undo, size: 16),
               label: Text(
                 isPaid
                     ? localizations.obligationUndoPayment
@@ -68,7 +69,7 @@ class _ObligationActionButtonsState
                               .undoObligationPayment(widget.instance),
                           localizations.recordSaved,
                         ),
-                icon: const Icon(Icons.undo, size: 18),
+                icon: const Icon(AppIcons.undo, size: 18),
                 label: Text(localizations.obligationUndoPayment),
               ),
             );
@@ -85,7 +86,7 @@ class _ObligationActionButtonsState
                             .markObligationPaid(widget.instance),
                         localizations.obligationMarkedPaid,
                       ),
-              icon: const Icon(Icons.task_alt, size: 18),
+              icon: const Icon(AppIcons.taskAlt, size: 18),
               label: Text(localizations.obligationMarkPaid),
             ),
           ),
@@ -100,7 +101,7 @@ class _ObligationActionButtonsState
                           .skipObligationPeriod(widget.instance),
                       localizations.obligationMarkedSkipped,
                     ),
-            icon: const Icon(Icons.skip_next_outlined, size: 20),
+            icon: const Icon(AppIcons.skipNext, size: 20),
             style: IconButton.styleFrom(
               minimumSize: const Size(52, 52),
               side: BorderSide(color: palette.borderStrong),
@@ -124,7 +125,7 @@ class _ObligationActionButtonsState
                           .markObligationPaid(widget.instance),
                       localizations.obligationMarkedPaid,
                     ),
-            icon: const Icon(Icons.task_alt, size: 16),
+            icon: const Icon(AppIcons.taskAlt, size: 16),
             label: Text(
               localizations.obligationMarkPaid,
               maxLines: 2,
@@ -140,7 +141,7 @@ class _ObligationActionButtonsState
                           .skipObligationPeriod(widget.instance),
                       localizations.obligationMarkedSkipped,
                     ),
-            icon: const Icon(Icons.skip_next_outlined, size: 16),
+            icon: const Icon(AppIcons.skipNext, size: 16),
             label: Text(
               localizations.obligationSkip,
               maxLines: 2,

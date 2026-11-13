@@ -7,6 +7,7 @@ import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -90,7 +91,7 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
             actions: <Widget>[
               IconButton(
                 tooltip: localizations.actionEdit,
-                icon: const Icon(Icons.edit_outlined, size: 20),
+                icon: const Icon(AppIcons.edit, size: 20),
                 onPressed: () =>
                     context.push(AppRoutes.personEditPath(personId)),
               ),
@@ -149,7 +150,7 @@ class _PersonMenu extends ConsumerWidget {
     final AppPalette palette = context.palette;
 
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, size: 20),
+      icon: const Icon(AppIcons.moreVert, size: 20),
       onSelected: (String action) async {
         final LedgerService service = ref.read(ledgerServiceProvider);
         if (action == 'archive') {
@@ -209,8 +210,8 @@ class _PersonMenu extends ConsumerWidget {
             children: <Widget>[
               Icon(
                 ledger.person.isArchived
-                    ? Icons.unarchive_outlined
-                    : Icons.archive_outlined,
+                    ? AppIcons.unarchive
+                    : AppIcons.archive,
                 size: 18,
               ),
               const SizedBox(width: AppSpacing.md),
@@ -226,7 +227,7 @@ class _PersonMenu extends ConsumerWidget {
           value: 'delete',
           child: Row(
             children: <Widget>[
-              Icon(Icons.delete_outline, size: 18, color: palette.overdue),
+              Icon(AppIcons.delete, size: 18, color: palette.overdue),
               const SizedBox(width: AppSpacing.md),
               Text(
                 localizations.actionDelete,
@@ -494,7 +495,7 @@ class _PersonActions extends ConsumerWidget {
                           '${AppRoutes.debtNew}?person=$personId',
                         ),
                 icon: Icon(
-                  canPay ? Icons.payments_outlined : Icons.add,
+                  canPay ? AppIcons.payments : AppIcons.add,
                   size: 20,
                 ),
                 label: Text(
@@ -516,7 +517,7 @@ class _PersonActions extends ConsumerWidget {
                 child: OutlinedButton.icon(
                   onPressed: () =>
                       context.push('${AppRoutes.debtNew}?person=$personId'),
-                  icon: const Icon(Icons.add, size: 18),
+                  icon: const Icon(AppIcons.add, size: 18),
                   label: Text(
                     localizations.addDebtAction,
                     maxLines: 2,
@@ -534,7 +535,7 @@ class _PersonActions extends ConsumerWidget {
               onPressed: ledger.debts.isEmpty
                   ? null
                   : () => showStatement(context, personId),
-              icon: const Icon(Icons.receipt_long_outlined, size: 20),
+              icon: const Icon(AppIcons.receiptLong, size: 20),
               style: IconButton.styleFrom(
                 minimumSize: const Size(52, 52),
                 side: BorderSide(color: palette.borderStrong),

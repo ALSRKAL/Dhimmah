@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/dhimmah_logo.dart';
@@ -36,13 +37,13 @@ class MoreScreen extends StatelessWidget {
               SettingsTile(
                 title: localizations.navReports,
                 subtitle: localizations.reportsSubtitle,
-                icon: Icons.insights_outlined,
+                icon: AppIcons.insights,
                 onTap: () => context.push(AppRoutes.reports),
               ),
               SettingsTile(
                 title: localizations.navReminders,
                 subtitle: localizations.remindersSubtitle,
-                icon: Icons.notifications_none,
+                icon: AppIcons.notificationsNone,
                 onTap: () => context.push(AppRoutes.reminders),
               ),
             ],
@@ -53,13 +54,13 @@ class MoreScreen extends StatelessWidget {
               SettingsTile(
                 title: localizations.settingsTitle,
                 subtitle: localizations.settingsAppearance,
-                icon: Icons.settings_outlined,
+                icon: AppIcons.settings,
                 onTap: () => context.push(AppRoutes.settings),
               ),
               SettingsTile(
                 title: localizations.settingsAbout,
                 subtitle: localizations.settingsPrivacyNote,
-                icon: Icons.info_outline,
+                icon: AppIcons.info,
                 onTap: () => context.push(AppRoutes.about),
               ),
             ],
@@ -79,7 +80,7 @@ class MoreScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: <Widget>[
                     Icon(
-                      Icons.cloud_off_outlined,
+                      AppIcons.cloudOff,
                       size: 13,
                       color: palette.textTertiary,
                     ),

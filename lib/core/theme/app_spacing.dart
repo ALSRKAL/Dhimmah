@@ -67,4 +67,12 @@ abstract final class AppMotion {
 
   static const Curve standard = Curves.easeOutCubic;
   static const Curve emphasized = Curves.easeOutQuart;
+
+  /// [duration], or no time at all when the system asks for less motion.
+  ///
+  /// The one place "remove animations" is honoured for an implicit animation:
+  /// given a zero duration it jumps to its end state, so a screen that takes
+  /// its duration from here does not have to remember to ask.
+  static Duration of(BuildContext context, Duration duration) =>
+      MediaQuery.disableAnimationsOf(context) ? Duration.zero : duration;
 }

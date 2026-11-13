@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_icons.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 
@@ -104,7 +105,7 @@ class AppSheet extends StatelessWidget {
                 if (showCloseButton)
                   IconButton(
                     tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
-                    icon: const Icon(Icons.close, size: 20),
+                    icon: const Icon(AppIcons.close, size: 20),
                     onPressed: () => Navigator.of(context).maybePop(),
                   ),
               ],

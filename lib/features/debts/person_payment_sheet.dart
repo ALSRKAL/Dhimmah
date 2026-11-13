@@ -8,6 +8,7 @@ import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/dates.dart';
@@ -294,7 +295,7 @@ class _PersonPaymentSheetState extends ConsumerState<PersonPaymentSheet> {
           Row(
             children: <Widget>[
               Icon(
-                Icons.lock_outline,
+                AppIcons.lock,
                 size: 13,
                 color: context.palette.textTertiary,
               ),
@@ -688,7 +689,7 @@ class _AmountBlock extends StatelessWidget {
               ),
               (
                 label: localizations.personPaymentPayAll,
-                icon: Icons.done_all,
+                icon: AppIcons.doneAll,
                 value: capMinor,
               ),
             ])
@@ -782,7 +783,7 @@ class _AllocationSection extends StatelessWidget {
                           : PaymentAllocationOrder.mostUrgent,
                     );
                   },
-                  icon: const Icon(Icons.swap_vert, size: 16),
+                  icon: const Icon(AppIcons.swapVert, size: 16),
                   label: Text(
                     order.label(localizations),
                     maxLines: 2,
@@ -1015,7 +1016,7 @@ class _AmountCell extends StatelessWidget {
         child: Row(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[
-          Icon(Icons.check_circle_outline, size: 16, color: palette.settled),
+          Icon(AppIcons.checkCircle, size: 16, color: palette.settled),
           const SizedBox(width: AppSpacing.xs),
           // The mark already says it; the words may take two lines rather than
           // push the row past its edge, which is what they did at the largest
@@ -1104,7 +1105,7 @@ class _SharedNotice extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              Icon(Icons.info_outline, size: 18, color: palette.dueSoon),
+              Icon(AppIcons.info, size: 18, color: palette.dueSoon),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
@@ -1161,7 +1162,7 @@ class _ImpactCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Icon(
-            settlesAll ? Icons.verified_outlined : Icons.info_outline,
+            settlesAll ? AppIcons.verified : AppIcons.info,
             size: 18,
             color: accent,
           ),

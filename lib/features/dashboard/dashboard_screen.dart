@@ -7,6 +7,7 @@ import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/status_style.dart';
@@ -469,9 +470,9 @@ class _AttentionRow extends StatelessWidget {
     // icon differs by shape as well as colour, so the rail of marks down the
     // list reads without colour at all.
     final (Color color, IconData icon) = switch (item.reason) {
-      AttentionReason.overdue => (palette.overdue, Icons.error_outline),
-      AttentionReason.dueToday => (palette.dueSoon, Icons.today_outlined),
-      AttentionReason.dueSoon => (palette.dueSoon, Icons.schedule_outlined),
+      AttentionReason.overdue => (palette.overdue, AppIcons.error),
+      AttentionReason.dueToday => (palette.dueSoon, AppIcons.today),
+      AttentionReason.dueSoon => (palette.dueSoon, AppIcons.schedule),
     };
 
     final Color amountColor = item.direction == null

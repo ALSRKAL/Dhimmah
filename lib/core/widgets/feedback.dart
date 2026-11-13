@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../l10n/generated/app_localizations.dart';
+import '../theme/app_icons.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
+import 'motion.dart';
 
 /// Feedback helpers.
 ///
@@ -26,8 +28,25 @@ abstract final class AppFeedback {
     _show(
       context,
       message: message,
-      icon: icon ?? Icons.check_circle_outline,
+      icon: icon ?? AppIcons.checkCircle,
       iconColor: palette.owedToMe,
+    );
+  }
+
+  /// A debt paid off in full.
+  ///
+  /// The same confirmation as [info], with a tick that draws itself in place
+  /// of the still icon. It is the one piece of good news the app delivers, and
+  /// it used to look exactly like saving an edit.
+  static void settled(BuildContext context, String message) {
+    final AppPalette palette = context.palette;
+    unawaited(HapticFeedback.lightImpact());
+    _show(
+      context,
+      message: message,
+      icon: AppIcons.checkCircle,
+      iconColor: palette.owedToMe,
+      leading: DrawnTick(color: palette.owedToMe),
     );
   }
 
@@ -41,7 +60,7 @@ abstract final class AppFeedback {
     _show(
       context,
       message: message,
-      icon: Icons.delete_outline,
+      icon: AppIcons.delete,
       iconColor: context.palette.textSecondary,
       actionLabel: undoLabel ?? AppLocalizations.of(context).actionUndo,
       onAction: onUndo,
@@ -61,7 +80,7 @@ abstract final class AppFeedback {
     _show(
       null,
       message: message,
-      icon: Icons.check_circle_outline,
+      icon: AppIcons.checkCircle,
       iconColor: iconColor,
       messenger: messenger,
     );
@@ -85,7 +104,7 @@ abstract final class AppFeedback {
     _show(
       null,
       message: message,
-      icon: Icons.delete_outline,
+      icon: AppIcons.delete,
       iconColor: iconColor,
       actionLabel: undoLabel,
       onAction: onUndo,
@@ -106,7 +125,7 @@ abstract final class AppFeedback {
     _show(
       null,
       message: message,
-      icon: Icons.error_outline,
+      icon: AppIcons.error,
       iconColor: iconColor,
       duration: const Duration(seconds: 5),
       messenger: messenger,
@@ -119,7 +138,7 @@ abstract final class AppFeedback {
     _show(
       context,
       message: message,
-      icon: Icons.error_outline,
+      icon: AppIcons.error,
       iconColor: palette.overdue,
       duration: const Duration(seconds: 5),
     );
@@ -130,6 +149,7 @@ abstract final class AppFeedback {
     required String message,
     required IconData icon,
     required Color iconColor,
+    Widget? leading,
     String? actionLabel,
     VoidCallback? onAction,
     Duration duration = const Duration(seconds: 3),
@@ -144,7 +164,7 @@ abstract final class AppFeedback {
           duration: duration,
           content: Row(
             children: <Widget>[
-              Icon(icon, size: 18, color: iconColor),
+              leading ?? Icon(icon, size: 18, color: iconColor),
               const SizedBox(width: AppSpacing.md),
               Expanded(child: Text(message)),
             ],

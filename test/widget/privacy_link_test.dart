@@ -1,4 +1,5 @@
 import 'package:dhimmah/core/links.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,7 +29,7 @@ void main() {
 
   /// Dashboard → the gear → the row, which sits below the fold.
   Future<void> openSettingsAndTapRow(WidgetTester tester) async {
-    await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.tap(find.byIcon(AppIcons.settings));
     await settle(tester);
 
     final Finder row = find.text('سياسة الخصوصية');

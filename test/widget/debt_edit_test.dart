@@ -1,4 +1,5 @@
 import 'package:dhimmah/core/money/currency.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/core/widgets/form_fields.dart';
 import 'package:dhimmah/data/database/app_database.dart';
@@ -74,7 +75,7 @@ void main() {
     // The row's sub-line reads "title · due", so the title is matched inside it.
     await tester.tap(find.textContaining(debtTitle).first);
     await settle(tester);
-    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.tap(find.byIcon(AppIcons.edit));
     await settle(tester);
   }
 

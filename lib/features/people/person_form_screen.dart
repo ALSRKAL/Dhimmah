@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/brand_colors.dart';
@@ -118,7 +119,7 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
               label: localizations.personNameLabel,
               controller: _name,
               hint: localizations.fieldPersonHint,
-              prefixIcon: Icons.person_outline,
+              prefixIcon: AppIcons.person,
               autofocus: !_isEditing,
               maxLength: 120,
               textInputAction: TextInputAction.next,
@@ -139,7 +140,7 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
               // bare, it rendered group-reversed with the + on the wrong end
               // ("7XX … 967+") — proven at zoom on the device.
               hint: '\u2066+967 7XX XXX XXX\u2069',
-              prefixIcon: Icons.phone_outlined,
+              prefixIcon: AppIcons.phone,
               keyboardType: TextInputType.phone,
               maxLength: 32,
               onChanged: (_) => _markDirty(),
@@ -149,7 +150,7 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
               label: '${localizations.fieldNote} · ${localizations.fieldOptional}',
               controller: _note,
               hint: localizations.fieldNoteHint,
-              prefixIcon: Icons.notes,
+              prefixIcon: AppIcons.notesFilled,
               maxLines: 3,
               maxLength: 300,
               keyboardType: TextInputType.multiline,
@@ -300,7 +301,7 @@ class _Swatch extends StatelessWidget {
             ),
           ),
           child: selected
-              ? Icon(Icons.check, color: context.palette.textOnBrand, size: 20)
+              ? Icon(AppIcons.check, color: context.palette.textOnBrand, size: 20)
               : null,
         ),
       ),

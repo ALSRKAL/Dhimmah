@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/status_style.dart';
@@ -141,7 +142,7 @@ class _SummaryStrip extends StatelessWidget {
       child: totals.isEmpty
           ? Row(
               children: <Widget>[
-                Icon(Icons.check_circle_outline, size: 18, color: accent),
+                Icon(AppIcons.checkCircle, size: 18, color: accent),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   localizations.dashboardBalanced,
@@ -207,12 +208,12 @@ class _SideSwitch extends StatelessWidget {
           ButtonSegment<DebtDirection>(
             value: DebtDirection.iOwe,
             label: Text(localizations.ledgerSwitchIOwe),
-            icon: const Icon(Icons.arrow_upward_rounded, size: 16),
+            icon: const Icon(AppIcons.arrowUpward, size: 16),
           ),
           ButtonSegment<DebtDirection>(
             value: DebtDirection.owedToMe,
             label: Text(localizations.ledgerSwitchOwedToMe),
-            icon: const Icon(Icons.arrow_downward_rounded, size: 16),
+            icon: const Icon(AppIcons.arrowDownward, size: 16),
           ),
         ],
         selected: <DebtDirection>{direction},

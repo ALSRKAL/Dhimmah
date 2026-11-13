@@ -9,6 +9,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../formatting/app_formatting.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
+import '../theme/app_icons.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 import '../theme/status_style.dart';
@@ -184,8 +185,8 @@ class _Leading extends StatelessWidget {
       ),
       child: Icon(
         view.debt.direction.isIOwe
-            ? Icons.arrow_upward_rounded
-            : Icons.arrow_downward_rounded,
+            ? AppIcons.arrowUpward
+            : AppIcons.arrowDownward,
         size: 19,
         color: color,
       ),
@@ -210,7 +211,7 @@ class _DirectionDot extends StatelessWidget {
         border: Border.all(color: palette.surface, width: 2),
       ),
       child: Icon(
-        direction.isIOwe ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
+        direction.isIOwe ? AppIcons.arrowUpward : AppIcons.arrowDownward,
         size: 9,
         // On the direction fill itself, so it has to flip with the theme: the
         // dark palette's mint and salmon are pastels and a white arrow on them

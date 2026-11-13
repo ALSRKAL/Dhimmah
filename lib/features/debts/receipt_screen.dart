@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../app/providers.dart';
 import '../../core/pdf/statement_models.dart';
 import '../../core/share/share_origin.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/bottom_sheet_shell.dart';
@@ -138,7 +139,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
         actions: <Widget>[
           IconButton(
             tooltip: localizations.reportOptionIssuer,
-            icon: const Icon(Icons.person_outline, size: 20),
+            icon: const Icon(AppIcons.person, size: 20),
             onPressed: _editIssuer,
           ),
         ],
@@ -163,7 +164,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
                 title: localizations.exportFailed,
                 actionLabel: localizations.actionRetry,
                 onAction: () => setState(() => _attempt++),
-                icon: Icons.error_outline,
+                icon: AppIcons.error,
               ),
             ),
           ),
@@ -193,7 +194,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
                         onPressed: _busy
                             ? null
                             : () => _share(shareOriginOf(buttonContext)),
-                        icon: const Icon(Icons.ios_share, size: 20),
+                        icon: const Icon(AppIcons.iosShare, size: 20),
                         label: Text(localizations.reportSharePdf),
                       ),
                     ),
@@ -203,7 +204,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
                     width: double.infinity,
                     child: TextButton.icon(
                       onPressed: _busy ? null : _print,
-                      icon: const Icon(Icons.print_outlined, size: 18),
+                      icon: const Icon(AppIcons.print, size: 18),
                       label: Text(localizations.reportSavePdf),
                     ),
                   ),
@@ -248,7 +249,7 @@ class _IssuerSheetState extends State<_IssuerSheet> {
         label: localizations.reportOptionIssuer,
         controller: _name,
         helperText: localizations.reportOptionIssuerHint,
-        prefixIcon: Icons.person_outline,
+        prefixIcon: AppIcons.person,
         textCapitalization: TextCapitalization.words,
         textInputAction: TextInputAction.done,
         maxLength: 60,

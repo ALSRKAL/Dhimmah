@@ -1,3 +1,4 @@
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/core/theme/app_theme.dart';
 import 'package:dhimmah/core/widgets/pin_keypad.dart';
 import 'package:flutter/material.dart';
@@ -71,7 +72,7 @@ void main() {
 
       final double zero = tester.getCenter(find.text('0')).dx;
       final double backspace =
-          tester.getCenter(find.byIcon(Icons.backspace_outlined)).dx;
+          tester.getCenter(find.byIcon(AppIcons.backspace)).dx;
       final double eight = tester.getCenter(find.text('8')).dx;
       // Directly under the middle column, with the backspace to its right.
       expect(zero, closeTo(eight, 1));

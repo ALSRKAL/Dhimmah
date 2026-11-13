@@ -5,6 +5,7 @@ import '../../app/providers.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -146,7 +147,7 @@ class _FilledCard extends StatelessWidget {
                 child: Icon(
                   // The same mark the attention list uses for money that has
                   // gone wrong, so "over" reads as the same kind of fact here.
-                  over ? Icons.error_outline : Icons.savings_outlined,
+                  over ? AppIcons.error : AppIcons.savings,
                   size: 20,
                   color: accent,
                 ),
@@ -270,7 +271,7 @@ class _FilledCard extends StatelessWidget {
           // feature only its author knows about, so it says so, once, quietly.
           Row(
             children: <Widget>[
-              Icon(Icons.edit_outlined, size: 13, color: palette.textTertiary),
+              Icon(AppIcons.edit, size: 13, color: palette.textTertiary),
               const SizedBox(width: AppSpacing.xs),
               Expanded(
                 child: Text(
@@ -284,8 +285,8 @@ class _FilledCard extends StatelessWidget {
               ),
               Icon(
                 Directionality.of(context) == TextDirection.rtl
-                    ? Icons.chevron_left
-                    : Icons.chevron_right,
+                    ? AppIcons.chevronLeft
+                    : AppIcons.chevronRight,
                 size: 16,
                 color: palette.textTertiary,
               ),
@@ -324,7 +325,7 @@ class _InvitationCard extends StatelessWidget {
                   borderRadius: AppRadius.rSm,
                 ),
                 child: Icon(
-                  Icons.savings_outlined,
+                  AppIcons.savings,
                   size: 20,
                   color: palette.onBrandContainer,
                 ),
@@ -354,7 +355,7 @@ class _InvitationCard extends StatelessWidget {
             alignment: AlignmentDirectional.centerStart,
             child: FilledButton.tonalIcon(
               onPressed: onAdd,
-              icon: const Icon(Icons.add, size: 18),
+              icon: const Icon(AppIcons.add, size: 18),
               label: Text(localizations.budgetAddIncome),
             ),
           ),

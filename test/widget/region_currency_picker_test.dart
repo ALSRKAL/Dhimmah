@@ -1,6 +1,7 @@
 import 'package:dhimmah/app/providers.dart';
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/notifications/notification_service.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/core/theme/app_theme.dart';
 import 'package:dhimmah/core/widgets/form_fields.dart';
 import 'package:dhimmah/data/database/app_database.dart';
@@ -172,7 +173,7 @@ void main() {
         reason: 'a stored choice is never replaced by a suggestion',
       );
 
-      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await tester.tap(find.byIcon(AppIcons.settings));
       await settle(tester);
       await tester.tap(find.text('العملة الافتراضية'));
       await settle(tester);

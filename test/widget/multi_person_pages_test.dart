@@ -1,4 +1,5 @@
 import 'package:dhimmah/core/money/currency.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/core/widgets/form_fields.dart';
 import 'package:dhimmah/data/database/app_database.dart';
@@ -263,7 +264,7 @@ void main() {
     // The record → edit, from the page it was opened on.
     await tester.tap(find.text(debtTitle).first);
     await settle(tester);
-    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.tap(find.byIcon(AppIcons.edit));
     await settle(tester);
 
     // The form knows who the record is with, and says so rather than asking.

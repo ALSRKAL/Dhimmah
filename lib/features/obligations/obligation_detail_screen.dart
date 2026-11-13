@@ -6,6 +6,7 @@ import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/money.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -58,7 +59,7 @@ class ObligationDetailScreen extends ConsumerWidget {
             actions: <Widget>[
               IconButton(
                 tooltip: localizations.actionEdit,
-                icon: const Icon(Icons.edit_outlined, size: 20),
+                icon: const Icon(AppIcons.edit, size: 20),
                 onPressed: () =>
                     context.push(AppRoutes.obligationEditPath(obligationId)),
               ),
@@ -147,7 +148,7 @@ class _ObligationMenu extends ConsumerWidget {
     final AppPalette palette = context.palette;
 
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, size: 20),
+      icon: const Icon(AppIcons.moreVert, size: 20),
       onSelected: (String action) async {
         final LedgerService service = ref.read(ledgerServiceProvider);
         if (action == 'archive') {
@@ -194,8 +195,8 @@ class _ObligationMenu extends ConsumerWidget {
             children: <Widget>[
               Icon(
                 obligation.isArchived
-                    ? Icons.unarchive_outlined
-                    : Icons.archive_outlined,
+                    ? AppIcons.unarchive
+                    : AppIcons.archive,
                 size: 18,
               ),
               const SizedBox(width: AppSpacing.md),
@@ -211,7 +212,7 @@ class _ObligationMenu extends ConsumerWidget {
           value: 'delete',
           child: Row(
             children: <Widget>[
-              Icon(Icons.delete_outline, size: 18, color: palette.overdue),
+              Icon(AppIcons.delete, size: 18, color: palette.overdue),
               const SizedBox(width: AppSpacing.md),
               Text(
                 localizations.actionDelete,
@@ -312,7 +313,7 @@ class _ObligationHeader extends StatelessWidget {
           const AppDivider(),
           const SizedBox(height: AppSpacing.xs),
           DetailRow(
-            icon: Icons.event_outlined,
+            icon: AppIcons.event,
             label: localizations.obligationNextDue(
               context.formatting.date(obligation.nextDueAt),
             ),
@@ -322,25 +323,25 @@ class _ObligationHeader extends StatelessWidget {
             ),
           ),
           DetailRow(
-            icon: Icons.play_circle_outline,
+            icon: AppIcons.playCircle,
             label: localizations.fieldStartDate,
             value: context.formatting.date(obligation.startAt),
           ),
           if (obligation.dayOfMonth != null)
             DetailRow(
-              icon: Icons.today_outlined,
+              icon: AppIcons.today,
               label: localizations.fieldDayOfMonth,
               value: context.formatting.count(obligation.dayOfMonth!),
             ),
           if (obligation.endAt != null)
             DetailRow(
-              icon: Icons.event_busy_outlined,
+              icon: AppIcons.eventBusy,
               label: localizations.fieldEndDate,
               value: context.formatting.date(obligation.endAt!),
             ),
           if (obligation.note != null && obligation.note!.trim().isNotEmpty)
             DetailRow(
-              icon: Icons.notes,
+              icon: AppIcons.notesFilled,
               label: localizations.fieldNote,
               value: obligation.note!.trim(),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -38,7 +39,7 @@ class AppShell extends StatelessWidget {
         foregroundColor: palette.textOnBrand,
         elevation: 3,
         tooltip: localizations.addTitle,
-        child: const Icon(Icons.add, size: 26),
+        child: const Icon(AppIcons.add, size: 26),
       ),
       bottomNavigationBar: DecoratedBox(
         decoration: BoxDecoration(
@@ -54,28 +55,28 @@ class AppShell extends StatelessWidget {
           ),
           destinations: <NavigationDestination>[
             NavigationDestination(
-              icon: const Icon(Icons.home_outlined),
-              selectedIcon: const Icon(Icons.home),
+              icon: const Icon(AppIcons.home),
+              selectedIcon: const Icon(AppIcons.homeFilled),
               label: localizations.navHome,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.receipt_long_outlined),
-              selectedIcon: const Icon(Icons.receipt_long),
+              icon: const Icon(AppIcons.receiptLong),
+              selectedIcon: const Icon(AppIcons.receiptLongFilled),
               label: localizations.navLedger,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.people_outline),
-              selectedIcon: const Icon(Icons.people),
+              icon: const Icon(AppIcons.people),
+              selectedIcon: const Icon(AppIcons.peopleFilled),
               label: localizations.navPeople,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.event_repeat_outlined),
-              selectedIcon: const Icon(Icons.event_repeat),
+              icon: const Icon(AppIcons.eventRepeat),
+              selectedIcon: const Icon(AppIcons.eventRepeatFilled),
               label: localizations.navObligationsShort,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.more_horiz_outlined),
-              selectedIcon: const Icon(Icons.more_horiz),
+              icon: const Icon(AppIcons.moreHoriz),
+              selectedIcon: const Icon(AppIcons.moreHorizFilled),
               label: localizations.navMore,
             ),
           ],

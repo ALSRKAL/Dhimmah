@@ -8,6 +8,7 @@ import '../../core/formatting/app_formatting.dart';
 import '../../core/money/money.dart';
 import '../../core/notifications/notification_service.dart';
 import '../../core/share/share_service.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/status_style.dart';
@@ -57,7 +58,7 @@ class DebtDetailScreen extends ConsumerWidget {
             // very different things and neither said which.
             PopupMenuButton<_ShareChoice>(
               tooltip: localizations.actionShare,
-              icon: const Icon(Icons.ios_share, size: 20),
+              icon: const Icon(AppIcons.iosShare, size: 20),
               onSelected: (_ShareChoice choice) => _share(
                 context,
                 ref,
@@ -70,7 +71,7 @@ class DebtDetailScreen extends ConsumerWidget {
                   value: _ShareChoice.pdf,
                   child: ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.picture_as_pdf_outlined, size: 20),
+                    leading: const Icon(AppIcons.pictureAsPdf, size: 20),
                     title: Text(localizations.actionSharePdf),
                   ),
                 ),
@@ -78,7 +79,7 @@ class DebtDetailScreen extends ConsumerWidget {
                   value: _ShareChoice.text,
                   child: ListTile(
                     contentPadding: EdgeInsets.zero,
-                    leading: const Icon(Icons.notes_outlined, size: 20),
+                    leading: const Icon(AppIcons.notes, size: 20),
                     title: Text(localizations.actionShareText),
                   ),
                 ),
@@ -86,7 +87,7 @@ class DebtDetailScreen extends ConsumerWidget {
             ),
             IconButton(
               tooltip: localizations.actionEdit,
-              icon: const Icon(Icons.edit_outlined, size: 20),
+              icon: const Icon(AppIcons.edit, size: 20),
               onPressed: () => context.push(AppRoutes.debtEditPath(debtId)),
             ),
             _OverflowMenu(debtId: debtId),
@@ -168,7 +169,7 @@ class _OverflowMenu extends ConsumerWidget {
     final DebtDetail? detail = ref.watch(debtDetailProvider(debtId)).value;
 
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, size: 20),
+      icon: const Icon(AppIcons.moreVert, size: 20),
       onSelected: (String action) async {
         final LedgerService service = ref.read(ledgerServiceProvider);
         switch (action) {
@@ -243,8 +244,8 @@ class _OverflowMenu extends ConsumerWidget {
             children: <Widget>[
               Icon(
                 detail?.view.debt.isArchived ?? false
-                    ? Icons.unarchive_outlined
-                    : Icons.archive_outlined,
+                    ? AppIcons.unarchive
+                    : AppIcons.archive,
                 size: 18,
               ),
               const SizedBox(width: AppSpacing.md),
@@ -260,7 +261,7 @@ class _OverflowMenu extends ConsumerWidget {
           value: 'delete',
           child: Row(
             children: <Widget>[
-              Icon(Icons.delete_outline, size: 18, color: palette.overdue),
+              Icon(AppIcons.delete, size: 18, color: palette.overdue),
               const SizedBox(width: AppSpacing.md),
               Text(
                 localizations.actionDelete,
@@ -496,12 +497,12 @@ class _FactsCard extends ConsumerWidget {
       child: Column(
         children: <Widget>[
           DetailRow(
-            icon: Icons.calendar_today_outlined,
+            icon: AppIcons.calendarToday,
             label: localizations.detailIssuedOn,
             value: formatting.date(view.debt.issuedAt),
           ),
           DetailRow(
-            icon: Icons.event_outlined,
+            icon: AppIcons.event,
             label: localizations.detailDueOn,
             value: due == null
                 ? localizations.dateNoDueDate
@@ -509,7 +510,7 @@ class _FactsCard extends ConsumerWidget {
           ),
           if (leads.isNotEmpty)
             DetailRow(
-              icon: Icons.notifications_none,
+              icon: AppIcons.notificationsNone,
               label: localizations.fieldReminder,
               // A reminder that cannot arrive is stated as such here too: the
               // record must not promise a notification the phone will not show.
@@ -522,7 +523,7 @@ class _FactsCard extends ConsumerWidget {
             ),
           if (view.participants.isNotEmpty)
             DetailRow(
-              icon: Icons.group_outlined,
+              icon: AppIcons.group,
               label: localizations.fieldPeople,
               value: view.participants
                   .map((Person person) => person.name)
@@ -530,7 +531,7 @@ class _FactsCard extends ConsumerWidget {
             ),
           if (view.debt.isRecurring)
             DetailRow(
-              icon: Icons.autorenew,
+              icon: AppIcons.autorenewFilled,
               label: localizations.fieldRecurrence,
               value: view.debt.recurrence.label(
                 localizations,
@@ -539,13 +540,13 @@ class _FactsCard extends ConsumerWidget {
             ),
           if (view.debt.note != null && view.debt.note!.trim().isNotEmpty)
             DetailRow(
-              icon: Icons.notes,
+              icon: AppIcons.notesFilled,
               label: localizations.fieldNote,
               value: view.debt.note!.trim(),
             ),
           if (view.paidMinor > view.debt.principalMinor)
             DetailRow(
-              icon: Icons.warning_amber_outlined,
+              icon: AppIcons.warningAmber,
               label: localizations.totalLabel,
               value: localizations.detailOverpaid(
                 formatting.amount(
@@ -590,7 +591,7 @@ class _BottomAction extends ConsumerWidget {
             Expanded(
               child: FilledButton.icon(
                 onPressed: () => _split(context, ref),
-                icon: const Icon(Icons.call_split, size: 20),
+                icon: const Icon(AppIcons.callSplit, size: 20),
                 label: Text(localizations.legacySharedSplit),
               ),
             ),
@@ -614,7 +615,7 @@ class _BottomAction extends ConsumerWidget {
               onPressed: view.isSettled
                   ? null
                   : () => showPaymentSheet(context, view: view),
-              icon: const Icon(Icons.payments_outlined, size: 20),
+              icon: const Icon(AppIcons.payments, size: 20),
               label: Text(localizations.detailRecordPayment),
             ),
           ),
@@ -628,7 +629,7 @@ class _BottomAction extends ConsumerWidget {
               );
               await service.shareText(service.debtSummary(view));
             },
-            icon: const Icon(Icons.ios_share, size: 20),
+            icon: const Icon(AppIcons.iosShare, size: 20),
             style: IconButton.styleFrom(
               minimumSize: const Size(52, 52),
               side: BorderSide(color: palette.borderStrong),
@@ -677,7 +678,7 @@ class _BottomAction extends ConsumerWidget {
     AppFeedback.info(
       context,
       localizations.legacySharedSplitDone,
-      icon: Icons.check_circle_outline,
+      icon: AppIcons.checkCircle,
     );
   }
 }
@@ -699,7 +700,7 @@ class _LegacySharedCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Icon(
-            Icons.warning_amber_outlined,
+            AppIcons.warningAmber,
             size: 20,
             color: palette.dueSoon,
           ),

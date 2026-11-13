@@ -20,6 +20,8 @@ import '../../../domain/enums/debt_enums.dart';
 import '../../../domain/services/debt_calculator.dart';
 import '../../../l10n/enum_labels.dart';
 import '../../../l10n/generated/app_localizations.dart';
+import '../../core/theme/app_icons.dart';
+import '../../core/widgets/motion.dart';
 
 /// A time window the list can be narrowed to.
 enum DateWindow { any, today, thisWeek, thisMonth, custom }
@@ -165,6 +167,10 @@ class DebtListBody extends ConsumerStatefulWidget {
 }
 
 class _DebtListBodyState extends ConsumerState<DebtListBody> {
+  /// True while the list is appearing for the first time; its first rows
+  /// arrive one after another, once.
+  bool _arriving = true;
+
   DebtListFilter _filter = const DebtListFilter();
 
   @override
@@ -244,20 +250,37 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
             itemCount: sorted.length,
             itemBuilder: (BuildContext context, int index) {
               final DebtView view = sorted[index];
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  DebtRowTile(
-                    view: view,
-                    asOf: asOf,
-                    showDirectionBadge: widget.direction == null,
-                    knownPersonId: widget.knownPersonId,
-                    onTap: () => context.push(AppRoutes.debtPath(view.debt.id)),
-                    onLongPress: () => _openRowActions(context, view),
-                  ),
-                  if (index != sorted.length - 1)
-                    const AppDivider(indent: AppSpacing.lg),
-                ],
+              final int lastStaggered =
+                  (sorted.length < ArrivingRow.maxRows
+                      ? sorted.length
+                      : ArrivingRow.maxRows) -
+                  1;
+              return ArrivingRow(
+                index: index,
+                animate: _arriving,
+                // The last row to move ends the arrival, so a row scrolled
+                // away and back, or a list re-sorted, does not arrive again.
+                onArrived: index == lastStaggered
+                    ? () {
+                        if (mounted) setState(() => _arriving = false);
+                      }
+                    : null,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    DebtRowTile(
+                      view: view,
+                      asOf: asOf,
+                      showDirectionBadge: widget.direction == null,
+                      knownPersonId: widget.knownPersonId,
+                      onTap: () =>
+                          context.push(AppRoutes.debtPath(view.debt.id)),
+                      onLongPress: () => _openRowActions(context, view),
+                    ),
+                    if (index != sorted.length - 1)
+                      const AppDivider(indent: AppSpacing.lg),
+                  ],
+                ),
               );
             },
           ),
@@ -335,7 +358,7 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
                   ),
                 ),
                 ListTile(
-                  leading: const Icon(Icons.edit_outlined),
+                  leading: const Icon(AppIcons.edit),
                   title: Text(localizations.actionEdit),
                   onTap: () {
                     Navigator.of(sheetContext).pop();
@@ -345,8 +368,8 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
                 ListTile(
                   leading: Icon(
                     view.debt.isArchived
-                        ? Icons.unarchive_outlined
-                        : Icons.archive_outlined,
+                        ? AppIcons.unarchive
+                        : AppIcons.archive,
                   ),
                   title: Text(
                     view.debt.isArchived
@@ -369,7 +392,7 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
                   },
                 ),
                 ListTile(
-                  leading: Icon(Icons.delete_outline, color: palette.overdue),
+                  leading: Icon(AppIcons.delete, color: palette.overdue),
                   textColor: palette.overdue,
                   title: Text(localizations.actionDelete),
                   onTap: () async {
@@ -406,10 +429,10 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
     final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
     final Color errorIcon = context.palette.overdue;
     void reportFailure() => AppFeedback.errorDetached(
-          messenger: messenger,
-          message: localizations.somethingWentWrong,
-          iconColor: errorIcon,
-        );
+      messenger: messenger,
+      message: localizations.somethingWentWrong,
+      iconColor: errorIcon,
+    );
 
     final LedgerServiceSnapshot snapshot;
     try {
@@ -506,7 +529,7 @@ class _ListControls extends StatelessWidget {
               icon: Badge(
                 isLabelVisible: filter.activeCount > 0,
                 label: Text(filter.activeCount.toString()),
-                child: const Icon(Icons.tune, size: 18),
+                child: const Icon(AppIcons.tune, size: 18),
               ),
               label: Text(
                 localizations.filterTitle,
@@ -517,7 +540,7 @@ class _ListControls extends StatelessWidget {
           if (!sortLocked)
             PopupMenuButton<DebtSortOrder>(
               tooltip: localizations.filterSort,
-              icon: const Icon(Icons.swap_vert, size: 20),
+              icon: const Icon(AppIcons.swapVert, size: 20),
               initialValue: filter.sort,
               onSelected: onSort,
               itemBuilder: (BuildContext context) =>

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/dates.dart';
@@ -137,7 +138,7 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
               label: localizations.fieldObligationName,
               controller: _name,
               hint: localizations.fieldObligationNameHint,
-              prefixIcon: Icons.label_outline,
+              prefixIcon: AppIcons.label,
               autofocus: !_isEditing,
               maxLength: 160,
               textInputAction: TextInputAction.next,
@@ -182,7 +183,7 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
               labelOf: (ObligationCategory value) => value.label(localizations),
               iconOf: (ObligationCategory value) => value.icon,
               title: localizations.fieldCategory,
-              icon: Icons.category_outlined,
+              icon: AppIcons.category,
               onChanged: (ObligationCategory value) =>
                   setState(() => _category = value),
             ),
@@ -197,9 +198,9 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
                 RecurrenceFrequency.yearly,
               ],
               labelOf: (RecurrenceFrequency value) => value.label(localizations),
-              iconOf: (RecurrenceFrequency _) => Icons.autorenew,
+              iconOf: (RecurrenceFrequency _) => AppIcons.autorenewFilled,
               title: localizations.fieldFrequency,
-              icon: Icons.autorenew,
+              icon: AppIcons.autorenewFilled,
               onChanged: (RecurrenceFrequency value) =>
                   setState(() => _frequency = value),
             ),
@@ -207,7 +208,7 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
             DateField(
               label: localizations.fieldStartDate,
               value: _startAt,
-              icon: Icons.play_circle_outline,
+              icon: AppIcons.playCircle,
               onChanged: (DateTime? value) {
                 if (value == null) return;
                 setState(() {
@@ -234,7 +235,7 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
               value: _endAt,
               placeholder: localizations.fieldOptional,
               clearable: true,
-              icon: Icons.event_busy_outlined,
+              icon: AppIcons.eventBusy,
               onChanged: (DateTime? value) => setState(() => _endAt = value),
             ),
             const SizedBox(height: AppSpacing.lg),
@@ -250,7 +251,7 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
                   '${localizations.fieldNote} · ${localizations.fieldOptional}',
               controller: _note,
               hint: localizations.fieldNoteHint,
-              prefixIcon: Icons.notes,
+              prefixIcon: AppIcons.notesFilled,
               maxLines: 3,
               maxLength: 300,
               keyboardType: TextInputType.multiline,

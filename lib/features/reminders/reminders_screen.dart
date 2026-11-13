@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../app/router.dart';
 import '../../core/formatting/app_formatting.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/status_style.dart';
@@ -51,7 +52,7 @@ class _RemindersScreenState extends ConsumerState<RemindersScreen> {
           IconButton(
             tooltip: localizations.remindersCompleted,
             icon: Icon(
-              _showCompleted ? Icons.done_all : Icons.check_circle_outline,
+              _showCompleted ? AppIcons.doneAll : AppIcons.checkCircle,
               size: 20,
             ),
             onPressed: () => setState(() => _showCompleted = !_showCompleted),
@@ -128,7 +129,7 @@ class _RemindersScreenState extends ConsumerState<RemindersScreen> {
               onPressed: () => context.push(AppRoutes.reminderNew),
               backgroundColor: context.palette.brand,
               foregroundColor: context.palette.textOnBrand,
-              icon: const Icon(Icons.add, size: 20),
+              icon: const Icon(AppIcons.add, size: 20),
               label: Text(localizations.reminderNew),
             )
           : null,
@@ -240,7 +241,7 @@ class _ReminderRow extends ConsumerWidget {
             if (!reminder.isCompleted)
               IconButton(
                 tooltip: localizations.reminderMarkDone,
-                icon: const Icon(Icons.check_circle_outline, size: 22),
+                icon: const Icon(AppIcons.checkCircle, size: 22),
                 onPressed: () => _write(
                   context,
                   () => ref
@@ -251,7 +252,7 @@ class _ReminderRow extends ConsumerWidget {
             else
               IconButton(
                 tooltip: localizations.reminderReopen,
-                icon: const Icon(Icons.refresh, size: 20),
+                icon: const Icon(AppIcons.refresh, size: 20),
                 onPressed: () => _write(
                   context,
                   () => ref
@@ -269,22 +270,22 @@ class _ReminderRow extends ConsumerWidget {
         ReminderStatus.overdue => StatusStyle(
             foreground: palette.overdue,
             container: palette.overdueContainer,
-            icon: Icons.error_outline,
+            icon: AppIcons.error,
           ),
         ReminderStatus.today => StatusStyle(
             foreground: palette.dueSoon,
             container: palette.dueSoonContainer,
-            icon: Icons.today_outlined,
+            icon: AppIcons.today,
           ),
         ReminderStatus.completed => StatusStyle(
             foreground: palette.settled,
             container: palette.settledContainer,
-            icon: Icons.check_circle_outline,
+            icon: AppIcons.checkCircle,
           ),
         _ => StatusStyle(
             foreground: palette.neutralStatus,
             container: palette.neutralStatusContainer,
-            icon: Icons.notifications_none,
+            icon: AppIcons.notificationsNone,
           ),
       };
 
@@ -299,7 +300,7 @@ class _ReminderRow extends ConsumerWidget {
           mainAxisSize: MainAxisSize.min,
           children: <Widget>[
             ListTile(
-              leading: const Icon(Icons.edit_outlined),
+              leading: const Icon(AppIcons.edit),
               title: Text(localizations.actionEdit),
               onTap: () {
                 Navigator.of(sheetContext).pop();
@@ -308,7 +309,7 @@ class _ReminderRow extends ConsumerWidget {
             ),
             ListTile(
               leading: Icon(
-                reminder.isCompleted ? Icons.refresh : Icons.check_circle_outline,
+                reminder.isCompleted ? AppIcons.refresh : AppIcons.checkCircle,
               ),
               title: Text(
                 reminder.isCompleted
@@ -328,7 +329,7 @@ class _ReminderRow extends ConsumerWidget {
               },
             ),
             ListTile(
-              leading: Icon(Icons.delete_outline, color: palette.overdue),
+              leading: Icon(AppIcons.delete, color: palette.overdue),
               textColor: palette.overdue,
               title: Text(localizations.actionDelete),
               onTap: () {
@@ -468,7 +469,7 @@ class _ReminderFormScreenState extends ConsumerState<ReminderFormScreen> {
               label: localizations.reminderTitleLabel,
               controller: _title,
               hint: localizations.reminderTitleHint,
-              prefixIcon: Icons.notifications_none,
+              prefixIcon: AppIcons.notificationsNone,
               autofocus: !_isEditing,
               maxLength: 200,
               textInputAction: TextInputAction.next,
@@ -483,7 +484,7 @@ class _ReminderFormScreenState extends ConsumerState<ReminderFormScreen> {
             DateField(
               label: localizations.fieldDueDate,
               value: _dueAt,
-              icon: Icons.event_outlined,
+              icon: AppIcons.event,
               onChanged: (DateTime? value) {
                 if (value != null) setState(() => _dueAt = value);
               },
@@ -494,7 +495,7 @@ class _ReminderFormScreenState extends ConsumerState<ReminderFormScreen> {
                   '${localizations.fieldNote} · ${localizations.fieldOptional}',
               controller: _note,
               hint: localizations.fieldNoteHint,
-              prefixIcon: Icons.notes,
+              prefixIcon: AppIcons.notesFilled,
               maxLines: 3,
               maxLength: 300,
               keyboardType: TextInputType.multiline,

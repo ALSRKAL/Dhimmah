@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/theme/app_icons.dart';
 import '../core/widgets/empty_state.dart';
 import '../domain/enums/debt_enums.dart';
 import '../features/dashboard/dashboard_screen.dart';
@@ -300,7 +301,7 @@ GoRouter buildRouter({
       return Scaffold(
         appBar: AppBar(),
         body: EmptyState(
-          icon: Icons.error_outline,
+          icon: AppIcons.error,
           title: localizations.recordGone,
           actionLabel: localizations.navHome,
           onAction: () => context.go(AppRoutes.dashboard),

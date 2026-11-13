@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../app/providers.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/utils/search_text.dart';
@@ -137,11 +138,11 @@ class _PeoplePickerSheetState extends ConsumerState<PeoplePickerSheet> {
               onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: localizations.participantsSearchHint,
-                prefixIcon: const Icon(Icons.search, size: 20),
+                prefixIcon: const Icon(AppIcons.searchFilled, size: 20),
                 suffixIcon: _search.text.isEmpty
                     ? null
                     : IconButton(
-                        icon: const Icon(Icons.close, size: 18),
+                        icon: const Icon(AppIcons.close, size: 18),
                         onPressed: () => setState(_search.clear),
                       ),
               ),
@@ -154,7 +155,7 @@ class _PeoplePickerSheetState extends ConsumerState<PeoplePickerSheet> {
               child: Column(
                 children: <Widget>[
                   Icon(
-                    Icons.person_search_outlined,
+                    AppIcons.personSearch,
                     size: 32,
                     color: context.palette.textTertiary,
                   ),
@@ -229,8 +230,8 @@ class _PersonOption extends StatelessWidget {
               // A tick, not a tint: the state has to survive a greyscale screen.
               Icon(
                 selected
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
+                    ? AppIcons.checkCircleFilled
+                    : AppIcons.radioButtonUnchecked,
                 size: 20,
                 color: selected ? palette.brand : palette.borderStrong,
               ),
@@ -285,7 +286,7 @@ class _NewPersonFormState extends ConsumerState<_NewPersonForm> {
               controller: _name,
               hint: localizations.fieldPersonHint,
               autofocus: true,
-              prefixIcon: Icons.person_outline,
+              prefixIcon: AppIcons.person,
               textInputAction: TextInputAction.next,
               maxLength: 120,
               validator: (String? value) {
@@ -303,7 +304,7 @@ class _NewPersonFormState extends ConsumerState<_NewPersonForm> {
               // LTR isolate: the bare hint rendered group-reversed in the
               // RTL field (see person_form_screen for the device evidence).
               hint: '\u2066+967 7XX XXX XXX\u2069',
-              prefixIcon: Icons.phone_outlined,
+              prefixIcon: AppIcons.phone,
               keyboardType: TextInputType.phone,
               maxLength: 32,
             ),

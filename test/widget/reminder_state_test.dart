@@ -1,5 +1,6 @@
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/notifications/notification_service.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/domain/entities/app_settings.dart';
@@ -78,7 +79,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.textContaining(debtTitle).first);
     await settle(tester);
-    await tester.tap(find.byIcon(Icons.edit_outlined));
+    await tester.tap(find.byIcon(AppIcons.edit));
     await settle(tester);
     await reveal(tester, find.text('قبل يوم'));
   }

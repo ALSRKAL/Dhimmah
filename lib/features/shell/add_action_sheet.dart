@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app/router.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -46,7 +47,7 @@ class AddActionSheet extends StatelessWidget {
         children: <Widget>[
           if (personFirst) ...<Widget>[
             _AddOption(
-              icon: Icons.person_add_alt,
+              icon: AppIcons.personAddAlt,
               color: palette.brand,
               container: palette.brandContainer,
               title: localizations.personNew,
@@ -56,7 +57,7 @@ class AddActionSheet extends StatelessWidget {
             const SizedBox(height: AppSpacing.sm),
           ],
           _AddOption(
-            icon: Icons.arrow_upward_rounded,
+            icon: AppIcons.arrowUpward,
             color: palette.iOwe,
             container: palette.iOweContainer,
             title: localizations.addDebtIOwe,
@@ -65,7 +66,7 @@ class AddActionSheet extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           _AddOption(
-            icon: Icons.arrow_downward_rounded,
+            icon: AppIcons.arrowDownward,
             color: palette.owedToMe,
             container: palette.owedToMeContainer,
             title: localizations.addDebtOwedToMe,
@@ -75,7 +76,7 @@ class AddActionSheet extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           _AddOption(
-            icon: Icons.event_repeat_outlined,
+            icon: AppIcons.eventRepeat,
             color: palette.brand,
             container: palette.brandContainer,
             title: localizations.addObligation,
@@ -84,7 +85,7 @@ class AddActionSheet extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.sm),
           _AddOption(
-            icon: Icons.notifications_none,
+            icon: AppIcons.notificationsNone,
             color: palette.gold,
             container: palette.goldContainer,
             title: localizations.addReminder,
@@ -157,7 +158,7 @@ class _AddOption extends StatelessWidget {
               ],
             ),
           ),
-          Icon(Icons.chevron_right, size: 20, color: palette.textTertiary),
+          Icon(AppIcons.chevronRight, size: 20, color: palette.textTertiary),
         ],
       ),
     );

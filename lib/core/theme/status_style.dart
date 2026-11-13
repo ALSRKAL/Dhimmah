@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../domain/enums/debt_enums.dart';
 import '../../domain/enums/obligation_enums.dart';
+import 'app_icons.dart';
 import 'app_palette.dart';
 
 /// How one status is drawn: a foreground colour, a tinted container and a glyph.
@@ -46,37 +47,37 @@ extension MoneySemantics on AppPalette {
         DebtLifecycleStatus.overdue => StatusStyle(
             foreground: overdue,
             container: overdueContainer,
-            icon: Icons.error_outline,
+            icon: AppIcons.error,
           ),
         DebtLifecycleStatus.dueToday => StatusStyle(
             foreground: dueSoon,
             container: dueSoonContainer,
-            icon: Icons.today_outlined,
+            icon: AppIcons.today,
           ),
         DebtLifecycleStatus.dueSoon => StatusStyle(
             foreground: dueSoon,
             container: dueSoonContainer,
-            icon: Icons.schedule_outlined,
+            icon: AppIcons.schedule,
           ),
         DebtLifecycleStatus.upcoming => StatusStyle(
             foreground: neutralStatus,
             container: neutralStatusContainer,
-            icon: Icons.event_outlined,
+            icon: AppIcons.event,
           ),
         DebtLifecycleStatus.active => StatusStyle(
             foreground: neutralStatus,
             container: neutralStatusContainer,
-            icon: Icons.sync_outlined,
+            icon: AppIcons.sync,
           ),
         DebtLifecycleStatus.paid => StatusStyle(
             foreground: settled,
             container: settledContainer,
-            icon: Icons.check_circle_outline,
+            icon: AppIcons.checkCircle,
           ),
         DebtLifecycleStatus.archived => StatusStyle(
             foreground: neutralStatus,
             container: neutralStatusContainer,
-            icon: Icons.inventory_2_outlined,
+            icon: AppIcons.inventory2,
           ),
       };
 
@@ -84,32 +85,32 @@ extension MoneySemantics on AppPalette {
         ObligationStatus.overdue => StatusStyle(
             foreground: overdue,
             container: overdueContainer,
-            icon: Icons.error_outline,
+            icon: AppIcons.error,
           ),
         ObligationStatus.dueToday => StatusStyle(
             foreground: dueSoon,
             container: dueSoonContainer,
-            icon: Icons.today_outlined,
+            icon: AppIcons.today,
           ),
         ObligationStatus.upcoming => StatusStyle(
             foreground: neutralStatus,
             container: neutralStatusContainer,
-            icon: Icons.event_outlined,
+            icon: AppIcons.event,
           ),
         ObligationStatus.paid => StatusStyle(
             foreground: settled,
             container: settledContainer,
-            icon: Icons.check_circle_outline,
+            icon: AppIcons.checkCircle,
           ),
         ObligationStatus.skipped => StatusStyle(
             foreground: neutralStatus,
             container: neutralStatusContainer,
-            icon: Icons.skip_next_outlined,
+            icon: AppIcons.skipNext,
           ),
         ObligationStatus.cancelled => StatusStyle(
             foreground: neutralStatus,
             container: neutralStatusContainer,
-            icon: Icons.cancel_outlined,
+            icon: AppIcons.cancel,
           ),
       };
 }

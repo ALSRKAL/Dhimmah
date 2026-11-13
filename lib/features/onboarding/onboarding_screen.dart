@@ -10,6 +10,7 @@ import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
 import '../../core/money/region_currency.dart';
 import '../../core/notifications/notification_service.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -257,7 +258,7 @@ class _TopBar extends ConsumerWidget {
                 message: localizations.onboardingChangeLanguage,
                 child: TextButton.icon(
                   onPressed: onSwitchLanguage,
-                  icon: const Icon(Icons.translate, size: 18),
+                  icon: const Icon(AppIcons.translate, size: 18),
                   // The locale is on the span so a screen reader pronounces
                   // the name in its own language rather than spelling it out
                   // in the current one.
@@ -576,17 +577,17 @@ class _WelcomeStep extends StatelessWidget {
         _PointList(
           points: <_PointRow>[
             _PointRow(
-              icon: Icons.swap_vert,
+              icon: AppIcons.swapVert,
               title: localizations.onboardingFeatureBooksTitle,
               body: localizations.onboardingFeatureBooksBody,
             ),
             _PointRow(
-              icon: Icons.notifications_none,
+              icon: AppIcons.notificationsNone,
               title: localizations.onboardingFeatureRemindersTitle,
               body: localizations.onboardingFeatureRemindersBody,
             ),
             _PointRow(
-              icon: Icons.lock_outline,
+              icon: AppIcons.lock,
               title: localizations.settingsPrivacyNote,
               body: localizations.onboardingFeaturePrivateBody,
             ),
@@ -735,7 +736,7 @@ class _CurrencyOption extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.sm),
             Icon(
-              selected ? Icons.check_circle : Icons.circle_outlined,
+              selected ? AppIcons.checkCircleFilled : AppIcons.circle,
               size: 22,
               color: selected ? palette.brand : palette.borderStrong,
             ),
@@ -773,7 +774,7 @@ class _RemindersStep extends ConsumerWidget {
       actions: <Widget>[
         FilledButton.icon(
           onPressed: busy ? null : onEnable,
-          icon: const Icon(Icons.notifications_active_outlined, size: 20),
+          icon: const Icon(AppIcons.notificationsActive, size: 20),
           label: Text(localizations.onboardingEnableNotifications),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -791,7 +792,7 @@ class _RemindersStep extends ConsumerWidget {
         _PointList(
           points: <_PointRow>[
             _PointRow(
-              icon: Icons.notifications_active_outlined,
+              icon: AppIcons.notificationsActive,
               title: _leadTitle(localizations, settings.defaultReminderLeads),
               body: localizations.onboardingReminderTime(
                 dates.time(
@@ -803,7 +804,7 @@ class _RemindersStep extends ConsumerWidget {
             ),
             if (settings.monthEndSummaryEnabled)
               _PointRow(
-                icon: Icons.insights_outlined,
+                icon: AppIcons.insights,
                 title: localizations.settingsMonthEnd,
                 body: localizations.onboardingMonthEndWhen(
                   settings.monthEndDay.label(localizations),

@@ -7,6 +7,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../formatting/app_formatting.dart';
 import '../money/currency.dart';
 import '../money/region_currency.dart';
+import '../theme/app_icons.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 import '../utils/money_input.dart';
@@ -315,7 +316,7 @@ class DateField extends StatelessWidget {
     this.placeholder,
     this.clearable = false,
     this.errorText,
-    this.icon = Icons.calendar_today_outlined,
+    this.icon = AppIcons.calendarToday,
     this.enabled = true,
     super.key,
   });
@@ -352,7 +353,7 @@ class DateField extends StatelessWidget {
               suffixIcon: clearable && hasValue
                   ? IconButton(
                       tooltip: localizations.actionClear,
-                      icon: const Icon(Icons.close, size: 18),
+                      icon: const Icon(AppIcons.close, size: 18),
                       onPressed: () => onChanged(null),
                     )
                   : null,
@@ -398,7 +399,7 @@ class OptionField<T> extends StatelessWidget {
     this.iconOf,
     this.subtitleOf,
     this.title,
-    this.icon = Icons.tune,
+    this.icon = AppIcons.tune,
     this.errorText,
     super.key,
   });
@@ -430,7 +431,7 @@ class OptionField<T> extends StatelessWidget {
             decoration: InputDecoration(
               errorText: errorText,
               prefixIcon: Icon(icon, size: 20),
-              suffixIcon: const Icon(Icons.expand_more, size: 20),
+              suffixIcon: const Icon(AppIcons.expandMore, size: 20),
             ),
             child: Text(labelOf(value), style: theme.textTheme.bodyLarge),
           ),
@@ -484,9 +485,9 @@ class CurrencyField extends StatelessWidget {
       subtitleOf: (AppCurrency currency) => currency == suggested
           ? localizations.currencySuggestedForRegion
           : null,
-      iconOf: (AppCurrency _) => Icons.payments_outlined,
+      iconOf: (AppCurrency _) => AppIcons.payments,
       title: localizations.fieldCurrency,
-      icon: Icons.payments_outlined,
+      icon: AppIcons.payments,
       onChanged: onChanged,
     );
   }
@@ -560,7 +561,7 @@ class OptionSheet<T> extends StatelessWidget {
                     ),
                     subtitle: subtitle == null ? null : Text(subtitle),
                     trailing: selected
-                        ? Icon(Icons.check, color: palette.brand, size: 20)
+                        ? Icon(AppIcons.check, color: palette.brand, size: 20)
                         : null,
                     onTap: () => Navigator.of(context).pop(option),
                   );
@@ -695,7 +696,7 @@ class ReminderLeadsField extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
                 Icon(
-                  Icons.notifications_off_outlined,
+                  AppIcons.notificationsOff,
                   size: 16,
                   color: palette.dueSoon,
                 ),

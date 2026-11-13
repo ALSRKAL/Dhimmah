@@ -11,6 +11,7 @@ import '../../app/providers.dart';
 import '../../core/money/currency.dart';
 import '../../core/pdf/statement_models.dart';
 import '../../core/share/share_origin.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -129,7 +130,7 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
         actions: <Widget>[
           IconButton(
             tooltip: localizations.reportOptionsTitle,
-            icon: const Icon(Icons.tune, size: 20),
+            icon: const Icon(AppIcons.tune, size: 20),
             onPressed: () => _openOptions(),
           ),
         ],
@@ -360,7 +361,7 @@ class _Preview extends StatelessWidget {
         title: AppLocalizations.of(context).exportFailed,
         actionLabel: AppLocalizations.of(context).actionRetry,
         onAction: onRetry,
-        icon: Icons.error_outline,
+        icon: AppIcons.error,
       ),
     );
   }
@@ -413,7 +414,7 @@ class _ActionBar extends StatelessWidget {
                           color: context.palette.textOnBrand,
                         ),
                       )
-                    : const Icon(Icons.ios_share, size: 20),
+                    : const Icon(AppIcons.iosShare, size: 20),
                 label: Text(localizations.reportSharePdf),
               ),
             ),
@@ -422,7 +423,7 @@ class _ActionBar extends StatelessWidget {
               width: double.infinity,
               child: TextButton.icon(
                 onPressed: busy ? null : onPrintOrSave,
-                icon: const Icon(Icons.print_outlined, size: 18),
+                icon: const Icon(AppIcons.print, size: 18),
                 label: Text(localizations.reportSavePdf),
               ),
             ),
@@ -728,7 +729,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             label: localizations.reportOptionIssuer,
             controller: _issuer,
             helperText: localizations.reportOptionIssuerHint,
-            prefixIcon: Icons.person_outline,
+            prefixIcon: AppIcons.person,
             textCapitalization: TextCapitalization.words,
             textInputAction: TextInputAction.done,
             maxLength: 60,
@@ -737,7 +738,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
           SettingsSwitchTile(
             title: localizations.reportOptionPayments,
             subtitle: localizations.reportPaymentHistory,
-            icon: Icons.receipt_long_outlined,
+            icon: AppIcons.receiptLong,
             value: _draft.includePayments,
             onChanged: (bool value) => setState(
               () => _draft = _draft.copyWith(includePayments: value),
@@ -746,7 +747,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
           SettingsSwitchTile(
             title: localizations.reportOptionBreakdown,
             subtitle: localizations.reportDebtsBreakdown,
-            icon: Icons.list_alt_outlined,
+            icon: AppIcons.listAlt,
             value: _draft.includeDebtBreakdown,
             onChanged: (bool value) => setState(
               () => _draft = _draft.copyWith(includeDebtBreakdown: value),
@@ -757,7 +758,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             // a document sent to someone else must not bring it back unasked.
             title: localizations.reportOptionArchived,
             subtitle: localizations.reportOptionArchivedHint,
-            icon: Icons.archive_outlined,
+            icon: AppIcons.archive,
             value: _draft.includeArchived,
             onChanged: (bool value) => setState(
               () => _draft = _draft.copyWith(includeArchived: value),
@@ -768,7 +769,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             // this document is often sent to them.
             title: localizations.reportOptionPhone,
             subtitle: localizations.personPhoneLabel,
-            icon: Icons.phone_outlined,
+            icon: AppIcons.phone,
             value: _draft.includePhone,
             onChanged: (bool value) => setState(
               () => _draft = _draft.copyWith(includePhone: value),
@@ -778,7 +779,7 @@ class _OptionsSheetState extends State<_OptionsSheet> {
             // Also off by default: a note is often the user's own reminder.
             title: localizations.reportOptionNotes,
             subtitle: localizations.fieldNote,
-            icon: Icons.notes,
+            icon: AppIcons.notesFilled,
             value: _draft.includeNotes,
             onChanged: (bool value) => setState(
               () => _draft = _draft.copyWith(includeNotes: value),

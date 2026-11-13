@@ -6,6 +6,7 @@ import '../../core/files/backup_folder_channel.dart';
 import '../../core/files/backup_location.dart';
 import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
+import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/widgets/app_card.dart';
@@ -171,8 +172,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                         ? localizations.backupAutoStateOn
                         : localizations.backupAutoStateOff,
                     icon: data.autoEnabled
-                        ? Icons.autorenew
-                        : Icons.pause_circle_outline,
+                        ? AppIcons.autorenewFilled
+                        : AppIcons.pauseCircle,
                     value: data.autoEnabled,
                     onChanged: _busy ? null : _setAuto,
                   ),
@@ -191,26 +192,26 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                   SettingsTile(
                     title: localizations.backupNowAction,
                     subtitle: localizations.backupSaveExternalBody,
-                    icon: Icons.save_alt_outlined,
+                    icon: AppIcons.saveAlt,
                     enabled: !_busy && data.hasLocalData,
                     onTap: _saveExternal,
                   ),
                   SettingsTile(
                     title: localizations.backupShareTile,
                     subtitle: localizations.backupShareTileBody,
-                    icon: Icons.ios_share,
+                    icon: AppIcons.iosShare,
                     enabled: !_busy && data.hasLocalData,
                     onTap: _shareNow,
                   ),
                   SettingsTile(
                     title: localizations.backupRestoreAction,
-                    icon: Icons.restore_outlined,
+                    icon: AppIcons.restore,
                     enabled: !_busy,
                     onTap: _restoreFromFile,
                   ),
                   SettingsTile(
                     title: localizations.backupPreviousAction,
-                    icon: Icons.history,
+                    icon: AppIcons.history,
                     // The number of copies, not a number of days. The row used
                     // the day-count plural, so four stored backups read as
                     // "4 أيام" — four *days* — on the row that leads to them.
@@ -726,12 +727,12 @@ class _ProtectionHeaderState extends State<_ProtectionHeader> {
 
     final (IconData icon, Color color, String headline) = switch (report.state) {
       BackupProtection.protected => (
-          Icons.verified_outlined,
+          AppIcons.verified,
           palette.settled,
           localizations.backupProtectionProtected,
         ),
       BackupProtection.pending => (
-          Icons.schedule_outlined,
+          AppIcons.schedule,
           // Not the warning colour. Changes waiting to be saved is where this
           // screen spends most of its life — it is what being in the app looks
           // like between an edit and the next snapshot — so painting it amber
@@ -741,37 +742,37 @@ class _ProtectionHeaderState extends State<_ProtectionHeader> {
           localizations.backupProtectionPending,
         ),
       BackupProtection.backingUp => (
-          Icons.autorenew,
+          AppIcons.autorenewFilled,
           palette.brand,
           localizations.backupProtectionBackingUp,
         ),
       BackupProtection.recoverable => (
-          Icons.restore_outlined,
+          AppIcons.restore,
           palette.brand,
           localizations.backupProtectionRecoverable,
         ),
       BackupProtection.noLocation => (
-          Icons.folder_off_outlined,
+          AppIcons.folderOff,
           palette.dueSoon,
           localizations.backupProtectionNoLocation,
         ),
       BackupProtection.automaticOff => (
-          Icons.pause_circle_outline,
+          AppIcons.pauseCircle,
           palette.dueSoon,
           localizations.backupProtectionAutoOff,
         ),
       BackupProtection.storageIssue => (
-          Icons.sd_card_alert_outlined,
+          AppIcons.sdCardAlert,
           palette.overdue,
           localizations.backupProtectionStorage,
         ),
       BackupProtection.attentionNeeded => (
-          Icons.error_outline,
+          AppIcons.error,
           palette.overdue,
           localizations.backupProtectionAttention,
         ),
       BackupProtection.neverBackedUp => (
-          Icons.gpp_maybe_outlined,
+          AppIcons.gppMaybe,
           palette.overdue,
           localizations.backupProtectionNever,
         ),
@@ -1372,14 +1373,14 @@ class _LocationSection extends StatelessWidget {
       AsyncData<BackupLocationHealth>(:final BackupLocationHealth value) =>
         _locationBody(context, value, palette),
       AsyncError<BackupLocationHealth>() => _Row(
-          icon: Icons.folder_off_outlined,
+          icon: AppIcons.folderOff,
           title: localizations.backupFolderTitle,
           value: localizations.backupFolderMissing,
           action: localizations.backupFolderReauthorize,
           onAction: onReauthorize,
         ),
       _ => const _Row(
-          icon: Icons.folder_outlined,
+          icon: AppIcons.folder,
           title: null,
           value: null,
           action: null,
@@ -1405,7 +1406,7 @@ class _LocationSection extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                Icon(Icons.folder_outlined, size: 20, color: palette.textTertiary),
+                Icon(AppIcons.folder, size: 20, color: palette.textTertiary),
                 const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: Text(
@@ -1437,7 +1438,7 @@ class _LocationSection extends StatelessWidget {
     if (value.status == BackupLocationStatus.permissionRevoked ||
         value.status == BackupLocationStatus.unavailable) {
       return _Row(
-        icon: Icons.folder_off_outlined,
+        icon: AppIcons.folderOff,
         title: localizations.backupFolderTitle,
         // In the user's words. This row used to fall back to the platform's
         // own message, so the screen explained the problem with the provider's
@@ -1477,7 +1478,7 @@ class _LocationSection extends StatelessWidget {
         children: <Widget>[
           Row(
             children: <Widget>[
-              Icon(Icons.folder_outlined, size: 20, color: statusColor),
+              Icon(AppIcons.folder, size: 20, color: statusColor),
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: Text(
@@ -1847,12 +1848,12 @@ class _PreviousSheetBody extends StatelessWidget {
           : <Widget>[
               IconButton(
                 tooltip: localizations.backupRestoreAction,
-                icon: const Icon(Icons.restore_outlined, size: 20),
+                icon: const Icon(AppIcons.restore, size: 20),
                 onPressed: () => onRestoreExternal(file),
               ),
               IconButton(
                 tooltip: localizations.backupDeleteAction,
-                icon: const Icon(Icons.delete_outline, size: 20),
+                icon: const Icon(AppIcons.delete, size: 20),
                 onPressed: () => onDeleteExternal(file),
               ),
             ],
@@ -1934,17 +1935,17 @@ class _PreviousSheetBody extends StatelessWidget {
                   actions: <Widget>[
                     IconButton(
                       tooltip: localizations.backupRestoreAction,
-                      icon: const Icon(Icons.restore_outlined, size: 20),
+                      icon: const Icon(AppIcons.restore, size: 20),
                       onPressed: () => onRestoreInternal(info),
                     ),
                     IconButton(
                       tooltip: localizations.backupShareAction,
-                      icon: const Icon(Icons.ios_share, size: 20),
+                      icon: const Icon(AppIcons.iosShare, size: 20),
                       onPressed: () => onShare(info),
                     ),
                     IconButton(
                       tooltip: localizations.backupDeleteAction,
-                      icon: const Icon(Icons.delete_outline, size: 20),
+                      icon: const Icon(AppIcons.delete, size: 20),
                       onPressed: () => onDelete(info),
                     ),
                   ],

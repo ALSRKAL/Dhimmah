@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_icons.dart';
 import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 
@@ -134,7 +135,7 @@ class PinKeypad extends StatelessWidget {
               child: _Key(
                 onTap: onBackspace,
                 child: Icon(
-                  Icons.backspace_outlined,
+                  AppIcons.backspace,
                   size: 21,
                   color: context.palette.textSecondary,
                 ),
