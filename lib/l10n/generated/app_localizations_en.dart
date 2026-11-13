@@ -2934,4 +2934,83 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportScopeSelectedFull => 'Selected debts';
+
+  @override
+  String reportOwedByName(String name) {
+    return '$name owes';
+  }
+
+  @override
+  String reportOwedToName(String name) {
+    return 'Owed to $name';
+  }
+
+  @override
+  String reportNetOwedByName(String name) {
+    return 'Net owed by $name';
+  }
+
+  @override
+  String reportNetOwedToName(String name) {
+    return 'Net owed to $name';
+  }
+
+  @override
+  String reportSideByName(String name) {
+    return 'Owed by $name';
+  }
+
+  @override
+  String reportSideToName(String name) {
+    return 'Owed to $name';
+  }
+
+  @override
+  String get reportNothingOutstanding => 'Nothing outstanding';
+
+  @override
+  String get reportSideOwes => 'Owes';
+
+  @override
+  String get reportSideIsOwed => 'Is owed';
+
+  @override
+  String reportSideLegend(String name) {
+    return 'Owes: owed by $name · Is owed: owed to $name';
+  }
+
+  @override
+  String get reportColumnSide => 'Side';
+
+  @override
+  String get reportColumnStatus => 'Status';
+
+  @override
+  String get reportColumnDebtAmount => 'Debt';
+
+  @override
+  String get reportColumnPaymentAmount => 'Payment';
+
+  @override
+  String get reportMovementsTitle => 'Movements';
+
+  @override
+  String get reportEntryDebt => 'New debt';
+
+  @override
+  String get reportEntryPayment => 'Payment';
+
+  @override
+  String get reportClosingBalance => 'Closing balance';
+
+  @override
+  String get reportUntitledDebt => 'Untitled debt';
+
+  @override
+  String reportPaidPercent(String percent) {
+    return '$percent paid';
+  }
+
+  @override
+  String get reportNextDue => 'Next due';
 }

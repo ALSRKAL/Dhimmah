@@ -4,6 +4,7 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../../domain/enums/debt_enums.dart';
+import '../../l10n/enum_labels.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../brand/brand_mark.dart';
 import '../formatting/app_formatting.dart';
@@ -24,6 +25,9 @@ abstract final class DocumentColors {
   // document from a different product.
   static const PdfColor ink = PdfColor.fromInt(0xFF1C1917);
   static const PdfColor secondary = PdfColor.fromInt(0xFF6B655C);
+  /// Decoration only. At about 3.3:1 on white it is below what small text
+  /// needs, so nothing that is read is set in it: labels, the footer and the
+  /// document number use [secondary].
   static const PdfColor muted = PdfColor.fromInt(0xFF948D83);
   static const PdfColor brand = PdfColor.fromInt(0xFF1E554C);
   static const PdfColor brandTint = PdfColor.fromInt(0xFFEAF2F0);
@@ -110,8 +114,16 @@ class StatementDocument {
   /// The room inside the party card, inside its padding.
   static const double _partyWidth = _contentWidth - 14 * 2;
 
-  /// The room inside one of the three summary cards, inside its padding.
-  static const double _summaryCellWidth = (_contentWidth - 10 * 2) / 3 - 11 * 2;
+  /// The room inside one of the two fact cards, inside its padding.
+  static const double _factCellWidth = (_contentWidth - 10) / 2 - 11 * 2;
+
+  /// The room inside the headline block, inside its padding.
+  static const double _heroWidth = _contentWidth - 16 * 2;
+
+  /// The person the statement is about. Every sentence on the page that says
+  /// who owes whom names them, rather than saying "I" or "me": the page is read
+  /// by the other party, for whom those words point the wrong way.
+  String get _name => data.personName.trim();
 
   /// An amount for a printed page: plain text, no bidi controls.
   String _money(Money money) => formatting.documentAmount(money);
@@ -370,20 +382,37 @@ class StatementDocument {
           pw.SizedBox(height: 18),
           _summaryBlock(),
           if (data.options.includeDebtBreakdown && data.debts.length > 1) ...<pw.Widget>[
+            _keepWithNext(_tableLead),
             pw.SizedBox(height: 20),
             _sectionTitle(localizations.reportDebtsBreakdown),
             pw.SizedBox(height: 8),
             _debtTable(),
           ],
           if (data.options.includePayments) ...<pw.Widget>[
+            _keepWithNext(_tableLead),
             pw.SizedBox(height: 20),
-            _sectionTitle(localizations.reportPaymentHistory),
+            _sectionTitle(localizations.reportMovementsTitle),
             pw.SizedBox(height: 8),
+            // The two short words the balance column uses, spelled out once.
+            // Only a two-sided statement needs them: with every debt on one
+            // side the headline has already said whose balance it is.
+            if (data.isMixed && data.entries.isNotEmpty) ...<pw.Widget>[
+              _text(
+                localizations.reportSideLegend(_name),
+                style: const pw.TextStyle(
+                  fontSize: 8.5,
+                  color: DocumentColors.secondary,
+                ),
+                maxWidth: _contentWidth,
+              ),
+              pw.SizedBox(height: 6),
+            ],
             _paymentsTable(),
           ],
           if (data.options.includeNotes &&
               data.notes != null &&
               data.notes!.trim().isNotEmpty) ...<pw.Widget>[
+            _keepWithNext(_notesLead),
             pw.SizedBox(height: 20),
             _sectionTitle(localizations.fieldNote),
             pw.SizedBox(height: 6),
@@ -395,6 +424,23 @@ class StatementDocument {
 
     return document;
   }
+
+  /// The room a table needs to start on a page: its heading, the line under
+  /// it, the column header, and two rows.
+  static const double _tableLead = 115;
+
+  /// The room the notes need to start: the heading and a couple of lines.
+  static const double _notesLead = 70;
+
+  /// Starts a new page unless [room] points are still free on this one.
+  ///
+  /// A table breaks between rows wherever the page ends, including straight
+  /// after its header — and the heading above it is not part of the table at
+  /// all, so it can be left behind on its own. A reader then finds «كشف
+  /// الحركات» and a row of column names at the foot of one page and the figures
+  /// they describe on the next. Asking for the room first keeps a section's
+  /// opening and its first rows together; the table itself still flows.
+  pw.Widget _keepWithNext(double room) => pw.NewPage(freeSpace: room);
 
   // --- Header --------------------------------------------------------------
 
@@ -425,10 +471,13 @@ class StatementDocument {
   }
 
   /// Logo mark, app name and document type, on the reading side of the page.
+  ///
+  /// The document type is the larger of the two lines: a page is identified by
+  /// what it is — a statement — before by what made it.
   pw.Widget _brandLockup() {
     return _row(
       children: <pw.Widget>[
-        mark.widget(height: 28),
+        mark.widget(height: 34),
         pw.SizedBox(width: 10),
         pw.Column(
           crossAxisAlignment: _crossStart,
@@ -436,16 +485,17 @@ class StatementDocument {
             _text(
               localizations.appName,
               style: pw.TextStyle(
-                fontSize: 17,
+                fontSize: 11,
                 fontWeight: pw.FontWeight.bold,
                 color: DocumentColors.brand,
               ),
             ),
             _text(
               localizations.reportStatementTitle,
-              style: const pw.TextStyle(
-                fontSize: 10.5,
-                color: DocumentColors.secondary,
+              style: pw.TextStyle(
+                fontSize: 19,
+                fontWeight: pw.FontWeight.bold,
+                color: DocumentColors.ink,
               ),
             ),
           ],
@@ -462,7 +512,7 @@ class StatementDocument {
               label,
               style: const pw.TextStyle(
                 fontSize: 9,
-                color: DocumentColors.muted,
+                color: DocumentColors.secondary,
               ),
             ),
             pw.SizedBox(width: 6),
@@ -503,12 +553,18 @@ class StatementDocument {
         children: <pw.Widget>[
           _text(
             '${localizations.appName} · ${localizations.reportStatementTitle}',
-            style: const pw.TextStyle(fontSize: 8.5, color: DocumentColors.muted),
+            style: const pw.TextStyle(
+              fontSize: 8.5,
+              color: DocumentColors.secondary,
+            ),
           ),
           pw.Spacer(),
           _text(
             data.personName,
-            style: const pw.TextStyle(fontSize: 8.5, color: DocumentColors.muted),
+            style: const pw.TextStyle(
+              fontSize: 8.5,
+              color: DocumentColors.secondary,
+            ),
           ),
         ],
       ),
@@ -525,8 +581,10 @@ class StatementDocument {
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      // A hairline, not a tint: the page has one filled area and it is the
+      // headline figure below, which is what the eye should land on.
       decoration: pw.BoxDecoration(
-        color: DocumentColors.brandTint,
+        border: pw.Border.all(color: DocumentColors.border, width: 0.8),
         borderRadius: pw.BorderRadius.circular(6),
       ),
       child: pw.Column(
@@ -541,9 +599,9 @@ class StatementDocument {
           _text(
             data.personName,
             style: pw.TextStyle(
-              fontSize: 15,
+              fontSize: 13,
               fontWeight: pw.FontWeight.bold,
-              color: DocumentColors.brand,
+              color: DocumentColors.ink,
             ),
             maxWidth: _partyWidth,
           ),
@@ -565,14 +623,22 @@ class StatementDocument {
   // --- Summary -------------------------------------------------------------
 
   pw.Widget _summaryBlock() {
+    final bool showProgress = !data.isMixed && data.totalMinor > 0;
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: <pw.Widget>[
         _sectionTitle(localizations.reportAccountSummary),
         pw.SizedBox(height: 8),
-        // The currency is stated once, at the top of the summary, rather than
-        // repeated after every amount: a column of "₹ 68,500 INR" is harder to
-        // scan than a column of "₹ 68,500".
+        _heroBlock(),
+        pw.SizedBox(height: 10),
+        _row(children: _factCells()),
+        if (showProgress) ...<pw.Widget>[
+          pw.SizedBox(height: 10),
+          _progressBar(),
+        ],
+        pw.SizedBox(height: 10),
+        // The currency is stated once rather than repeated after every amount:
+        // a column of "₹ 68,500 INR" is harder to scan than one of "₹ 68,500".
         _summaryFact(
           localizations.fieldCurrency,
           '${data.currency.code} · ${data.currency.symbol}',
@@ -592,18 +658,215 @@ class StatementDocument {
         // holding it would have no way to know a settled debt was left off.
         pw.SizedBox(height: 4),
         _summaryFact(localizations.reportScopeLabel, _scopeText()),
-        pw.SizedBox(height: 8),
-        _row(children: data.isMixed ? _twoSidedCells() : _oneSidedCells()),
-        pw.SizedBox(height: 10),
-        _rowOnReadingSide(<pw.Widget>[
-          _statusBadge(),
-          pw.SizedBox(width: 10),
-          if (data.dueAt != null)
-            _inlineFact(
-              localizations.detailDueOn,
-              formatting.date(data.dueAt!),
+      ],
+    );
+  }
+
+  /// The sentence and the figure the page leads with: what is left, and on whom.
+  ///
+  /// By name. «المتبقي عليّ» is true for the person who made the statement and
+  /// backwards for the person reading it, and this page is made to be sent.
+  (String, Money) _headline() {
+    final Money nothing = Money(0, data.currency);
+    if (data.isMixed) {
+      // Positive when the user is owed on balance, which is the person owing.
+      final int net = data.net.minorUnits;
+      if (net == 0) return (localizations.reportNothingOutstanding, nothing);
+      return (
+        net > 0
+            ? localizations.reportNetOwedByName(_name)
+            : localizations.reportNetOwedToName(_name),
+        Money(net.abs(), data.currency),
+      );
+    }
+    final DebtDirection? side = data.direction;
+    if (data.remainingMinor <= 0 || side == null) {
+      return (
+        data.remainingMinor <= 0
+            ? localizations.reportNothingOutstanding
+            : localizations.detailRemaining,
+        data.remaining,
+      );
+    }
+    return (
+      // The user owes: the money is the person's. Otherwise the person owes it.
+      side.isIOwe
+          ? localizations.reportOwedToName(_name)
+          : localizations.reportOwedByName(_name),
+      data.remaining,
+    );
+  }
+
+  /// The one filled block on the page: the answer to "how much, and on whom",
+  /// then where the account stands.
+  ///
+  /// It replaced three equal boxes in which the figure that mattered was a
+  /// point and a half larger than the two that did not.
+  pw.Widget _heroBlock() {
+    final (String sentence, Money amount) = _headline();
+    final DateTime? due = data.dueAt;
+    final String? dueTitle = data.dueDebtTitle;
+    return pw.Container(
+      width: double.infinity,
+      padding: const pw.EdgeInsets.all(16),
+      decoration: pw.BoxDecoration(
+        color: DocumentColors.brandTint,
+        borderRadius: pw.BorderRadius.circular(6),
+      ),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+        children: <pw.Widget>[
+          _text(
+            sentence,
+            style: const pw.TextStyle(
+              fontSize: 10.5,
+              color: DocumentColors.secondary,
             ),
-        ]),
+            maxWidth: _heroWidth,
+          ),
+          pw.SizedBox(height: 5),
+          _text(
+            _money(amount),
+            style: pw.TextStyle(
+              fontSize: 24,
+              fontWeight: pw.FontWeight.bold,
+              color: DocumentColors.ink,
+            ),
+            maxWidth: _heroWidth,
+          ),
+          pw.SizedBox(height: 10),
+          _rowOnReadingSide(<pw.Widget>[_statusBadge()]),
+          if (due != null) ...<pw.Widget>[
+            pw.SizedBox(height: 8),
+            _summaryFact(
+              // With several debts the date belongs to one of them, and is
+              // named; with one it can only be that debt's.
+              dueTitle == null
+                  ? localizations.detailDueOn
+                  : localizations.reportNextDue,
+              dueTitle == null
+                  ? formatting.date(due)
+                  : '${formatting.date(due)} · $dueTitle',
+              width: _heroWidth,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// The two figures behind the headline.
+  ///
+  /// On one side: what the debts came to and what has been paid. On both: each
+  /// side on its own, by name — adding them would describe no one's position.
+  List<pw.Widget> _factCells() {
+    if (data.isMixed) {
+      return <pw.Widget>[
+        _factCell(
+          label: localizations.reportSideByName(_name),
+          value: _money(data.owedToMe),
+        ),
+        pw.SizedBox(width: 10),
+        _factCell(
+          label: localizations.reportSideToName(_name),
+          value: _money(data.iOwe),
+        ),
+      ];
+    }
+    return <pw.Widget>[
+      _factCell(
+        label: localizations.detailTotal,
+        value: _money(data.total),
+      ),
+      pw.SizedBox(width: 10),
+      _factCell(
+        label: localizations.reportColumnPaid,
+        value: _money(data.paid),
+        valueColor: DocumentColors.settled,
+      ),
+    ];
+  }
+
+  pw.Widget _factCell({
+    required String label,
+    required String value,
+    PdfColor? valueColor,
+  }) {
+    return pw.Expanded(
+      child: pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 11, vertical: 9),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: DocumentColors.border, width: 0.8),
+          borderRadius: pw.BorderRadius.circular(6),
+        ),
+        child: pw.Column(
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: <pw.Widget>[
+            _text(
+              label,
+              style: const pw.TextStyle(
+                fontSize: 8.5,
+                color: DocumentColors.secondary,
+              ),
+              maxWidth: _factCellWidth,
+            ),
+            pw.SizedBox(height: 4),
+            _text(
+              value,
+              style: pw.TextStyle(
+                fontSize: 11.5,
+                fontWeight: pw.FontWeight.bold,
+                color: valueColor ?? DocumentColors.ink,
+              ),
+              maxWidth: _factCellWidth,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// How much of the total has been paid, as a bar and as a figure.
+  ///
+  /// Two rectangles in two tones, so it reads on a black-and-white printout,
+  /// and the percentage beside it says the same thing in words. Not drawn for
+  /// a two-sided statement, where "paid" would add two people's payments.
+  pw.Widget _progressBar() {
+    final double fraction =
+        (data.paidMinor / data.totalMinor).clamp(0.0, 1.0).toDouble();
+    // A sliver stays visible: one payment on a large debt is still a payment.
+    final double filled = fraction <= 0
+        ? 0
+        : (_contentWidth * fraction).clamp(3.0, _contentWidth).toDouble();
+    final double rest = _contentWidth - filled;
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: <pw.Widget>[
+        _row(
+          children: <pw.Widget>[
+            if (filled > 0)
+              pw.Container(
+                width: filled,
+                height: 5,
+                color: DocumentColors.brand,
+              ),
+            if (rest > 0.5)
+              pw.Container(
+                width: rest - 0.5,
+                height: 5,
+                color: DocumentColors.border,
+              ),
+          ],
+        ),
+        pw.SizedBox(height: 4),
+        _text(
+          localizations.reportPaidPercent(formatting.percent(fraction)),
+          style: const pw.TextStyle(
+            fontSize: 8.5,
+            color: DocumentColors.secondary,
+          ),
+          maxWidth: _contentWidth,
+        ),
       ],
     );
   }
@@ -625,7 +888,11 @@ class StatementDocument {
 
   /// One labelled line of the summary, on the reading side: the currency, or
   /// the one debt a statement is about.
-  pw.Widget _summaryFact(String label, String value) {
+  pw.Widget _summaryFact(
+    String label,
+    String value, {
+    double width = _contentWidth,
+  }) {
     const pw.TextStyle labelStyle = pw.TextStyle(
       fontSize: 9,
       color: DocumentColors.secondary,
@@ -642,113 +909,10 @@ class StatementDocument {
             fontWeight: pw.FontWeight.bold,
             color: DocumentColors.ink,
           ),
-          maxWidth: _contentWidth - _advance(labelText, labelStyle) - 5,
+          maxWidth: width - _advance(labelText, labelStyle) - 5,
         ),
       ),
     ]);
-  }
-
-  /// Every debt on one side: what it came to, what was paid, and what is left,
-  /// with the side named, since the figures alone do not say who owes whom.
-  List<pw.Widget> _oneSidedCells() {
-    final DebtDirection? side = data.direction;
-    return <pw.Widget>[
-      _summaryCell(
-        label: localizations.detailTotal,
-        value: _money(data.total),
-        emphasis: false,
-      ),
-      pw.SizedBox(width: 10),
-      _summaryCell(
-        label: localizations.reportColumnPaid,
-        value: _money(data.paid),
-        emphasis: false,
-        valueColor: DocumentColors.settled,
-      ),
-      pw.SizedBox(width: 10),
-      _summaryCell(
-        label: side == null
-            ? localizations.detailRemaining
-            : side.isIOwe
-                ? localizations.reportRemainingIOwe
-                : localizations.reportRemainingOwedToMe,
-        value: _money(data.remaining),
-        emphasis: true,
-      ),
-    ];
-  }
-
-  /// Debts on both sides: each side, and the difference, as the person's page
-  /// states it. Adding the two sides, as the cards used to, gave a total, a
-  /// paid and a remaining figure that described no one's position.
-  List<pw.Widget> _twoSidedCells() {
-    final int net = data.net.minorUnits;
-    return <pw.Widget>[
-      _summaryCell(
-        label: localizations.navOwedToMe,
-        value: _money(data.owedToMe),
-        emphasis: false,
-      ),
-      pw.SizedBox(width: 10),
-      _summaryCell(
-        label: localizations.navIOwe,
-        value: _money(data.iOwe),
-        emphasis: false,
-      ),
-      pw.SizedBox(width: 10),
-      _summaryCell(
-        label: net > 0
-            ? localizations.reportNetOwedToMe
-            : net < 0
-                ? localizations.reportNetIOwe
-                : localizations.dashboardBalanced,
-        value: _money(Money(net.abs(), data.currency)),
-        emphasis: true,
-      ),
-    ];
-  }
-
-  pw.Widget _summaryCell({
-    required String label,
-    required String value,
-    required bool emphasis,
-    PdfColor? valueColor,
-  }) {
-    return pw.Expanded(
-      child: pw.Container(
-        padding: const pw.EdgeInsets.symmetric(horizontal: 11, vertical: 9),
-        decoration: pw.BoxDecoration(
-          border: pw.Border.all(
-            color: emphasis ? DocumentColors.brand : DocumentColors.border,
-            width: emphasis ? 1.2 : 0.8,
-          ),
-          borderRadius: pw.BorderRadius.circular(6),
-        ),
-        child: pw.Column(
-          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-          children: <pw.Widget>[
-            _text(
-              label,
-              style: const pw.TextStyle(
-                fontSize: 8.5,
-                color: DocumentColors.secondary,
-              ),
-              maxWidth: _summaryCellWidth,
-            ),
-            pw.SizedBox(height: 4),
-            _text(
-              value,
-              style: pw.TextStyle(
-                fontSize: emphasis ? 14 : 12.5,
-                fontWeight: pw.FontWeight.bold,
-                color: valueColor ?? DocumentColors.ink,
-              ),
-              maxWidth: _summaryCellWidth,
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   /// Status as a word plus a shape.
@@ -825,29 +989,6 @@ class StatementDocument {
     );
   }
 
-  pw.Widget _inlineFact(String label, String value) {
-    return _row(
-      children: <pw.Widget>[
-        _text(
-          '$label:',
-          style: const pw.TextStyle(
-            fontSize: 9.5,
-            color: DocumentColors.secondary,
-          ),
-        ),
-        pw.SizedBox(width: 5),
-        _text(
-          value,
-          style: pw.TextStyle(
-            fontSize: 9.5,
-            fontWeight: pw.FontWeight.bold,
-            color: DocumentColors.ink,
-          ),
-        ),
-      ],
-    );
-  }
-
   // --- Tables --------------------------------------------------------------
 
   /// A section heading: the gold rule, then the title, on the reading side.
@@ -866,47 +1007,64 @@ class StatementDocument {
     ]);
   }
 
+  /// The side a debt is on, from the person's point of view and in one word.
+  ///
+  /// The user owing is the person being owed. The two words are spelled out
+  /// once above the movements, by name.
+  String _sideWord(DebtDirection direction) => direction.isIOwe
+      ? localizations.reportSideIsOwed
+      : localizations.reportSideOwes;
+
   pw.Widget _debtTable() {
+    final bool mixed = data.isMixed;
     final List<String> headers = <String>[
       localizations.reportColumnDebt,
-      localizations.reportColumnDirection,
+      // Which side each debt is on only needs saying when there are two.
+      if (mixed) localizations.reportColumnSide,
       localizations.reportColumnTotal,
       localizations.reportColumnPaid,
       localizations.reportColumnRemaining,
       localizations.reportColumnDue,
+      localizations.reportColumnStatus,
     ];
 
     final List<List<String>> rows = <List<String>>[
       for (final StatementDebtLine line in data.debts)
         <String>[
-          line.title.trim().isEmpty ? localizations.unknownPerson : line.title,
-          line.direction.isIOwe
-              ? localizations.navIOwe
-              : localizations.navOwedToMe,
+          line.title.trim().isEmpty
+              ? localizations.reportUntitledDebt
+              : line.title,
+          if (mixed) _sideWord(line.direction),
           _money(line.principal),
           _money(line.paid),
           _money(line.remaining),
-          line.dueAt == null
-              ? localizations.dateNoDueDate
-              : formatting.dates.numeric(line.dueAt!),
+          // The month as a word. `7/10/2026` is the seventh of October to one
+          // reader and the tenth of July to another, and a due date is the
+          // last thing a statement can afford to be read two ways.
+          line.dueAt == null ? '—' : formatting.date(line.dueAt!),
+          // In words: a settled debt used to be told apart only by the zero
+          // in its remaining column.
+          line.status.label(localizations),
         ],
     ];
 
     return _table(
       headers: headers,
       rows: rows,
-      widthFractions: const <double>[0.26, 0.13, 0.16, 0.15, 0.16, 0.14],
-      numericFrom: 2,
+      widthFractions: mixed
+          ? const <double>[0.22, 0.08, 0.14, 0.13, 0.14, 0.16, 0.13]
+          : const <double>[0.24, 0.15, 0.14, 0.15, 0.17, 0.15],
+      numericFrom: mixed ? 2 : 1,
       // A total adds like to like. With debts on both sides the summary above
       // states each side and the difference, and one row adding them would not.
-      totalRow: data.isMixed
+      totalRow: mixed
           ? null
           : <String>[
               localizations.totalLabel,
-              '',
               _money(data.total),
               _money(data.paid),
               _money(data.remaining),
+              '',
               '',
             ],
     );
@@ -935,18 +1093,23 @@ class StatementDocument {
     final List<String> headers = <String>[
       localizations.reportColumnDate,
       localizations.reportColumnOperation,
-      localizations.reportColumnAmount,
+      localizations.reportColumnDebtAmount,
+      localizations.reportColumnPaymentAmount,
       localizations.reportColumnBalance,
     ];
 
+    // A debt and a payment each have their own column. They used to share one
+    // "amount", and whether a line raised the balance or lowered it could only
+    // be learned by reading its description.
     final List<List<String>> rows = <List<String>>[
       for (final StatementEntry entry in data.entries)
         <String>[
-          formatting.dates.numeric(entry.date),
+          formatting.date(entry.date),
           _entryLabel(entry),
-          entry.kind == StatementEntryKind.settled
-              ? '—'
-              : _money(entry.amount),
+          entry.kind == StatementEntryKind.debtCreated
+              ? _money(entry.amount)
+              : '',
+          entry.kind == StatementEntryKind.payment ? _money(entry.amount) : '',
           _balanceLabel(entry),
         ],
     ];
@@ -956,24 +1119,31 @@ class StatementDocument {
       rows: rows,
       // A two-sided balance also names its side, and needs the room.
       widthFractions: data.isMixed
-          ? const <double>[0.19, 0.33, 0.2, 0.28]
-          : const <double>[0.22, 0.34, 0.22, 0.22],
+          ? const <double>[0.19, 0.26, 0.15, 0.15, 0.25]
+          : const <double>[0.2, 0.32, 0.16, 0.16, 0.16],
       numericFrom: 2,
+      // Where the account stands after the last line, set apart so nobody has
+      // to find the bottom row to learn it. It is the headline figure again,
+      // reached the long way.
+      totalRow: <String>[
+        localizations.reportClosingBalance,
+        '',
+        '',
+        '',
+        _balanceLabel(data.entries.last),
+      ],
     );
   }
 
-  /// What a history line records, in the words of a statement rather than of
-  /// the app's activity feed ("debt created", "payment recorded"), and on which
-  /// side: money lent or borrowed, a payment received or made.
+  /// What a history line records: a debt, or a payment on one.
+  ///
+  /// It no longer says whose — «دين عليّ», «دفعة مستلمة» — because those were
+  /// the maker's words. Which column the amount sits in says what happened, and
+  /// the balance beside it says where that leaves the two parties.
   String _entryLabel(StatementEntry entry) {
-    final bool iOwe = entry.direction.isIOwe;
     final String base = switch (entry.kind) {
-      StatementEntryKind.debtCreated => iOwe
-          ? localizations.reportEntryIOwe
-          : localizations.reportEntryOwedToMe,
-      StatementEntryKind.payment => iOwe
-          ? localizations.reportEntryPaid
-          : localizations.reportEntryReceived,
+      StatementEntryKind.debtCreated => localizations.reportEntryDebt,
+      StatementEntryKind.payment => localizations.reportEntryPayment,
       StatementEntryKind.settled => localizations.debtClosed,
     };
     // Which debt the line belongs to, when there is more than one to tell
@@ -984,18 +1154,17 @@ class StatementDocument {
   }
 
   /// The balance after a line. With debts on both sides the figure alone does
-  /// not say who it favours, so the side is named with it.
+  /// not say who it favours, so the side is named with it — in the person's
+  /// terms, with the two words explained above the table.
   ///
   /// The side comes first, which leaves the figure against the column's edge
   /// in both directions, level with the amounts beside it. Named after the
-  /// figure, «لي» and «عليّ» are different widths and moved it.
+  /// figure, the two words are different widths and moved it.
   String _balanceLabel(StatementEntry entry) {
     final String amount = _money(entry.balanceAfter);
     final DebtDirection? side = entry.balanceDirection;
     if (!data.isMixed || side == null) return amount;
-    final String sideName =
-        side.isIOwe ? localizations.navIOwe : localizations.navOwedToMe;
-    return '$sideName · $amount';
+    return '${_sideWord(side)} · $amount';
   }
 
   /// One table implementation for both statements.
@@ -1159,14 +1328,20 @@ class StatementDocument {
         children: <pw.Widget>[
           _text(
             localizations.reportGeneratedBy,
-            style: const pw.TextStyle(fontSize: 8, color: DocumentColors.muted),
+            style: const pw.TextStyle(
+              fontSize: 8,
+              color: DocumentColors.secondary,
+            ),
           ),
           pw.Spacer(),
           // The number the header gives, on every page. A second, unexplained
           // code used to follow it.
           _text(
             data.documentNumber,
-            style: const pw.TextStyle(fontSize: 8, color: DocumentColors.muted),
+            style: const pw.TextStyle(
+              fontSize: 8,
+              color: DocumentColors.secondary,
+            ),
           ),
           pw.SizedBox(width: 10),
           _text(
@@ -1174,7 +1349,10 @@ class StatementDocument {
               context.pageNumber,
               context.pagesCount,
             ),
-            style: const pw.TextStyle(fontSize: 8, color: DocumentColors.muted),
+            style: const pw.TextStyle(
+              fontSize: 8,
+              color: DocumentColors.secondary,
+            ),
           ),
         ],
       ),

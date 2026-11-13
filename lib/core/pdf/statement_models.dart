@@ -231,6 +231,7 @@ class StatementData {
     required this.entries,
     required this.options,
     this.dueAt,
+    this.dueDebtTitle,
     this.notes,
     this.hiddenSettledCount = 0,
     this.hiddenArchivedCount = 0,
@@ -255,6 +256,12 @@ class StatementData {
 
   /// The earliest due date still outstanding, when there is one.
   final DateTime? dueAt;
+
+  /// The title of the debt [dueAt] belongs to, when it has one.
+  ///
+  /// A date alone does not say which debt falls due on a statement that covers
+  /// several, and the reader is usually the person who has to pay it.
+  final String? dueDebtTitle;
 
   /// Every record this statement covers, one line each, and what the totals are
   /// the sum of.

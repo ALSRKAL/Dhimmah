@@ -1493,5 +1493,82 @@
   "reportScopeLabel": "Covers",
   "reportScopeOpenFull": "Open debts",
   "reportScopeAllFull": "All debts",
-  "reportScopeSelectedFull": "Selected debts"
+  "reportScopeSelectedFull": "Selected debts",
+  "reportOwedByName": "{name} owes",
+  "@reportOwedByName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportOwedToName": "Owed to {name}",
+  "@reportOwedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNetOwedByName": "Net owed by {name}",
+  "@reportNetOwedByName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNetOwedToName": "Net owed to {name}",
+  "@reportNetOwedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportSideByName": "Owed by {name}",
+  "@reportSideByName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportSideToName": "Owed to {name}",
+  "@reportSideToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNothingOutstanding": "Nothing outstanding",
+  "reportSideOwes": "Owes",
+  "reportSideIsOwed": "Is owed",
+  "reportSideLegend": "Owes: owed by {name} · Is owed: owed to {name}",
+  "@reportSideLegend": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportColumnSide": "Side",
+  "reportColumnStatus": "Status",
+  "reportColumnDebtAmount": "Debt",
+  "reportColumnPaymentAmount": "Payment",
+  "reportMovementsTitle": "Movements",
+  "reportEntryDebt": "New debt",
+  "reportEntryPayment": "Payment",
+  "reportClosingBalance": "Closing balance",
+  "reportUntitledDebt": "Untitled debt",
+  "reportPaidPercent": "{percent} paid",
+  "@reportPaidPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNextDue": "Next due"
 }

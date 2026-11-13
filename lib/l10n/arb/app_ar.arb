@@ -1493,5 +1493,82 @@
   "reportScopeLabel": "النطاق",
   "reportScopeOpenFull": "الديون المفتوحة",
   "reportScopeAllFull": "كل الديون",
-  "reportScopeSelectedFull": "ديون مختارة"
+  "reportScopeSelectedFull": "ديون مختارة",
+  "reportOwedByName": "المتبقي على {name}",
+  "@reportOwedByName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportOwedToName": "المتبقي لصالح {name}",
+  "@reportOwedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNetOwedByName": "الصافي على {name}",
+  "@reportNetOwedByName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNetOwedToName": "الصافي لصالح {name}",
+  "@reportNetOwedToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportSideByName": "على {name}",
+  "@reportSideByName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportSideToName": "لصالح {name}",
+  "@reportSideToName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNothingOutstanding": "لا مبالغ متبقية بين الطرفين",
+  "reportSideOwes": "عليه",
+  "reportSideIsOwed": "له",
+  "reportSideLegend": "عليه: مستحق على {name} · له: مستحق لصالح {name}",
+  "@reportSideLegend": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "reportColumnSide": "الجهة",
+  "reportColumnStatus": "الحالة",
+  "reportColumnDebtAmount": "دين",
+  "reportColumnPaymentAmount": "دفعة",
+  "reportMovementsTitle": "كشف الحركات",
+  "reportEntryDebt": "دين جديد",
+  "reportEntryPayment": "دفعة",
+  "reportClosingBalance": "الرصيد الختامي",
+  "reportUntitledDebt": "دين بلا عنوان",
+  "reportPaidPercent": "{percent} مدفوع",
+  "@reportPaidPercent": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNextDue": "أقرب استحقاق"
 }

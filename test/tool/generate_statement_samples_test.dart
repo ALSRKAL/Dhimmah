@@ -220,6 +220,36 @@ void main() {
       fileName: 'en-multipage.pdf',
       options: const StatementOptions(includeNotes: true, includePhone: true),
     );
+    // Every debt on one side: the breakdown gets its total row and the summary
+    // its progress bar, neither of which a two-sided statement draws.
+    final StatementOptions oneSide = StatementOptions(
+      scope: StatementScope.selected,
+      selectedDebtIds: <String>{main.id, second.id},
+    );
+    await write(
+      target: ahmed,
+      language: AppLanguage.arabic,
+      fileName: 'ar-one-side.pdf',
+      options: oneSide,
+    );
+    await write(
+      target: ahmed,
+      language: AppLanguage.english,
+      fileName: 'en-one-side.pdf',
+      options: oneSide,
+    );
+    // One debt, part paid: what a statement opened from a debt's page looks
+    // like.
+    await write(
+      target: ahmed,
+      language: AppLanguage.arabic,
+      fileName: 'ar-one-debt.pdf',
+      options: StatementOptions(
+        scope: StatementScope.selected,
+        selectedDebtIds: <String>{second.id},
+      ),
+    );
+
     // A statement leaves settled debts out unless asked, and this person's
     // only debt is settled: with the default scope there would be no row to
     // print, which is the case the screen answers with an explanation instead

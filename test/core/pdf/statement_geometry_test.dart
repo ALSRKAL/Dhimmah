@@ -361,11 +361,19 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
       final PdfInspection page = inspectPdf(await render(_arabicStatement()));
       expect(lineWithAllWords(page, l10n.reportStatementFor), isNotEmpty);
+      // Both words on one line: «كشف» alone also opens «كشف الحركات», the
+      // heading over the history, which is a different thing.
+      final List<String> title = l10n.reportStatementTitle
+          .split(' ')
+          .map(visual)
+          .toList(growable: false);
       expect(
         page.lines
-            .where((List<PdfRun> line) => line.any(
-                  (PdfRun run) => run.text == visual('كشف'),
-                ))
+            .where(
+              (List<PdfRun> line) => title.every(
+                (String word) => line.any((PdfRun run) => run.text == word),
+              ),
+            )
             .length,
         1,
         reason: '«كشف حساب» was the header and the party card both',
@@ -381,18 +389,133 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       expect(lineWithAllWords(page, 'فاتورة خدمات'), isNotEmpty);
     });
 
-    test('a single side is named with what is left', () async {
-      // Read in English, whose words the page keeps as they are written.
+    test('what is left is said by name, not as "I" or "me"', () async {
+      // Read in English, whose words the page keeps as they are written. The
+      // user owes here, so the money is the person's: "Owed to <name>". It used
+      // to read "I still owe", which is true for whoever made the statement and
+      // backwards for whoever is sent it.
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            name: 'Ahmed Mohammed',
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      expect(
+        page.lineContaining('Owed').map((PdfRun run) => run.text).join(' '),
+        'Owed to Ahmed Mohammed',
+        reason: 'the figure alone does not say who owes whom',
+      );
+    });
+
+    test('the other way round, the person is the one who owes', () async {
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            name: 'Ahmed Mohammed',
+            direction: DebtDirection.owedToMe,
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      expect(
+        page.lineContaining('owes').map((PdfRun run) => run.text).join(' '),
+        'Ahmed Mohammed owes',
+      );
+    });
+
+    test('nothing on the page speaks as the person who made it', () async {
+      // Every shape of statement, in both languages: one side, the other, both.
+      // «لي» and «عليّ», "I owe" and "owed to me" are the maker's words. The
+      // page is sent to the other party, who would read each of them reversed.
+      for (final AppLanguage language in AppLanguage.values) {
+        for (final List<String> extra in <List<String>>[
+          const <String>[],
+          const <String>['سلفة', 'Loan'],
+        ]) {
+          for (final DebtDirection direction in DebtDirection.values) {
+            final PdfInspection page = inspectPdf(
+              await render(
+                _arabicStatement(
+                  language: language,
+                  extraDebts: extra,
+                  direction: direction,
+                  payments: 6,
+                ),
+                language: language,
+              ),
+            );
+            final List<String> words =
+                page.runs.map((PdfRun run) => run.text).toList();
+            final String all = ' ${words.join(' ')} ';
+            for (final String forbidden in <String>[
+              visual('لي'),
+              visual('عليّ'),
+              visual('عليَّ'),
+            ]) {
+              expect(
+                words,
+                isNot(contains(forbidden)),
+                reason: '${language.name}: the page says «$forbidden»',
+              );
+            }
+            for (final String forbidden in <String>[
+              ' I ',
+              ' me ',
+              ' Me ',
+              ' my ',
+            ]) {
+              expect(
+                all,
+                isNot(contains(forbidden)),
+                reason: '${language.name}: the page says "$forbidden"',
+              );
+            }
+          }
+        }
+      }
+    });
+
+    test('the history ends on the figure the page leads with', () async {
+      final AppLocalizations l10n = lookupAppLocalizations(const Locale('en'));
       final PdfInspection page = inspectPdf(
         await render(
           _arabicStatement(language: AppLanguage.english),
           language: AppLanguage.english,
         ),
       );
+      // The fixture's last entry leaves 67,500 standing.
       expect(
-        page.lineContaining('still').map((PdfRun run) => run.text).join(' '),
-        contains('I still owe'),
-        reason: 'the figure alone does not say who owes whom',
+        page
+            .lineContaining(l10n.reportClosingBalance.split(' ').first)
+            .map((PdfRun run) => run.text)
+            .join(' '),
+        '${l10n.reportClosingBalance} ₹ 67,500',
+      );
+    });
+
+    test('a debt and a payment sit in different columns', () async {
+      // They used to share one "amount" column, and whether a line raised the
+      // balance or lowered it could only be learned from its description.
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(language: AppLanguage.english),
+          language: AppLanguage.english,
+        ),
+      );
+      final PdfRun payment = page
+          .lineContaining('35,000')
+          .firstWhere((PdfRun run) => run.text == '35,000');
+      final PdfRun debt = page
+          .lineContaining('34,500')
+          .firstWhere((PdfRun run) => run.text == '34,500');
+      expect(
+        (payment.right - debt.right).abs(),
+        greaterThan(40),
+        reason: 'the two amounts end at the same edge, so share a column',
       );
     });
 
@@ -411,8 +534,8 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       expect(drawn, hasLength(words.length),
           reason: 'the title was broken over several lines');
 
-      // The title column is the first 26% of the table, from the right.
-      const double titleColumn = (rightEdge - leftEdge) * 0.26;
+      // The title column is the first 22% of a two-sided table, from the right.
+      const double titleColumn = (rightEdge - leftEdge) * 0.22;
       for (final PdfRun run in drawn) {
         expect(run.x, greaterThanOrEqualTo(rightEdge - titleColumn),
             reason: 'the title left its column — $run');
@@ -424,7 +547,8 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
     test('a two-sided balance keeps its figure on the column edge', () async {
       // The side is named first, so the figure sits against the edge like the
       // amounts beside it. Named after it, the figure moved with the width of
-      // «لي» or «عليّ».
+      // the word. The word is the person's — «له», "Is owed" — because the
+      // user owing is the person being owed.
       final PdfInspection english = inspectPdf(
         await render(
           _arabicStatement(
@@ -436,7 +560,7 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       );
       expect(
         english.lineContaining('67,500').map((PdfRun run) => run.text).join(' '),
-        endsWith('I Owe · ₹ 67,500'),
+        endsWith('Is owed · ₹ 67,500'),
       );
 
       final PdfInspection arabic = inspectPdf(
@@ -446,7 +570,7 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       // The balance is the leftmost column of an Arabic table.
       expect(
         line.map((PdfRun run) => run.text).join(' '),
-        startsWith('₹ 67,500 · ${visual('عليّ')}'),
+        startsWith('₹ 67,500 · ${visual('له')}'),
       );
       expect(line.first.x, lessThan(leftEdge + 8),
           reason: 'the figure is against the far edge of its column');
@@ -477,8 +601,8 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
         ),
       );
       expect(
-        english.lineContaining('Net,').map((PdfRun run) => run.text).join(' '),
-        contains('Net, I owe'),
+        english.lineContaining('Net').map((PdfRun run) => run.text).join(' '),
+        startsWith('Net owed to'),
       );
     });
   });
@@ -501,7 +625,7 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       for (final String title in <String>[
         l10n.reportAccountSummary,
         l10n.reportDebtsBreakdown,
-        l10n.reportPaymentHistory,
+        l10n.reportMovementsTitle,
       ]) {
         final List<PdfRun> line = lineWithAllWords(page, title);
         expect(line, isNotEmpty, reason: '"$title" was not drawn');
@@ -798,6 +922,7 @@ StatementData _arabicStatement({
   int payments = 3,
   int amountMinor = 4550000,
   List<String> extraDebts = const <String>[],
+  DebtDirection direction = DebtDirection.iOwe,
   StatementOptions options = const StatementOptions(),
 }) {
   const AppCurrency currency = AppCurrency.inr;
@@ -818,7 +943,7 @@ StatementData _arabicStatement({
     debts: <StatementDebtLine>[
       StatementDebtLine(
         title: title,
-        direction: DebtDirection.iOwe,
+        direction: direction,
         principal: const Money(6850000, currency),
         paid: const Money(2300000, currency),
         remaining: Money(amountMinor, currency),
@@ -828,7 +953,7 @@ StatementData _arabicStatement({
       for (final String extra in extraDebts)
         StatementDebtLine(
           title: extra,
-          direction: DebtDirection.owedToMe,
+          direction: direction.opposite,
           principal: const Money(850000, currency),
           paid: const Money(0, currency),
           remaining: const Money(850000, currency),
@@ -843,10 +968,10 @@ StatementData _arabicStatement({
           kind: i.isEven
               ? StatementEntryKind.payment
               : StatementEntryKind.debtCreated,
-          direction: DebtDirection.iOwe,
+          direction: direction,
           amountMinor: 3500000 - i * 50000,
           balanceAfterMinor: 6850000 - i * 50000,
-          balanceDirection: DebtDirection.iOwe,
+          balanceDirection: direction,
           currency: currency,
           debtTitle: i == 1 ? 'سلفة شخصية' : null,
         ),

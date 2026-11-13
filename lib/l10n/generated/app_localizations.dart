@@ -4998,6 +4998,132 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'ديون مختارة'**
   String get reportScopeSelectedFull;
+
+  /// No description provided for @reportOwedByName.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتبقي على {name}'**
+  String reportOwedByName(String name);
+
+  /// No description provided for @reportOwedToName.
+  ///
+  /// In ar, this message translates to:
+  /// **'المتبقي لصالح {name}'**
+  String reportOwedToName(String name);
+
+  /// No description provided for @reportNetOwedByName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصافي على {name}'**
+  String reportNetOwedByName(String name);
+
+  /// No description provided for @reportNetOwedToName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الصافي لصالح {name}'**
+  String reportNetOwedToName(String name);
+
+  /// No description provided for @reportSideByName.
+  ///
+  /// In ar, this message translates to:
+  /// **'على {name}'**
+  String reportSideByName(String name);
+
+  /// No description provided for @reportSideToName.
+  ///
+  /// In ar, this message translates to:
+  /// **'لصالح {name}'**
+  String reportSideToName(String name);
+
+  /// No description provided for @reportNothingOutstanding.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا مبالغ متبقية بين الطرفين'**
+  String get reportNothingOutstanding;
+
+  /// No description provided for @reportSideOwes.
+  ///
+  /// In ar, this message translates to:
+  /// **'عليه'**
+  String get reportSideOwes;
+
+  /// No description provided for @reportSideIsOwed.
+  ///
+  /// In ar, this message translates to:
+  /// **'له'**
+  String get reportSideIsOwed;
+
+  /// No description provided for @reportSideLegend.
+  ///
+  /// In ar, this message translates to:
+  /// **'عليه: مستحق على {name} · له: مستحق لصالح {name}'**
+  String reportSideLegend(String name);
+
+  /// No description provided for @reportColumnSide.
+  ///
+  /// In ar, this message translates to:
+  /// **'الجهة'**
+  String get reportColumnSide;
+
+  /// No description provided for @reportColumnStatus.
+  ///
+  /// In ar, this message translates to:
+  /// **'الحالة'**
+  String get reportColumnStatus;
+
+  /// No description provided for @reportColumnDebtAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين'**
+  String get reportColumnDebtAmount;
+
+  /// No description provided for @reportColumnPaymentAmount.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفعة'**
+  String get reportColumnPaymentAmount;
+
+  /// No description provided for @reportMovementsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'كشف الحركات'**
+  String get reportMovementsTitle;
+
+  /// No description provided for @reportEntryDebt.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين جديد'**
+  String get reportEntryDebt;
+
+  /// No description provided for @reportEntryPayment.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفعة'**
+  String get reportEntryPayment;
+
+  /// No description provided for @reportClosingBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'الرصيد الختامي'**
+  String get reportClosingBalance;
+
+  /// No description provided for @reportUntitledDebt.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين بلا عنوان'**
+  String get reportUntitledDebt;
+
+  /// No description provided for @reportPaidPercent.
+  ///
+  /// In ar, this message translates to:
+  /// **'{percent} مدفوع'**
+  String reportPaidPercent(String percent);
+
+  /// No description provided for @reportNextDue.
+  ///
+  /// In ar, this message translates to:
+  /// **'أقرب استحقاق'**
+  String get reportNextDue;
 }
 
 class _AppLocalizationsDelegate

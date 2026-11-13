@@ -95,7 +95,9 @@ class StatementService {
     // together are not "paid".
     final DebtLifecycleStatus status = _worstStatus(inCurrency);
 
-    final DateTime? dueAt = _earliestOpenDue(inCurrency);
+    final DebtView? nextDue = _earliestOpenDue(inCurrency);
+    final DateTime? dueAt = nextDue?.debt.dueAt;
+    final String? dueTitle = nextDue?.debt.title.trim();
 
     final List<Debt> debts = <Debt>[
       for (final DebtView view in inCurrency) view.debt,
@@ -113,6 +115,12 @@ class StatementService {
       remainingMinor: remaining,
       status: status,
       dueAt: dueAt,
+      // Named only when there is more than one debt to tell apart: on a
+      // statement of one debt the date can only be that debt's.
+      dueDebtTitle:
+          inCurrency.length > 1 && dueTitle != null && dueTitle.isNotEmpty
+              ? dueTitle
+              : null,
       debts: <StatementDebtLine>[
         for (final DebtView view in inCurrency)
           StatementDebtLine(
@@ -285,10 +293,19 @@ class StatementService {
   static Future<BrandMark> _mark() async =>
       _markCache ??= await BrandMark.load();
 
-  /// `DHM-2026-4821`: the year, then a stable code for the person.
+  /// `DHM-20261113-1438-4821`: the day and minute it was issued, then a stable
+  /// code for the person.
+  ///
+  /// It used to be the year and the code, so every statement a person was sent
+  /// in a year carried the same number, and a number quoted back in a
+  /// conversation could mean any of them. The moment makes it the number of
+  /// this document; nothing is stored to keep it unique.
   String _documentNumber(String personId, DateTime now) {
+    String two(int value) => value.toString().padLeft(2, '0');
     final String code = StatementData.stableCode(personId);
-    return 'DHM-${now.year}-$code';
+    final String day =
+        '${now.year.toString().padLeft(4, '0')}${two(now.month)}${two(now.day)}';
+    return 'DHM-$day-${two(now.hour)}${two(now.minute)}-$code';
   }
 
   /// The most demanding status among the debts shown.
@@ -308,14 +325,16 @@ class StatementService {
     return worst;
   }
 
-  /// The earliest due date still outstanding.
-  static DateTime? _earliestOpenDue(List<DebtView> views) {
-    DateTime? earliest;
+  /// The open debt that falls due first, or null when none has a date.
+  static DebtView? _earliestOpenDue(List<DebtView> views) {
+    DebtView? earliest;
     for (final DebtView view in views) {
       if (!view.isOpen) continue;
       final DateTime? due = view.debt.dueAt;
       if (due == null) continue;
-      if (earliest == null || due.isBefore(earliest)) earliest = due;
+      if (earliest == null || due.isBefore(earliest.debt.dueAt!)) {
+        earliest = view;
+      }
     }
     return earliest;
   }

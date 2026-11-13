@@ -2996,4 +2996,83 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportScopeSelectedFull => 'ديون مختارة';
+
+  @override
+  String reportOwedByName(String name) {
+    return 'المتبقي على $name';
+  }
+
+  @override
+  String reportOwedToName(String name) {
+    return 'المتبقي لصالح $name';
+  }
+
+  @override
+  String reportNetOwedByName(String name) {
+    return 'الصافي على $name';
+  }
+
+  @override
+  String reportNetOwedToName(String name) {
+    return 'الصافي لصالح $name';
+  }
+
+  @override
+  String reportSideByName(String name) {
+    return 'على $name';
+  }
+
+  @override
+  String reportSideToName(String name) {
+    return 'لصالح $name';
+  }
+
+  @override
+  String get reportNothingOutstanding => 'لا مبالغ متبقية بين الطرفين';
+
+  @override
+  String get reportSideOwes => 'عليه';
+
+  @override
+  String get reportSideIsOwed => 'له';
+
+  @override
+  String reportSideLegend(String name) {
+    return 'عليه: مستحق على $name · له: مستحق لصالح $name';
+  }
+
+  @override
+  String get reportColumnSide => 'الجهة';
+
+  @override
+  String get reportColumnStatus => 'الحالة';
+
+  @override
+  String get reportColumnDebtAmount => 'دين';
+
+  @override
+  String get reportColumnPaymentAmount => 'دفعة';
+
+  @override
+  String get reportMovementsTitle => 'كشف الحركات';
+
+  @override
+  String get reportEntryDebt => 'دين جديد';
+
+  @override
+  String get reportEntryPayment => 'دفعة';
+
+  @override
+  String get reportClosingBalance => 'الرصيد الختامي';
+
+  @override
+  String get reportUntitledDebt => 'دين بلا عنوان';
+
+  @override
+  String reportPaidPercent(String percent) {
+    return '$percent مدفوع';
+  }
+
+  @override
+  String get reportNextDue => 'أقرب استحقاق';
 }
