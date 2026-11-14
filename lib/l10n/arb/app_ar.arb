@@ -1586,5 +1586,6 @@
   "receiptFor": "وذلك عن",
   "receiptRemainingNow": "المتبقي من الدين حاليًا",
   "receiptSignature": "التوقيع",
-  "receiptAction": "إيصال PDF"
+  "receiptAction": "إيصال PDF",
+  "receiptOptionsTitle": "خيارات السند"
 }

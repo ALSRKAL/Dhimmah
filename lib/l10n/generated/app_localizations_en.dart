@@ -3062,4 +3062,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiptAction => 'PDF receipt';
+
+  @override
+  String get receiptOptionsTitle => 'Receipt options';
 }

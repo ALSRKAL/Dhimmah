@@ -5220,6 +5220,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'إيصال PDF'**
   String get receiptAction;
+
+  /// No description provided for @receiptOptionsTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'خيارات السند'**
+  String get receiptOptionsTitle;
 }
 
 class _AppLocalizationsDelegate

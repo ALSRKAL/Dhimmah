@@ -274,36 +274,113 @@ class StatementService {
     return file;
   }
 
-  /// Assembles the receipt for one [payment] on the debt in [view].
+  /// The parts of the payment [payment] belongs to, among [personPayments].
   ///
-  /// Read from the stored payment and the debt as it stands: nothing is written
-  /// and no receipt number is kept. The same payment issued in the same minute
-  /// gets the same number; issued again later it gets a later one.
+  /// A payment recorded from a person's page against several debts is written
+  /// as one row per debt, in one transaction. Nothing stored joins them, but
+  /// they share what the transaction gave them: the person, the moment they
+  /// were written (to the millisecond), the day paid and the currency. That is
+  /// the group. A payment recorded on one debt is a group of one.
+  ///
+  /// [payment] is always in the result, first if it is alone. The rest are in
+  /// the order they were written. Pure: reads the list it is given.
+  static List<Payment> paymentGroupOf(
+    Payment payment,
+    Iterable<Payment> personPayments,
+  ) {
+    if (payment.personId == null || payment.debtId == null) {
+      return <Payment>[payment];
+    }
+    final List<Payment> group = <Payment>[
+      for (final Payment other in personPayments)
+        if (other.debtId != null &&
+            other.personId == payment.personId &&
+            other.createdAt == payment.createdAt &&
+            other.paidAt == payment.paidAt &&
+            other.currency == payment.currency)
+          other,
+    ];
+    if (!group.any((Payment other) => other.id == payment.id)) {
+      group.add(payment);
+    }
+    group.sort((Payment a, Payment b) => a.id.compareTo(b.id));
+    return group;
+  }
+
+  /// Assembles the receipt for a payment: one part, or every part of a payment
+  /// that was spread over several debts.
+  ///
+  /// [parts] pairs each payment row with the debt it was applied to, as that
+  /// debt stands now. Read from stored records: nothing is written and no
+  /// receipt number is kept. The same payment issued in the same minute gets
+  /// the same number; issued again later it gets a later one.
+  ///
+  /// The payment's note is printed only with [includeNote]: a note is often
+  /// the user's own reminder, and a receipt is handed to the other party. When
+  /// the parts of a split payment carry different notes — one was edited
+  /// afterwards — none is printed, rather than one picked at random.
   ReceiptData buildReceipt({
-    required DebtView view,
-    required Payment payment,
+    required List<({DebtView view, Payment payment})> parts,
     required String personName,
     required DateTime now,
     String issuerName = '',
+    bool includeNote = false,
   }) {
+    assert(parts.isNotEmpty, 'a receipt needs a payment');
     String two(int value) => value.toString().padLeft(2, '0');
     final String day =
         '${now.year.toString().padLeft(4, '0')}${two(now.month)}${two(now.day)}';
-    final String title = view.debt.title.trim();
-    final String? note = payment.note?.trim();
+    final Payment first = parts.first.payment;
+    final AppCurrency currency = first.currency;
+    final int total = parts.fold<int>(
+      0,
+      (int sum, ({DebtView view, Payment payment}) part) =>
+          sum + part.payment.amountMinor,
+    );
+    final int remaining = parts.fold<int>(
+      0,
+      (int sum, ({DebtView view, Payment payment}) part) =>
+          sum + part.view.remainingMinor,
+    );
+    final Set<String> notes = <String>{
+      for (final ({DebtView view, Payment payment}) part in parts)
+        part.payment.note?.trim() ?? '',
+    };
+    final String? note =
+        includeNote && notes.length == 1 && notes.single.isNotEmpty
+            ? notes.single
+            : null;
+    String titleOf(DebtView view) {
+      final String title = view.debt.title.trim();
+      return title.isEmpty ? localizations.reportUntitledDebt : title;
+    }
+
+    final String singleTitle = parts.first.view.debt.title.trim();
     return ReceiptData(
+      // From the first part's id, so every part of one payment gives the same
+      // number however the receipt was opened.
       number: 'RCP-$day-${two(now.hour)}${two(now.minute)}-'
-          '${StatementData.stableCode(payment.id)}',
+          '${StatementData.stableCode(first.id)}',
       issuedAt: now,
       language: formatting.language,
       personName: personName,
       issuerName: issuerName,
-      direction: view.debt.direction,
-      amount: Money(payment.amountMinor, payment.currency),
-      paidAt: payment.paidAt,
-      remainingNow: view.remaining,
-      debtTitle: title.isEmpty ? null : title,
-      note: note == null || note.isEmpty ? null : note,
+      direction: parts.first.view.debt.direction,
+      amount: Money(total, currency),
+      paidAt: first.paidAt,
+      remainingNow: Money(remaining, currency),
+      debtTitle: parts.length == 1 && singleTitle.isNotEmpty ? singleTitle : null,
+      note: note,
+      lines: parts.length < 2
+          ? const <ReceiptLine>[]
+          : <ReceiptLine>[
+              for (final ({DebtView view, Payment payment}) part in parts)
+                ReceiptLine(
+                  debtTitle: titleOf(part.view),
+                  amount: Money(part.payment.amountMinor, currency),
+                  remainingNow: part.view.remaining,
+                ),
+            ],
     );
   }
 

@@ -407,6 +407,7 @@ class ReceiptData {
     this.issuerName = '',
     this.debtTitle,
     this.note,
+    this.lines = const <ReceiptLine>[],
   });
 
   final String number;
@@ -435,6 +436,16 @@ class ReceiptData {
   final String? debtTitle;
   final String? note;
 
+  /// Where the money went, one line per debt, when one payment was spread over
+  /// several. Empty for a payment on a single debt, which [debtTitle] names.
+  ///
+  /// [amount] is then the total and [remainingNow] the sum left on those debts:
+  /// the receipt is for the money that changed hands, not for one share of it.
+  final List<ReceiptLine> lines;
+
+  /// Whether this receipt covers a payment spread over several debts.
+  bool get isSplit => lines.length > 1;
+
   /// Whether the user received this payment, rather than made it.
   ///
   /// A debt owed to the user is paid *to* the user: the document is a receipt.
@@ -450,6 +461,20 @@ class ReceiptData {
         '${paidAt.day.toString().padLeft(2, '0')}';
     return 'Dhimmah_Receipt_${safeName}_$date.pdf';
   }
+}
+
+/// One debt's share of a payment that was spread over several.
+@immutable
+class ReceiptLine {
+  const ReceiptLine({
+    required this.debtTitle,
+    required this.amount,
+    required this.remainingNow,
+  });
+
+  final String debtTitle;
+  final Money amount;
+  final Money remainingNow;
 }
 
 /// Builds the statement's history from real records.

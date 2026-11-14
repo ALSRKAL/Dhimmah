@@ -67,26 +67,21 @@ void main() {
     required int minor,
     required DateTime issuedAt,
     DateTime? dueAt,
-  }) =>
-      service.createDebt(
-        DebtDraft(
-          direction: DebtDirection.iOwe,
-          personIds: <String>[person.id],
-          title: title,
-          principalMinor: minor,
-          currency: AppCurrency.inr,
-          issuedAt: issuedAt,
-          dueAt: dueAt,
-        ),
-      );
+  }) => service.createDebt(
+    DebtDraft(
+      direction: DebtDirection.iOwe,
+      personIds: <String>[person.id],
+      title: title,
+      principalMinor: minor,
+      currency: AppCurrency.inr,
+      issuedAt: issuedAt,
+      dueAt: dueAt,
+    ),
+  );
 
   Future<StatementData> statementFor(Person person) async {
     final PersonLedger ledger = (await queries
-        .watchPersonLedger(
-          person.id,
-          dueSoonWindowDays: 7,
-          asOf: today,
-        )
+        .watchPersonLedger(person.id, dueSoonWindowDays: 7, asOf: today)
         .first)!;
     return StatementService(
       localizations: l10n,
@@ -110,76 +105,84 @@ void main() {
     );
   }
 
-  test('each share of a split is its own line, with its debt and its note',
-      () async {
-    final Person ahmed = await person();
-    await debt(
-      ahmed,
-      title: 'كهرباء',
-      minor: 100000,
-      issuedAt: addDays(today, -20),
-      dueAt: addDays(today, -10),
-    );
-    await debt(
-      ahmed,
-      title: 'ماء',
-      minor: 200000,
-      issuedAt: addDays(today, -20),
-      dueAt: addDays(today, 10),
-    );
+  test(
+    'each share of a split is its own line, with its debt and its note',
+    () async {
+      final Person ahmed = await person();
+      await debt(
+        ahmed,
+        title: 'كهرباء',
+        minor: 100000,
+        issuedAt: addDays(today, -20),
+        dueAt: addDays(today, -10),
+      );
+      await debt(
+        ahmed,
+        title: 'ماء',
+        minor: 200000,
+        issuedAt: addDays(today, -20),
+        dueAt: addDays(today, 10),
+      );
 
-    // 1,000 against everything he owes: the first debt in full, the second in
-    // part. Two payment rows, one intention.
-    final List<Payment> split = await service.recordPersonPayment(
-      PersonPaymentDraft(
-        personId: ahmed.id,
-        direction: DebtDirection.iOwe,
-        currency: AppCurrency.inr,
-        amountMinor: 150000,
-        paidAt: today,
-        note: 'حوالة واحدة',
-      ),
-    );
-    expect(split, hasLength(2));
+      // 1,000 against everything he owes: the first debt in full, the second in
+      // part. Two payment rows, one intention.
+      final List<Payment> split = await service.recordPersonPayment(
+        PersonPaymentDraft(
+          personId: ahmed.id,
+          direction: DebtDirection.iOwe,
+          currency: AppCurrency.inr,
+          amountMinor: 150000,
+          paidAt: today,
+          note: 'حوالة واحدة',
+        ),
+      );
+      expect(split, hasLength(2));
 
-    final StatementData data = await statementFor(ahmed);
+      final StatementData data = await statementFor(ahmed);
 
-    expect(data.totalMinor, 300000);
-    expect(data.paidMinor, 150000);
-    expect(data.remainingMinor, 150000);
-    expect(data.personName, 'أحمد');
+      expect(data.totalMinor, 300000);
+      expect(data.paidMinor, 150000);
+      expect(data.remainingMinor, 150000);
+      expect(data.personName, 'أحمد');
 
-    final List<StatementEntry> payments = <StatementEntry>[
-      for (final StatementEntry entry in data.entries)
-        if (entry.kind == StatementEntryKind.payment) entry,
-    ];
-    expect(
-      payments,
-      hasLength(2),
-      reason: 'the split is two payments on two debts, and reads as two lines',
-    );
-    expect(
-      <String, int>{for (final StatementEntry e in payments) e.debtTitle!: e.amountMinor},
-      <String, int>{'كهرباء': 100000, 'ماء': 50000},
-    );
-    for (final StatementEntry entry in payments) {
-      expect(entry.date, today);
-      expect(entry.note, 'حوالة واحدة',
-          reason: 'the note travels with every row the payment produced');
-      expect(entry.direction, DebtDirection.iOwe);
-      expect(entry.currency, AppCurrency.inr);
-    }
+      final List<StatementEntry> payments = <StatementEntry>[
+        for (final StatementEntry entry in data.entries)
+          if (entry.kind == StatementEntryKind.payment) entry,
+      ];
+      expect(
+        payments,
+        hasLength(2),
+        reason:
+            'the split is two payments on two debts, and reads as two lines',
+      );
+      expect(
+        <String, int>{
+          for (final StatementEntry e in payments) e.debtTitle!: e.amountMinor,
+        },
+        <String, int>{'كهرباء': 100000, 'ماء': 50000},
+      );
+      for (final StatementEntry entry in payments) {
+        expect(entry.date, today);
+        expect(
+          entry.note,
+          'حوالة واحدة',
+          reason: 'the note travels with every row the payment produced',
+        );
+        expect(entry.direction, DebtDirection.iOwe);
+        expect(entry.currency, AppCurrency.inr);
+      }
 
-    // The running balance is the column that makes it legible: it must end on
-    // the figure the summary states.
-    final StatementEntry last = data.entries.last;
-    expect(
-      last.balanceAfterMinor,
-      data.remainingMinor,
-      reason: 'the last line and the total are the same number',
-    );
-    expect(last.balanceDirection, DebtDirection.iOwe);
-  });
+      // The running balance is the column that makes it legible: it must end on
+      // the figure the summary states.
+      final StatementEntry last = data.entries.last;
+      expect(
+        last.balanceAfterMinor,
+        data.remainingMinor,
+        reason: 'the last line and the total are the same number',
+      );
+      expect(last.balanceDirection, DebtDirection.iOwe);
+    },
+  );
 
   test('a split that clears a debt still reports the clearing', () async {
     final Person ahmed = await person();
@@ -204,5 +207,222 @@ void main() {
     expect(data.remainingMinor, 0);
     expect(data.status, DebtLifecycleStatus.paid);
     expect(data.dueAt, isNull, reason: 'nothing left to fall due');
+  });
+
+  group('one receipt for one payment', () {
+    StatementService statements() => StatementService(
+      localizations: l10n,
+      formatting: AppFormatting(
+        language: AppLanguage.arabic,
+        numerals: NumeralsStyle.latin,
+        defaultCurrency: AppCurrency.inr,
+        localizations: l10n,
+      ),
+    );
+
+    Future<List<({DebtView view, Payment payment})>> partsOf(
+      Person person,
+      Payment opened,
+    ) async {
+      final List<Payment> all = await service.payments
+          .watchForPerson(person.id)
+          .first;
+      final List<Payment> group = StatementService.paymentGroupOf(opened, all);
+      final PersonLedger ledger = (await queries
+          .watchPersonLedger(person.id, dueSoonWindowDays: 7, asOf: today)
+          .first)!;
+      return <({DebtView view, Payment payment})>[
+        for (final Payment payment in group)
+          (
+            view: ledger.debts.firstWhere(
+              (DebtView v) => v.debt.id == payment.debtId,
+            ),
+            payment: payment,
+          ),
+      ];
+    }
+
+    test(
+      'every part of a split payment is found from any one of them',
+      () async {
+        final Person ahmed = await person();
+        await debt(
+          ahmed,
+          title: 'كهرباء',
+          minor: 100000,
+          issuedAt: addDays(today, -20),
+          dueAt: addDays(today, -10),
+        );
+        await debt(
+          ahmed,
+          title: 'ماء',
+          minor: 200000,
+          issuedAt: addDays(today, -20),
+          dueAt: addDays(today, 10),
+        );
+        final List<Payment> split = await service.recordPersonPayment(
+          PersonPaymentDraft(
+            personId: ahmed.id,
+            direction: DebtDirection.iOwe,
+            currency: AppCurrency.inr,
+            amountMinor: 150000,
+            paidAt: today,
+            note: 'حوالة واحدة',
+          ),
+        );
+        expect(split, hasLength(2));
+
+        for (final Payment opened in split) {
+          final List<({DebtView view, Payment payment})> parts = await partsOf(
+            ahmed,
+            opened,
+          );
+          expect(
+            parts.map((({DebtView view, Payment payment}) p) => p.payment.id),
+            unorderedEquals(split.map((Payment p) => p.id)),
+            reason:
+                'opened from either debt, the receipt is for the whole 1,500',
+          );
+
+          final ReceiptData receipt = statements().buildReceipt(
+            parts: parts,
+            personName: ahmed.name,
+            now: now,
+          );
+          expect(receipt.amount.minorUnits, 150000);
+          expect(receipt.isSplit, isTrue);
+          expect(
+            <String, int>{
+              for (final ReceiptLine line in receipt.lines)
+                line.debtTitle: line.amount.minorUnits,
+            },
+            <String, int>{'كهرباء': 100000, 'ماء': 50000},
+          );
+          // 1,000 settled, 1,500 left on the water bill.
+          expect(receipt.remainingNow.minorUnits, 150000);
+          expect(receipt.note, isNull, reason: 'the note is off unless asked');
+        }
+        // The same number whichever part it was opened from.
+        final Set<String> numbers = <String>{
+          for (final Payment opened in split)
+            statements()
+                .buildReceipt(
+                  parts: await partsOf(ahmed, opened),
+                  personName: ahmed.name,
+                  now: now,
+                )
+                .number,
+        };
+        expect(numbers, hasLength(1));
+      },
+    );
+
+    test(
+      'the note is printed when asked, and only when the parts agree',
+      () async {
+        final Person ahmed = await person();
+        await debt(
+          ahmed,
+          title: 'كهرباء',
+          minor: 100000,
+          issuedAt: addDays(today, -20),
+        );
+        await debt(
+          ahmed,
+          title: 'ماء',
+          minor: 200000,
+          issuedAt: addDays(today, -19),
+        );
+        final List<Payment> split = await service.recordPersonPayment(
+          PersonPaymentDraft(
+            personId: ahmed.id,
+            direction: DebtDirection.iOwe,
+            currency: AppCurrency.inr,
+            amountMinor: 150000,
+            paidAt: today,
+            note: 'حوالة واحدة',
+          ),
+        );
+        final List<({DebtView view, Payment payment})> parts = await partsOf(
+          ahmed,
+          split.first,
+        );
+        expect(
+          statements()
+              .buildReceipt(
+                parts: parts,
+                personName: ahmed.name,
+                now: now,
+                includeNote: true,
+              )
+              .note,
+          'حوالة واحدة',
+        );
+
+        // One part's note edited afterwards: no note is picked at random.
+        await service.updatePayment(
+          split.last.id,
+          PaymentDraft(
+            amountMinor: split.last.amountMinor,
+            paidAt: split.last.paidAt,
+            note: 'ملاحظة أخرى',
+          ),
+        );
+        final List<({DebtView view, Payment payment})> edited = await partsOf(
+          ahmed,
+          split.first,
+        );
+        expect(edited, hasLength(2), reason: 'editing a note keeps the group');
+        expect(
+          statements()
+              .buildReceipt(
+                parts: edited,
+                personName: ahmed.name,
+                now: now,
+                includeNote: true,
+              )
+              .note,
+          isNull,
+        );
+      },
+    );
+
+    test('two payments recorded separately are two receipts', () async {
+      final Person ahmed = await person();
+      final Debt first = await debt(
+        ahmed,
+        title: 'كهرباء',
+        minor: 100000,
+        issuedAt: addDays(today, -20),
+      );
+      final Debt second = await debt(
+        ahmed,
+        title: 'ماء',
+        minor: 200000,
+        issuedAt: addDays(today, -19),
+      );
+      // A clock that moves, as a phone's does: this file's shared one is
+      // frozen, and two writes at one frozen instant look like one payment.
+      int tick = 0;
+      final LedgerService ticking = buildService(
+        db,
+        clock: () => now.add(Duration(milliseconds: ++tick)),
+      );
+      final Payment one = await ticking.recordPayment(
+        first.id,
+        PaymentDraft(amountMinor: 10000, paidAt: today),
+      );
+      final Payment two = await ticking.recordPayment(
+        second.id,
+        PaymentDraft(amountMinor: 20000, paidAt: today),
+      );
+      expect(
+        one.createdAt,
+        isNot(two.createdAt),
+        reason: 'the fixture relies on two distinct moments',
+      );
+      expect(await partsOf(ahmed, one), hasLength(1));
+      expect(await partsOf(ahmed, two), hasLength(1));
+    });
   });
 }

@@ -435,7 +435,7 @@ void main() {
     expect(find.text('سند قبض'), findsOneWidget);
     expect(find.byType(PdfPreview), findsOneWidget);
     expect(find.text('مشاركة PDF'), findsOneWidget);
-    expect(find.byTooltip('اسم المُصدر'), findsOneWidget);
+    expect(find.byTooltip('خيارات السند'), findsOneWidget);
 
     // Owed by the user: the user paid it.
     await pumpReceipt(DebtDirection.iOwe);

@@ -55,6 +55,7 @@ void main() {
     String? title = 'فاتورة خدمات',
     String? note,
     int amountMinor = 900000,
+    List<ReceiptLine> lines = const <ReceiptLine>[],
   }) =>
       ReceiptData(
         number: 'RCP-20261113-1438-4821',
@@ -68,6 +69,7 @@ void main() {
         remainingNow: const Money(250000, AppCurrency.inr),
         debtTitle: title,
         note: note,
+        lines: lines,
       );
 
   Future<PdfInspection> render(ReceiptData data) async {
@@ -222,6 +224,63 @@ void main() {
         '₹ 9,000',
       );
       expectInsideMargins(page);
+    });
+  });
+
+  group('a payment spread over several debts', () {
+    const List<ReceiptLine> lines = <ReceiptLine>[
+      ReceiptLine(
+        debtTitle: 'Electricity',
+        amount: Money(100000, AppCurrency.inr),
+        remainingNow: Money(0, AppCurrency.inr),
+      ),
+      ReceiptLine(
+        debtTitle: 'Water',
+        amount: Money(50000, AppCurrency.inr),
+        remainingNow: Money(150000, AppCurrency.inr),
+      ),
+    ];
+
+    test('states the total, and where each share went', () async {
+      final PdfInspection page = await render(
+        receipt(
+          language: AppLanguage.english,
+          title: null,
+          amountMinor: 150000,
+          lines: lines,
+        ),
+      );
+      final String all = words(page);
+      expect(all, contains(' ₹ 1,500 '), reason: 'the money that changed hands');
+      expect(all, contains(' Electricity '));
+      expect(all, contains(' Water '));
+      expect(all, contains(' ₹ 1,000 '));
+      expect(all, contains(' ₹ 500 '));
+      expect(page.pageCount, 1);
+      expectInsideMargins(page);
+    });
+
+    test('an Arabic split receipt stays inside the page', () async {
+      final PdfInspection page = await render(
+        receipt(
+          title: null,
+          amountMinor: 150000,
+          lines: const <ReceiptLine>[
+            ReceiptLine(
+              debtTitle: 'مشاركة في مصاريف رحلة الصيف الطويلة إلى الجنوب',
+              amount: Money(100000, AppCurrency.inr),
+              remainingNow: Money(0, AppCurrency.inr),
+            ),
+            ReceiptLine(
+              debtTitle: 'ماء',
+              amount: Money(50000, AppCurrency.inr),
+              remainingNow: Money(150000, AppCurrency.inr),
+            ),
+          ],
+        ),
+      );
+      expectInsideMargins(page);
+      expect(words(page), contains(' ${visual('ماء')} '));
     });
   });
 

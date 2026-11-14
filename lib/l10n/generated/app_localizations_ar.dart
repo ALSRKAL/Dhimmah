@@ -3124,4 +3124,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get receiptAction => 'إيصال PDF';
+
+  @override
+  String get receiptOptionsTitle => 'خيارات السند';
 }

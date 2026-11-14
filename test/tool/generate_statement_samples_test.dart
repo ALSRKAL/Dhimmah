@@ -299,8 +299,10 @@ void main() {
         localizations: l10n,
         formatting: formatting,
       ).buildReceipt(
-        view: view,
-        payment: payment,
+        parts: <({DebtView view, Payment payment})>[
+          (view: view, payment: payment),
+        ],
+        includeNote: true,
         personName: target.name,
         now: today,
         issuerName: issuerName,

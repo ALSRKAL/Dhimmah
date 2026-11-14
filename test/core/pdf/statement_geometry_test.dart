@@ -426,6 +426,46 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       expectInsideMargins(page, 'long issuer');
     });
 
+    test("a payment's note is printed under it only with notes on", () async {
+      String words(PdfInspection page) =>
+          page.runs.map((PdfRun run) => run.text).join(' ');
+      final PdfInspection off = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            paymentNote: 'Bank transfer 7741',
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      expect(words(off), isNot(contains('7741')),
+          reason: 'off by default: a note is often the user\'s own reminder');
+
+      final PdfInspection on = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            paymentNote: 'Bank transfer 7741',
+            options: const StatementOptions(includeNotes: true),
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      expect(words(on), contains('7741'));
+      expectInsideMargins(on, 'payment notes');
+
+      final PdfInspection arabic = inspectPdf(
+        await render(
+          _arabicStatement(
+            paymentNote: 'حوالة بنكية رقم 7741 من حساب الراتب ' * 3,
+            options: const StatementOptions(includeNotes: true),
+          ),
+        ),
+      );
+      expect(words(arabic), contains(visual('حوالة')));
+      expectInsideMargins(arabic, 'long Arabic payment notes');
+    });
+
     test('a statement of one debt names the debt', () async {
       // With one debt there is no breakdown table, and the title used to
       // appear nowhere on the page.
@@ -970,6 +1010,7 @@ StatementData _arabicStatement({
   List<String> extraDebts = const <String>[],
   DebtDirection direction = DebtDirection.iOwe,
   StatementOptions options = const StatementOptions(),
+  String? paymentNote,
 }) {
   const AppCurrency currency = AppCurrency.inr;
   final DateTime today = DateTime(2026, 9, 23);
@@ -1020,6 +1061,7 @@ StatementData _arabicStatement({
           balanceDirection: direction,
           currency: currency,
           debtTitle: i == 1 ? 'سلفة شخصية' : null,
+          note: i.isEven ? paymentNote : null,
         ),
     ],
     options: options,

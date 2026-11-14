@@ -1586,5 +1586,6 @@
   "receiptFor": "For",
   "receiptRemainingNow": "Remaining on the debt now",
   "receiptSignature": "Signature",
-  "receiptAction": "PDF receipt"
+  "receiptAction": "PDF receipt",
+  "receiptOptionsTitle": "Receipt options"
 }

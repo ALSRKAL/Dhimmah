@@ -496,6 +496,134 @@ abstract class _Sheet {
       ),
     );
   }
+  /// One table implementation for both statements.
+  ///
+  /// A repeating header and a row that may not split keep a long payment history
+  /// legible across a page break, which is where generated statements usually
+  /// fall apart.
+  ///
+  /// The column order is reversed for a right-to-left document. This is the one
+  /// place the direction is handled by hand, because the renderer's table lays
+  /// its columns out by index and takes no direction — and a `Directionality`
+  /// wrapper is not an option, since it would hide the table from the
+  /// multi-page splitter.
+  pw.Widget _table({
+    required List<String> headers,
+    required List<List<String>> rows,
+    required List<double> widthFractions,
+    required int numericFrom,
+    List<String>? totalRow,
+  }) {
+    final List<int> order = _isRtl
+        ? List<int>.generate(headers.length, (int i) => headers.length - 1 - i)
+        : List<int>.generate(headers.length, (int i) => i);
+
+    /// Whether a column's content sits on the far side of the reading order.
+    bool atEndFor(int column) => column >= numericFrom;
+
+    final double fractionTotal =
+        widthFractions.fold<double>(0, (double a, double b) => a + b);
+    double widthOf(int column) =>
+        _contentWidth * widthFractions[column] / fractionTotal;
+
+    pw.TableRow header() => pw.TableRow(
+          repeat: true,
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+              bottom: pw.BorderSide(color: DocumentColors.brand),
+            ),
+          ),
+          children: <pw.Widget>[
+            for (final int column in order)
+              _cell(
+                headers[column],
+                atEnd: atEndFor(column),
+                bold: true,
+                color: DocumentColors.brand,
+                size: 9,
+                maxWidth: widthOf(column),
+                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
+              ),
+          ],
+        );
+
+    pw.TableRow row(List<String> values, int index, {bool isTotal = false}) =>
+        pw.TableRow(
+          decoration: pw.BoxDecoration(
+            color: isTotal
+                ? DocumentColors.brandTint
+                : (index.isEven ? DocumentColors.rowTint : null),
+            border: const pw.Border(
+              bottom: pw.BorderSide(color: DocumentColors.border, width: 0.6),
+            ),
+          ),
+          children: <pw.Widget>[
+            for (final int column in order)
+              _cell(
+                column < values.length ? values[column] : '',
+                atEnd: atEndFor(column),
+                bold: isTotal,
+                color: isTotal ? DocumentColors.brand : DocumentColors.ink,
+                size: 9.5,
+                maxWidth: widthOf(column),
+                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
+              ),
+          ],
+        );
+
+    return pw.Table(
+      // The renderer keys a width by where the cell is drawn, not by which
+      // column it holds. Keyed by column, a right-to-left table gave the debt
+      // title the due date's narrow width and the due date the title's.
+      columnWidths: <int, pw.TableColumnWidth>{
+        for (int position = 0; position < order.length; position++)
+          position: pw.FlexColumnWidth(widthFractions[order[position]] * 10),
+      },
+      defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
+      children: <pw.TableRow>[
+        header(),
+        for (int i = 0; i < rows.length; i++) row(rows[i], i),
+        if (totalRow != null)
+          row(totalRow, rows.length, isTotal: true),
+      ],
+    );
+  }
+
+  /// One cell.
+  ///
+  /// The text is not wrapped here and no width is measured for it. It is handed
+  /// the cell's own width and the renderer breaks the lines — which is the whole
+  /// point: the width that is measured and the width that is drawn are then the
+  /// same string, so a cell cannot overflow its column. This file used to wrap
+  /// in logical order and draw in shaped order, and the two disagreed by a third
+  /// on Arabic, which pushed the end of a long debt title off the page.
+  pw.Widget _cell(
+    String value, {
+    required bool atEnd,
+    required double size,
+    required pw.EdgeInsets padding,
+    bool bold = false,
+    PdfColor? color,
+    double? maxWidth,
+  }) {
+    return pw.Padding(
+      padding: padding,
+      child: pw.Align(
+        alignment: atEnd ? _alignEnd : _alignStart,
+        child: _text(
+          value,
+          atEnd: atEnd,
+          style: pw.TextStyle(
+            fontSize: size,
+            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+            color: color ?? DocumentColors.ink,
+          ),
+          maxWidth: maxWidth == null ? null : maxWidth - padding.horizontal,
+        ),
+      ),
+    );
+  }
+
 }
 
 /// Renders a debt statement as a real document.
@@ -1200,7 +1328,7 @@ class StatementDocument extends _Sheet {
       for (final StatementEntry entry in data.entries)
         <String>[
           formatting.date(entry.date),
-          _entryLabel(entry),
+          _entryLabel(entry, withNote: data.options.includeNotes),
           entry.kind == StatementEntryKind.debtCreated
               ? _money(entry.amount)
               : '',
@@ -1235,7 +1363,12 @@ class StatementDocument extends _Sheet {
   /// It no longer says whose — «دين عليّ», «دفعة مستلمة» — because those were
   /// the maker's words. Which column the amount sits in says what happened, and
   /// the balance beside it says where that leaves the two parties.
-  String _entryLabel(StatementEntry entry) {
+  ///
+  /// With [withNote] a payment's own note is set on a second line under it. A
+  /// payment made against several debts at once carries the same note on each
+  /// of its lines, so each says where its money came from. Off unless the
+  /// statement's notes option is on: a note is often the user's own reminder.
+  String _entryLabel(StatementEntry entry, {bool withNote = false}) {
     final String base = switch (entry.kind) {
       StatementEntryKind.debtCreated => localizations.reportEntryDebt,
       StatementEntryKind.payment => localizations.reportEntryPayment,
@@ -1244,8 +1377,11 @@ class StatementDocument extends _Sheet {
     // Which debt the line belongs to, when there is more than one to tell
     // apart. A payment used to be named by nothing at all.
     final String? title = entry.debtTitle;
-    if (title != null && data.debts.length > 1) return '$base · $title';
-    return base;
+    final String label =
+        title != null && data.debts.length > 1 ? '$base · $title' : base;
+    final String? note = entry.note?.trim();
+    if (!withNote || note == null || note.isEmpty) return label;
+    return '$label\n$note';
   }
 
   /// The balance after a line. With debts on both sides the figure alone does
@@ -1260,134 +1396,6 @@ class StatementDocument extends _Sheet {
     final DebtDirection? side = entry.balanceDirection;
     if (!data.isMixed || side == null) return amount;
     return '${_sideWord(side)} · $amount';
-  }
-
-  /// One table implementation for both statements.
-  ///
-  /// A repeating header and a row that may not split keep a long payment history
-  /// legible across a page break, which is where generated statements usually
-  /// fall apart.
-  ///
-  /// The column order is reversed for a right-to-left document. This is the one
-  /// place the direction is handled by hand, because the renderer's table lays
-  /// its columns out by index and takes no direction — and a `Directionality`
-  /// wrapper is not an option, since it would hide the table from the
-  /// multi-page splitter.
-  pw.Widget _table({
-    required List<String> headers,
-    required List<List<String>> rows,
-    required List<double> widthFractions,
-    required int numericFrom,
-    List<String>? totalRow,
-  }) {
-    final List<int> order = _isRtl
-        ? List<int>.generate(headers.length, (int i) => headers.length - 1 - i)
-        : List<int>.generate(headers.length, (int i) => i);
-
-    /// Whether a column's content sits on the far side of the reading order.
-    bool atEndFor(int column) => column >= numericFrom;
-
-    final double fractionTotal =
-        widthFractions.fold<double>(0, (double a, double b) => a + b);
-    double widthOf(int column) =>
-        _contentWidth * widthFractions[column] / fractionTotal;
-
-    pw.TableRow header() => pw.TableRow(
-          repeat: true,
-          decoration: const pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: DocumentColors.brand),
-            ),
-          ),
-          children: <pw.Widget>[
-            for (final int column in order)
-              _cell(
-                headers[column],
-                atEnd: atEndFor(column),
-                bold: true,
-                color: DocumentColors.brand,
-                size: 9,
-                maxWidth: widthOf(column),
-                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
-              ),
-          ],
-        );
-
-    pw.TableRow row(List<String> values, int index, {bool isTotal = false}) =>
-        pw.TableRow(
-          decoration: pw.BoxDecoration(
-            color: isTotal
-                ? DocumentColors.brandTint
-                : (index.isEven ? DocumentColors.rowTint : null),
-            border: const pw.Border(
-              bottom: pw.BorderSide(color: DocumentColors.border, width: 0.6),
-            ),
-          ),
-          children: <pw.Widget>[
-            for (final int column in order)
-              _cell(
-                column < values.length ? values[column] : '',
-                atEnd: atEndFor(column),
-                bold: isTotal,
-                color: isTotal ? DocumentColors.brand : DocumentColors.ink,
-                size: 9.5,
-                maxWidth: widthOf(column),
-                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
-              ),
-          ],
-        );
-
-    return pw.Table(
-      // The renderer keys a width by where the cell is drawn, not by which
-      // column it holds. Keyed by column, a right-to-left table gave the debt
-      // title the due date's narrow width and the due date the title's.
-      columnWidths: <int, pw.TableColumnWidth>{
-        for (int position = 0; position < order.length; position++)
-          position: pw.FlexColumnWidth(widthFractions[order[position]] * 10),
-      },
-      defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
-      children: <pw.TableRow>[
-        header(),
-        for (int i = 0; i < rows.length; i++) row(rows[i], i),
-        if (totalRow != null)
-          row(totalRow, rows.length, isTotal: true),
-      ],
-    );
-  }
-
-  /// One cell.
-  ///
-  /// The text is not wrapped here and no width is measured for it. It is handed
-  /// the cell's own width and the renderer breaks the lines — which is the whole
-  /// point: the width that is measured and the width that is drawn are then the
-  /// same string, so a cell cannot overflow its column. This file used to wrap
-  /// in logical order and draw in shaped order, and the two disagreed by a third
-  /// on Arabic, which pushed the end of a long debt title off the page.
-  pw.Widget _cell(
-    String value, {
-    required bool atEnd,
-    required double size,
-    required pw.EdgeInsets padding,
-    bool bold = false,
-    PdfColor? color,
-    double? maxWidth,
-  }) {
-    return pw.Padding(
-      padding: padding,
-      child: pw.Align(
-        alignment: atEnd ? _alignEnd : _alignStart,
-        child: _text(
-          value,
-          atEnd: atEnd,
-          style: pw.TextStyle(
-            fontSize: size,
-            fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
-            color: color ?? DocumentColors.ink,
-          ),
-          maxWidth: maxWidth == null ? null : maxWidth - padding.horizontal,
-        ),
-      ),
-    );
   }
 
   pw.Widget _notesBlock(String notes) {

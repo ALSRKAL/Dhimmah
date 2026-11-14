@@ -8,7 +8,6 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/providers.dart';
-import '../../core/pdf/statement_models.dart';
 import '../../core/share/share_origin.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
@@ -17,6 +16,7 @@ import '../../core/widgets/bottom_sheet_shell.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/form_fields.dart';
+import '../../core/widgets/settings_tile.dart';
 import '../../data/services/statement_service.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/payment.dart';
@@ -55,6 +55,10 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
   /// The user's own name on the receipt. Typed here and kept only while the
   /// screen is open: the app stores no name for its user.
   String _issuerName = '';
+
+  /// Whether the payment's note is printed. Off unless asked for: a note is
+  /// often the user's own reminder, and a receipt is handed to the other party.
+  bool _includeNote = false;
   bool _busy = false;
 
   /// Counts retries after a failed preview; part of the preview's key.
@@ -67,17 +71,60 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
     return names.isNotEmpty ? names : widget.view.displayName;
   }
 
-  ReceiptData _data(StatementService service) => service.buildReceipt(
-        view: widget.view,
-        payment: widget.payment,
-        personName: _personName,
+  /// Every part of the payment this receipt is for, each with its debt.
+  ///
+  /// A payment recorded from a person's page against several debts is several
+  /// rows; the receipt is for all of them, however it was opened. Read fresh
+  /// each time, so a part edited or removed since is reflected. Falls back to
+  /// the one row it was opened on if anything cannot be matched.
+  Future<List<({DebtView view, Payment payment})>> _parts() async {
+    final List<({DebtView view, Payment payment})> single =
+        <({DebtView view, Payment payment})>[
+      (view: widget.view, payment: widget.payment),
+    ];
+    final String? personId = widget.payment.personId;
+    if (personId == null) return single;
+    final List<Payment> personPayments = await ref
+        .read(paymentRepositoryProvider)
+        .watchForPerson(personId)
+        .first;
+    final List<Payment> group =
+        StatementService.paymentGroupOf(widget.payment, personPayments);
+    if (group.length < 2) return single;
+    final PersonLedger? ledger =
+        await ref.read(personLedgerProvider(personId).future);
+    if (ledger == null) return single;
+    final Map<String, DebtView> byId = <String, DebtView>{
+      for (final DebtView view in ledger.debts) view.debt.id: view,
+    };
+    final List<({DebtView view, Payment payment})> parts =
+        <({DebtView view, Payment payment})>[
+      for (final Payment payment in group)
+        if (byId[payment.debtId] != null)
+          (view: byId[payment.debtId]!, payment: payment),
+    ];
+    return parts.length == group.length ? parts : single;
+  }
+
+  Future<File> _render() async {
+    final StatementService service = ref.read(statementServiceProvider);
+    final List<({DebtView view, Payment payment})> parts = await _parts();
+    // A split payment is from the person, not from one record's participants.
+    String personName = _personName;
+    if (parts.length > 1 && widget.payment.personId != null) {
+      final PersonLedger? ledger = await ref
+          .read(personLedgerProvider(widget.payment.personId!).future);
+      if (ledger != null) personName = ledger.person.name;
+    }
+    return service.renderReceipt(
+      service.buildReceipt(
+        parts: parts,
+        personName: personName,
         now: DateTime.now(),
         issuerName: _issuerName,
-      );
-
-  Future<File> _render() {
-    final StatementService service = ref.read(statementServiceProvider);
-    return service.renderReceipt(_data(service));
+        includeNote: _includeNote,
+      ),
+    );
   }
 
   Future<void> _run(Future<void> Function(File file) action) async {
@@ -116,13 +163,26 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
         );
       });
 
-  Future<void> _editIssuer() async {
-    final String? name = await showAppSheet<String>(
+  Future<void> _editOptions() async {
+    final String note = widget.payment.note?.trim() ?? '';
+    final ({String issuer, bool includeNote})? result =
+        await showAppSheet<({String issuer, bool includeNote})>(
       context,
-      child: _IssuerSheet(initial: _issuerName),
+      child: _ReceiptOptionsSheet(
+        initialIssuer: _issuerName,
+        initialIncludeNote: _includeNote,
+        // Offered only when there is a note to print.
+        hasNote: note.isNotEmpty,
+      ),
     );
-    if (name == null || !mounted || name == _issuerName) return;
-    setState(() => _issuerName = name);
+    if (result == null || !mounted) return;
+    if (result.issuer == _issuerName && result.includeNote == _includeNote) {
+      return;
+    }
+    setState(() {
+      _issuerName = result.issuer;
+      _includeNote = result.includeNote;
+    });
   }
 
   @override
@@ -138,9 +198,9 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
         title: Text(title),
         actions: <Widget>[
           IconButton(
-            tooltip: localizations.reportOptionIssuer,
-            icon: const Icon(AppIcons.person, size: 20),
-            onPressed: _editIssuer,
+            tooltip: localizations.receiptOptionsTitle,
+            icon: const Icon(AppIcons.tune, size: 20),
+            onPressed: _editOptions,
           ),
         ],
       ),
@@ -148,7 +208,7 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
         children: <Widget>[
           Expanded(
             child: PdfPreview(
-              key: ValueKey<Object>((_issuerName, _attempt)),
+              key: ValueKey<Object>((_issuerName, _includeNote, _attempt)),
               build: (PdfPageFormat format) async =>
                   (await _render()).readAsBytes(),
               canChangeOrientation: false,
@@ -218,19 +278,26 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
   }
 }
 
-/// One field: the name the receipt is issued under.
-class _IssuerSheet extends StatefulWidget {
-  const _IssuerSheet({required this.initial});
+/// What the receipt carries beyond the payment: the issuer's name, and the note.
+class _ReceiptOptionsSheet extends StatefulWidget {
+  const _ReceiptOptionsSheet({
+    required this.initialIssuer,
+    required this.initialIncludeNote,
+    required this.hasNote,
+  });
 
-  final String initial;
+  final String initialIssuer;
+  final bool initialIncludeNote;
+  final bool hasNote;
 
   @override
-  State<_IssuerSheet> createState() => _IssuerSheetState();
+  State<_ReceiptOptionsSheet> createState() => _ReceiptOptionsSheetState();
 }
 
-class _IssuerSheetState extends State<_IssuerSheet> {
+class _ReceiptOptionsSheetState extends State<_ReceiptOptionsSheet> {
   late final TextEditingController _name =
-      TextEditingController(text: widget.initial);
+      TextEditingController(text: widget.initialIssuer);
+  late bool _includeNote = widget.initialIncludeNote;
 
   @override
   void dispose() {
@@ -242,18 +309,32 @@ class _IssuerSheetState extends State<_IssuerSheet> {
   Widget build(BuildContext context) {
     final AppLocalizations localizations = AppLocalizations.of(context);
     return AppSheet(
-      title: localizations.reportOptionIssuer,
+      title: localizations.receiptOptionsTitle,
       primaryLabel: localizations.filterApply,
-      onPrimary: () => Navigator.of(context).pop(_name.text.trim()),
-      child: AppTextField(
-        label: localizations.reportOptionIssuer,
-        controller: _name,
-        helperText: localizations.reportOptionIssuerHint,
-        prefixIcon: AppIcons.person,
-        textCapitalization: TextCapitalization.words,
-        textInputAction: TextInputAction.done,
-        maxLength: 60,
-        autofocus: true,
+      onPrimary: () => Navigator.of(context).pop(
+        (issuer: _name.text.trim(), includeNote: _includeNote),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          AppTextField(
+            label: localizations.reportOptionIssuer,
+            controller: _name,
+            helperText: localizations.reportOptionIssuerHint,
+            prefixIcon: AppIcons.person,
+            textCapitalization: TextCapitalization.words,
+            textInputAction: TextInputAction.done,
+            maxLength: 60,
+          ),
+          if (widget.hasNote)
+            SettingsSwitchTile(
+              title: localizations.reportOptionNotes,
+              subtitle: localizations.paymentNote,
+              icon: AppIcons.notes,
+              value: _includeNote,
+              onChanged: (bool value) => setState(() => _includeNote = value),
+            ),
+        ],
       ),
     );
   }

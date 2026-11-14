@@ -152,6 +152,42 @@ class ReceiptDocument extends _Sheet {
           gap(),
           _summaryFact(localizations.receiptFor, title),
         ],
+        // One payment spread over several debts: where each share went, and
+        // what each debt has left. The total is the figure above.
+        if (data.isSplit) ...<pw.Widget>[
+          pw.SizedBox(height: 10),
+          _text(
+            '${localizations.receiptFor}:',
+            style: const pw.TextStyle(
+              fontSize: 9,
+              color: DocumentColors.secondary,
+            ),
+          ),
+          pw.SizedBox(height: 4),
+          _table(
+            headers: <String>[
+              localizations.reportColumnDebt,
+              localizations.reportColumnAmount,
+              localizations.receiptRemainingNow,
+            ],
+            rows: <List<String>>[
+              for (final ReceiptLine line in data.lines)
+                <String>[
+                  line.debtTitle,
+                  _money(line.amount),
+                  _money(line.remainingNow),
+                ],
+            ],
+            widthFractions: const <double>[0.46, 0.24, 0.30],
+            numericFrom: 1,
+            totalRow: <String>[
+              localizations.totalLabel,
+              _money(data.amount),
+              _money(data.remainingNow),
+            ],
+          ),
+          pw.SizedBox(height: 4),
+        ],
         gap(),
         _summaryFact(
           localizations.receiptRemainingNow,
