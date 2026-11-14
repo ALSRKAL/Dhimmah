@@ -31,6 +31,64 @@ void main() {
     });
   });
 
+  group('the icon family', () {
+    final String source =
+        File('lib/core/theme/app_icons.dart').readAsStringSync();
+    final List<RegExpMatch> icons = RegExp(
+      r'static const IconData (\w+) = IconData\(([^)]*)\)',
+    ).allMatches(source).toList();
+
+    test('every icon is Phosphor, regular or fill', () {
+      expect(icons, hasLength(greaterThan(100)));
+      for (final RegExpMatch icon in icons) {
+        final String body = icon.group(2)!;
+        expect(
+          body,
+          contains("fontPackage: 'phosphor_flutter'"),
+          reason: '${icon.group(1)} is not from the Phosphor package',
+        );
+        expect(
+          RegExp(r"fontFamily: 'Phosphor(Regular|Fill)'").hasMatch(body),
+          isTrue,
+          reason: '${icon.group(1)} is in a weight the design does not use',
+        );
+      }
+    });
+
+    test('only icons that point mirror in Arabic', () {
+      // The package marks every icon as mirroring. In a right-to-left layout
+      // that flips a bell, a wallet and the tick on a paid debt, so the file
+      // builds its own and mirrors exactly the seven the Material set did.
+      final Set<String> mirrored = <String>{
+        for (final RegExpMatch icon in icons)
+          if (icon.group(2)!.contains('matchTextDirection: true'))
+            icon.group(1)!,
+      };
+      expect(mirrored, <String>{
+        'backspace',
+        'callSplit',
+        'chevronLeft',
+        'chevronRight',
+        'label',
+        'listAlt',
+        'undo',
+      });
+    });
+
+    test("no screen takes an icon from the package's own constants", () {
+      // Those carry the mirroring this file exists to avoid.
+      final List<String> offenders = <String>[
+        for (final FileSystemEntity entity
+            in Directory('lib').listSync(recursive: true))
+          if (entity is File &&
+              entity.path.endsWith('.dart') &&
+              entity.readAsStringSync().contains('PhosphorIcons'))
+            entity.path,
+      ];
+      expect(offenders, isEmpty);
+    });
+  });
+
   Widget host(Widget child, {bool reduceMotion = false}) => MaterialApp(
         home: MediaQuery(
           data: MediaQueryData(disableAnimations: reduceMotion),

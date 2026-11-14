@@ -245,10 +245,22 @@ One family, reached through one file. Every icon in the app is named in
 be changed in one place, and two screens cannot pick two different pictures for
 the same idea, which is how an icon set drifts.
 
-The names are, for now, those of the pictures (`AppIcons.calendarToday`),
-carried over one for one from the Material set so that introducing the file
-changed nothing on screen. The set itself is still Material; replacing it is a
-change to that one file.
+The family is **Phosphor** (`phosphor_flutter`), regular weight, with the fill
+weight for selected states only. The names are still those of the Material
+pictures they replaced (`AppIcons.calendarToday`), so the switch touched no
+screen.
+
+The file builds each icon from its code point instead of using the package's
+constants, because the package marks *every* icon as mirroring in a
+right-to-left layout — in Arabic that flips a bell, a wallet and the tick on a
+paid debt. Here exactly seven mirror, the same seven the Material set did:
+`backspace`, `callSplit`, `chevronLeft`, `chevronRight`, `label`, `listAlt`,
+`undo`. A test pins that list and fails if a screen takes an icon from the
+package directly.
+
+Phosphor's regular weight is lighter than Material's outlined one. Where a
+regular glyph read as too faint at navigation size — the three dots of "More" —
+a sturdier glyph of the same family was chosen rather than a different weight.
 
 The rules the names follow:
 
