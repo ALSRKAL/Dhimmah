@@ -91,63 +91,78 @@ class _ObligationActionButtonsState
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          IconButton.outlined(
-            tooltip: localizations.obligationSkip,
-            onPressed: _busy
-                ? null
-                : () => _run(
-                      () => ref
-                          .read(ledgerServiceProvider)
-                          .skipObligationPeriod(widget.instance),
-                      localizations.obligationMarkedSkipped,
-                    ),
-            icon: const Icon(AppIcons.skipNext, size: 20),
-            style: IconButton.styleFrom(
-              minimumSize: const Size(52, 52),
-              side: BorderSide(color: palette.borderStrong),
+          // Named, not a bare ▷| beside the primary button: on the device
+          // nobody could tell what it did without pressing it.
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () => _run(
+                        () => ref
+                            .read(ledgerServiceProvider)
+                            .skipObligationPeriod(widget.instance),
+                        localizations.obligationMarkedSkipped,
+                      ),
+              icon: const Icon(AppIcons.skipNext, size: 18),
+              label: Text(
+                localizations.obligationSkipShort,
+                maxLines: 2,
+                textAlign: TextAlign.center,
+              ),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: palette.borderStrong),
+              ),
             ),
           ),
         ],
       );
     }
 
-    // Two labelled actions in a row that can be as narrow as most of a
-    // 320-wide card: they share it equally and each label may take a second
-    // line. At their natural width they ran 230 pixels past the card, and the
-    // second button was simply not drawn.
+    // One labelled action and a menu. Two labelled buttons side by side took
+    // two lines each on a narrow card and only four cards fitted on a screen;
+    // skipping a period is the rarer act, so it waits behind ⋮ with its name.
     return Row(
       children: <Widget>[
         Expanded(
-          child: TextButton.icon(
-            onPressed: _busy ? null : () => _run(
-                      () => ref
-                          .read(ledgerServiceProvider)
-                          .markObligationPaid(widget.instance),
-                      localizations.obligationMarkedPaid,
-                    ),
-            icon: const Icon(AppIcons.taskAlt, size: 16),
-            label: Text(
-              localizations.obligationMarkPaid,
-              maxLines: 2,
-              textAlign: TextAlign.center,
+          child: Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: _busy ? null : () => _run(
+                        () => ref
+                            .read(ledgerServiceProvider)
+                            .markObligationPaid(widget.instance),
+                        localizations.obligationMarkedPaid,
+                      ),
+              icon: const Icon(AppIcons.taskAlt, size: 16),
+              label: Text(
+                localizations.obligationMarkPaid,
+                maxLines: 2,
+              ),
             ),
           ),
         ),
-        Expanded(
-          child: TextButton.icon(
-            onPressed: _busy ? null : () => _run(
-                      () => ref
-                          .read(ledgerServiceProvider)
-                          .skipObligationPeriod(widget.instance),
-                      localizations.obligationMarkedSkipped,
-                    ),
-            icon: const Icon(AppIcons.skipNext, size: 16),
-            label: Text(
-              localizations.obligationSkip,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-            ),
+        PopupMenuButton<String>(
+          tooltip: localizations.obligationMoreActions,
+          enabled: !_busy,
+          icon: const Icon(AppIcons.moreVert, size: 20),
+          onSelected: (_) => _run(
+            () => ref
+                .read(ledgerServiceProvider)
+                .skipObligationPeriod(widget.instance),
+            localizations.obligationMarkedSkipped,
           ),
+          itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
+            PopupMenuItem<String>(
+              value: 'skip',
+              child: Row(
+                children: <Widget>[
+                  const Icon(AppIcons.skipNext, size: 18),
+                  const SizedBox(width: AppSpacing.md),
+                  Text(localizations.obligationSkip),
+                ],
+              ),
+            ),
+          ],
         ),
       ],
     );

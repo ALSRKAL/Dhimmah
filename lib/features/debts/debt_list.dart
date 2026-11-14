@@ -201,9 +201,20 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
       asOf: asOf,
     );
 
+    // Nothing on this side at all, and no filter of the user's own narrowing it:
+    // there is nothing to filter, sort or count, and "Filters · 0 records" above
+    // an empty state only repeated it.
+    final bool nothingToList =
+        _filter.isDefault &&
+        !widget.views.any(
+          (DebtView view) =>
+              widget.direction == null || view.debt.direction == widget.direction,
+        );
+
     return CustomScrollView(
       slivers: <Widget>[
         ...widget.headerSlivers,
+        if (!nothingToList)
         SliverToBoxAdapter(
           child: _ListControls(
             filter: effective,
@@ -214,6 +225,11 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
                 : null,
             onSort: (DebtSortOrder order) =>
                 setState(() => _filter = _filter.copyWith(sort: order)),
+            onClear: widget.presetFilter == null
+                ? () => setState(
+                    () => _filter = DebtListFilter(sort: _filter.sort),
+                  )
+                : null,
           ),
         ),
         if (sorted.isEmpty)
@@ -474,6 +490,7 @@ class _ListControls extends StatelessWidget {
     required this.sortLocked,
     this.onOpenFilters,
     required this.onSort,
+    this.onClear,
   });
 
   final DebtListFilter filter;
@@ -481,6 +498,10 @@ class _ListControls extends StatelessWidget {
   final bool sortLocked;
   final VoidCallback? onOpenFilters;
   final ValueChanged<DebtSortOrder> onSort;
+
+  /// Drops every filter at once, kept beside the count while any is on so a
+  /// narrowed list says so and can be widened without opening the sheet.
+  final VoidCallback? onClear;
 
   @override
   Widget build(BuildContext context) {
@@ -536,6 +557,12 @@ class _ListControls extends StatelessWidget {
                 maxLines: 2,
                 textAlign: TextAlign.center,
               ),
+            ),
+          if (onClear != null && filter.activeCount > 0)
+            IconButton(
+              tooltip: localizations.filterClearAll,
+              onPressed: onClear,
+              icon: const Icon(AppIcons.close, size: 18),
             ),
           if (!sortLocked)
             PopupMenuButton<DebtSortOrder>(

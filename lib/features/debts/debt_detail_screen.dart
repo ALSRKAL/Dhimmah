@@ -52,39 +52,6 @@ class DebtDetailScreen extends ConsumerWidget {
         ),
         actions: <Widget>[
           if (detail.value != null) ...<Widget>[
-            // One share affordance, and it asks before it sends. A single icon
-            // used to mean "quick text" on this screen while "Share statement"
-            // on a person's page meant a PDF file, so the same gesture gave two
-            // very different things and neither said which.
-            PopupMenuButton<_ShareChoice>(
-              tooltip: localizations.actionShare,
-              icon: const Icon(AppIcons.iosShare, size: 20),
-              onSelected: (_ShareChoice choice) => _share(
-                context,
-                ref,
-                detail.value!,
-                choice,
-              ),
-              itemBuilder: (BuildContext context) =>
-                  <PopupMenuEntry<_ShareChoice>>[
-                PopupMenuItem<_ShareChoice>(
-                  value: _ShareChoice.pdf,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(AppIcons.pictureAsPdf, size: 20),
-                    title: Text(localizations.actionSharePdf),
-                  ),
-                ),
-                PopupMenuItem<_ShareChoice>(
-                  value: _ShareChoice.text,
-                  child: ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: const Icon(AppIcons.notes, size: 20),
-                    title: Text(localizations.actionShareText),
-                  ),
-                ),
-              ],
-            ),
             IconButton(
               tooltip: localizations.actionEdit,
               icon: const Icon(AppIcons.edit, size: 20),
@@ -128,29 +95,72 @@ class DebtDetailScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _share(
-    BuildContext context,
-    WidgetRef ref,
-    DebtDetail data,
-    _ShareChoice choice,
-  ) async {
-    final AppLocalizations localizations = AppLocalizations.of(context);
-    if (choice == _ShareChoice.pdf) {
-      // The statement is a person's, not a single record's: it is the whole
-      // balance as they will see it. A record with nobody on it has none.
-      final String? personId = data.view.debt.personId;
-      if (personId == null) {
-        AppFeedback.error(context, localizations.somethingWentWrong);
-        return;
-      }
-      await showStatement(context, personId, debtId: data.view.debt.id);
+}
+
+/// Shares one debt as the person's statement or as a short text.
+Future<void> _shareDebt(
+  BuildContext context,
+  DebtView view,
+  _ShareChoice choice,
+) async {
+  final AppLocalizations localizations = AppLocalizations.of(context);
+  if (choice == _ShareChoice.pdf) {
+    // The statement is a person's, not a single record's: it is the whole
+    // balance as they will see it. A record with nobody on it has none.
+    final String? personId = view.debt.personId;
+    if (personId == null) {
+      AppFeedback.error(context, localizations.somethingWentWrong);
       return;
     }
-    final ShareService service = ShareService(
-      localizations: localizations,
-      formatting: context.formatting,
+    await showStatement(context, personId, debtId: view.debt.id);
+    return;
+  }
+  final ShareService service = ShareService(
+    localizations: localizations,
+    formatting: context.formatting,
+  );
+  await service.shareText(service.debtSummary(view));
+}
+
+/// The one share control on a debt, at the bottom where the thumb is.
+///
+/// There used to be two: a menu in the top bar offering the statement or a
+/// text, and an icon at the bottom that silently sent the text. The same mark
+/// did two different things depending on where it was pressed.
+class _ShareButton extends StatelessWidget {
+  const _ShareButton({required this.view});
+
+  final DebtView view;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final AppPalette palette = context.palette;
+    return MenuAnchor(
+      menuChildren: <Widget>[
+        MenuItemButton(
+          leadingIcon: const Icon(AppIcons.pictureAsPdf, size: 20),
+          onPressed: () => _shareDebt(context, view, _ShareChoice.pdf),
+          child: Text(localizations.actionSharePdf),
+        ),
+        MenuItemButton(
+          leadingIcon: const Icon(AppIcons.notes, size: 20),
+          onPressed: () => _shareDebt(context, view, _ShareChoice.text),
+          child: Text(localizations.actionShareText),
+        ),
+      ],
+      builder: (BuildContext context, MenuController controller, Widget? _) =>
+          IconButton.outlined(
+            tooltip: localizations.actionShare,
+            onPressed: () =>
+                controller.isOpen ? controller.close() : controller.open(),
+            icon: const Icon(AppIcons.iosShare, size: 20),
+            style: IconButton.styleFrom(
+              minimumSize: const Size(52, 52),
+              side: BorderSide(color: palette.borderStrong),
+            ),
+          ),
     );
-    await service.shareText(service.debtSummary(data.view));
   }
 }
 
@@ -169,6 +179,8 @@ class _OverflowMenu extends ConsumerWidget {
     final DebtDetail? detail = ref.watch(debtDetailProvider(debtId)).value;
 
     return PopupMenuButton<String>(
+      // Its own name, not the system's generic "Show menu".
+      tooltip: localizations.debtMoreActions,
       icon: const Icon(AppIcons.moreVert, size: 20),
       onSelected: (String action) async {
         final LedgerService service = ref.read(ledgerServiceProvider);
@@ -414,7 +426,9 @@ class _BalanceCard extends StatelessWidget {
             label: localizations.detailPaid,
             money: view.paid,
             emphasis: false,
-            color: palette.settled,
+            // Green is for money that has moved. "Paid ₹ 0" in green read as
+            // good news about nothing.
+            color: view.paidMinor > 0 ? palette.settled : palette.textSecondary,
           ),
           const AppDivider(),
           const SizedBox(height: AppSpacing.xs),
@@ -506,7 +520,10 @@ class _FactsCard extends ConsumerWidget {
             label: localizations.detailDueOn,
             value: due == null
                 ? localizations.dateNoDueDate
-                : '${formatting.date(due)} · ${formatting.relativeDue(due, DateTime.now())}',
+                : formatting.date(due),
+            secondary: due == null
+                ? null
+                : formatting.relativeDue(due, DateTime.now()),
           ),
           if (leads.isNotEmpty)
             DetailRow(
@@ -514,12 +531,9 @@ class _FactsCard extends ConsumerWidget {
               label: localizations.fieldReminder,
               // A reminder that cannot arrive is stated as such here too: the
               // record must not promise a notification the phone will not show.
-              value: reminderUnavailableReason == null
-                  ? leads.join(' · ')
-                  : '${leads.join(' · ')} — $reminderUnavailableReason',
-              valueColor: reminderUnavailableReason == null
-                  ? null
-                  : context.palette.dueSoon,
+              value: leads.join(' · '),
+              footnote: reminderUnavailableReason,
+              footnoteColor: context.palette.dueSoon,
             ),
           if (view.participants.isNotEmpty)
             DetailRow(
@@ -527,7 +541,9 @@ class _FactsCard extends ConsumerWidget {
               label: localizations.fieldPeople,
               value: view.participants
                   .map((Person person) => person.name)
-                  .join('، '),
+                  // The interface language's own comma: «،» in Arabic, ","
+                  // in English, whatever script the names are in.
+                  .join(localizations.listSeparator),
             ),
           if (view.debt.isRecurring)
             DetailRow(
@@ -569,7 +585,6 @@ class _BottomAction extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations localizations = AppLocalizations.of(context);
-    final AppPalette palette = context.palette;
 
     // Payments are paused on a legacy shared debt: recording one here would
     // settle every participant at once. The split replaces the payment action
@@ -596,6 +611,7 @@ class _BottomAction extends ConsumerWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
+            _ShareButton(view: view),
           ],
         ),
       );
@@ -620,21 +636,7 @@ class _BottomAction extends ConsumerWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          IconButton.outlined(
-            tooltip: localizations.actionShare,
-            onPressed: () async {
-              final ShareService service = ShareService(
-                localizations: localizations,
-                formatting: context.formatting,
-              );
-              await service.shareText(service.debtSummary(view));
-            },
-            icon: const Icon(AppIcons.iosShare, size: 20),
-            style: IconButton.styleFrom(
-              minimumSize: const Size(52, 52),
-              side: BorderSide(color: palette.borderStrong),
-            ),
-          ),
+          _ShareButton(view: view),
         ],
       ),
     );

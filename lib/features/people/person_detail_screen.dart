@@ -150,6 +150,7 @@ class _PersonMenu extends ConsumerWidget {
     final AppPalette palette = context.palette;
 
     return PopupMenuButton<String>(
+      tooltip: localizations.personMoreActions,
       icon: const Icon(AppIcons.moreVert, size: 20),
       onSelected: (String action) async {
         final LedgerService service = ref.read(ledgerServiceProvider);

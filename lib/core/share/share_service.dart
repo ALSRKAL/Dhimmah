@@ -5,6 +5,7 @@ import '../../domain/entities/payment.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../formatting/app_formatting.dart';
 import '../money/money.dart';
+import '../pdf/statement_models.dart';
 import 'share_origin.dart';
 
 /// Builds and sends the shareable text for a record or a payment.
@@ -88,6 +89,26 @@ class ShareService {
     buffer.writeln();
     buffer.write(localizations.shareFooter);
     return buffer.toString();
+  }
+
+  /// The lines that travel with a shared statement.
+  ///
+  /// A chat app shows the message before anyone opens the file; the reader
+  /// sees who it is for, what is left and when the next amount falls due
+  /// without opening a PDF.
+  String statementCaption(StatementData data) {
+    final StringBuffer buffer = StringBuffer()
+      ..writeln(localizations.shareStatementFor(data.personName))
+      ..writeln(
+        localizations.shareLineRemaining(
+          formatting.amount(data.remaining, showCode: true),
+        ),
+      );
+    final DateTime? due = data.dueAt;
+    if (due != null && data.remainingMinor > 0) {
+      buffer.writeln(localizations.shareLineDue(formatting.date(due)));
+    }
+    return buffer.toString().trimRight();
   }
 
   /// Opens the system share sheet.

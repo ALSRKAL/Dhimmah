@@ -142,7 +142,7 @@ void main() {
       // lazy list while the people section was being reached.
       await tester.drag(find.byType(ListView).first, const Offset(0, 2000));
       await settle(tester);
-      await tester.tap(find.text('عليّ').first);
+      await tester.tap(find.text('عليّ · سأدفعه').first);
       await settle(tester);
       expect(find.text('اختر نوع الدين: عليّ أو لي.'), findsNothing);
       expect(find.text('أدخل مبلغًا صحيحًا أكبر من صفر.'), findsOneWidget);
@@ -204,7 +204,7 @@ void main() {
       // list while the people section was being reached.
       await tester.drag(find.byType(ListView).first, const Offset(0, 2000));
       await settle(tester);
-      await tester.tap(find.text('لي').first);
+      await tester.tap(find.text('لي · سأستلمه').first);
       await settle(tester);
       expect(find.text('اختر نوع الدين: عليّ أو لي.'), findsNothing);
       expect(find.text('أدخل مبلغًا صحيحًا أكبر من صفر.'), findsOneWidget);
@@ -321,7 +321,7 @@ void main() {
       // lazy list while the people section was being reached.
       await tester.drag(find.byType(ListView).first, const Offset(0, 2000));
       await settle(tester);
-      await tester.tap(find.text('عليّ').first);
+      await tester.tap(find.text('عليّ · سأدفعه').first);
       await settle(tester);
       await tester.enterText(
         find.descendant(
@@ -413,7 +413,7 @@ void main() {
       // lazy list while the people section was being reached.
       await tester.drag(find.byType(ListView).first, const Offset(0, 2000));
       await settle(tester);
-      await tester.tap(find.text('عليّ').first);
+      await tester.tap(find.text('عليّ · سأدفعه').first);
       await settle(tester);
       await tester.enterText(
         find.descendant(
@@ -470,7 +470,7 @@ void main() {
       // list while the people section was being reached.
       await tester.drag(find.byType(ListView).first, const Offset(0, 2000));
       await settle(tester);
-      await tester.tap(find.text('لي').first);
+      await tester.tap(find.text('لي · سأستلمه').first);
       await settle(tester);
       await tester.enterText(
         find.descendant(

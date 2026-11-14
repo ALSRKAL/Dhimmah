@@ -142,11 +142,15 @@ class _SummaryStrip extends StatelessWidget {
       child: totals.isEmpty
           ? Row(
               children: <Widget>[
-                Icon(AppIcons.checkCircle, size: 18, color: accent),
+                // Settled is good news on either side; in the side's own colour
+                // it read as a red warning on "I owe".
+                Icon(AppIcons.checkCircle, size: 18, color: palette.settled),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   localizations.dashboardBalanced,
-                  style: theme.textTheme.titleSmall?.copyWith(color: accent),
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: palette.settled,
+                  ),
                 ),
               ],
             )

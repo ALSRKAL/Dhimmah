@@ -196,10 +196,9 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           SettingsSection(
+            // No footer: it repeated the switch's own subtitle under the card,
+            // and with the lock on it was a lone "App lock" under it.
             title: localizations.settingsSecurity,
-            footer: settings.lockEnabled
-                ? localizations.lockTitle
-                : localizations.settingsAppLockBody,
             children: <Widget>[
               SettingsSwitchTile(
                 title: localizations.settingsAppLock,
@@ -211,7 +210,10 @@ class SettingsScreen extends ConsumerWidget {
               ),
               SettingsSwitchTile(
                 title: localizations.settingsBiometric,
-                subtitle: localizations.settingsBiometricBody,
+                // A switch that cannot be moved says why.
+                subtitle: settings.lockEnabled
+                    ? localizations.settingsBiometricBody
+                    : localizations.settingsBiometricNeedsLock,
                 icon: AppIcons.fingerprint,
                 enabled: settings.lockEnabled,
                 value: settings.biometricEnabled,

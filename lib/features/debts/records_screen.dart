@@ -98,13 +98,18 @@ class RecordsScreen extends ConsumerWidget {
           ? localizations.ioweTitle
           : localizations.owedToMeTitle;
     }
-    return switch (facet) {
+    // "Active" alone did not say what was active; the screen is the ledger,
+    // narrowed, and its title says both.
+    final String facetLabel = switch (facet) {
       DebtFilter.dueSoon => localizations.dashboardDueSoon,
       DebtFilter.overdue => localizations.dashboardOverdue,
       DebtFilter.active => localizations.filterActive,
       DebtFilter.paid => localizations.statusPaid,
       DebtFilter.archived => localizations.filterArchived,
-      _ => localizations.allRecords,
+      _ => '',
     };
+    return facetLabel.isEmpty
+        ? localizations.allRecords
+        : localizations.recordsFilteredTitle(facetLabel);
   }
 }

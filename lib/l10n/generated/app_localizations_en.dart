@@ -1760,7 +1760,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportTrendNewDebt => 'New debts';
 
   @override
-  String get reportTrendSettled => 'Paid';
+  String get reportTrendSettled => 'Settled (both ways)';
 
   @override
   String get reportsSubtitle => 'A clear monthly summary';
@@ -1965,7 +1965,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareSubject => 'Debt details';
 
   @override
-  String get somethingWentWrong => 'Something went wrong.';
+  String get somethingWentWrong => 'That did not go through. Please try again.';
 
   @override
   String get sortAmountHighest => 'Highest amount';
@@ -3065,4 +3065,190 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiptOptionsTitle => 'Receipt options';
+
+  @override
+  String peopleMoreCurrencies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '+$count more currencies',
+      one: '+1 more currency',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personOpenDebtCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count open debts',
+      one: '1 open debt',
+      zero: 'No open debts',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personSettledDebtCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count debts, all settled',
+      one: '1 debt, settled',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personOpenShort(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count open',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personDebtCountWithOpen(String all, String open) {
+    return '$all, $open';
+  }
+
+  @override
+  String debtUntitledOn(String date) {
+    return 'Debt of $date';
+  }
+
+  @override
+  String get filterClearAll => 'Clear filters';
+
+  @override
+  String obligationWasDue(String date) {
+    return 'Was due $date';
+  }
+
+  @override
+  String get obligationMoreActions => 'Obligation options';
+
+  @override
+  String get obligationSkipShort => 'Skip period';
+
+  @override
+  String obligationUpcomingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'Upcoming ($count periods)',
+      one: 'Upcoming (1 period)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportMonthMovement => 'This month\'s movement';
+
+  @override
+  String reportNetReceived(String amount) {
+    return 'You received $amount more than you paid';
+  }
+
+  @override
+  String reportNetPaid(String amount) {
+    return 'You paid $amount more than you received';
+  }
+
+  @override
+  String chartThousands(String value) {
+    return '${value}K';
+  }
+
+  @override
+  String chartMillions(String value) {
+    return '${value}M';
+  }
+
+  @override
+  String chartBillions(String value) {
+    return '${value}B';
+  }
+
+  @override
+  String get attentionKindObligation => 'Obligation';
+
+  @override
+  String get attentionKindDebt => 'Debt';
+
+  @override
+  String get debtMoreActions => 'Debt options';
+
+  @override
+  String get peopleSideIOwe => 'I owe';
+
+  @override
+  String get peopleSideOwedToMe => 'Owed';
+
+  @override
+  String get debtFormNewTitle => 'New debt';
+
+  @override
+  String get debtFormSideIOwe => 'I owe · I\'ll pay';
+
+  @override
+  String get debtFormSideOwedToMe => 'Owed to me · I\'ll get it';
+
+  @override
+  String get peopleSearchHint => 'Search by name or number';
+
+  @override
+  String get peopleSortActiveFirst => 'Open balances first';
+
+  @override
+  String get peopleSortLargest => 'Largest amount';
+
+  @override
+  String get peopleSortRecent => 'Most recent activity';
+
+  @override
+  String get peopleSortAlphabetical => 'Alphabetical';
+
+  @override
+  String get settingsBiometricNeedsLock => 'Turn on the app lock first';
+
+  @override
+  String get backupActionsSection => 'Save and restore';
+
+  @override
+  String recordsFilteredTitle(String filter) {
+    return 'Ledger · $filter';
+  }
+
+  @override
+  String get obligationsShowArchived => 'Show archived';
+
+  @override
+  String get obligationsHideArchived => 'Hide archived';
+
+  @override
+  String get paymentDeleteAction => 'Delete payment';
+
+  @override
+  String get personNameHint => 'e.g. Sam Carter';
+
+  @override
+  String get personPhoneHint => 'Their phone number, if you like';
+
+  @override
+  String get receiptShareAction => 'Receipt';
+
+  @override
+  String get personMoreActions => 'Person options';
+
+  @override
+  String get listSeparator => ', ';
+
+  @override
+  String shareStatementFor(String name) {
+    return 'Statement for $name';
+  }
 }

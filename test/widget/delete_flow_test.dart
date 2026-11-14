@@ -97,7 +97,7 @@ void main() {
       await settle(tester);
 
       expect(await debtRows(), 2);
-      expect(find.text('حدث خطأ غير متوقع.'), findsNothing);
+      expect(find.text('تعذّر إكمال ذلك. حاول مرة أخرى.'), findsNothing);
     });
 
     testWidgets('that cannot be done says so', (WidgetTester tester) async {
@@ -112,7 +112,7 @@ void main() {
       await settle(tester);
 
       expect(
-        find.text('حدث خطأ غير متوقع.'),
+        find.text('تعذّر إكمال ذلك. حاول مرة أخرى.'),
         findsOneWidget,
         reason: 'a failed undo used to be an error nothing caught, and the '
             'user was left believing the record was back',

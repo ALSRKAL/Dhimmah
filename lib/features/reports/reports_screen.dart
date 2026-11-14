@@ -259,25 +259,25 @@ class _HighlightCard extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final AppCurrency currency = report.currency;
 
+    // Received and paid out go in opposite directions, so they are never added
+    // together: the headline used to be their sum, a large green "total paid"
+    // that was neither what came in nor what went out. Each side stands on its
+    // own, and the difference between them is named for what it is.
+    final int net = report.receivedMinor - report.paidOutMinor;
+
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
           Text(
-            localizations.reportSettled,
+            localizations.reportMonthMovement,
             style: theme.textTheme.labelMedium?.copyWith(
               color: palette.textSecondary,
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            context.formatting.amount(Money(report.settledMinor, currency)),
-            style: theme.textTheme.displaySmall?.copyWith(
-              color: palette.settled,
-            ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.md),
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
               Expanded(
                 child: _MiniStat(
@@ -285,6 +285,7 @@ class _HighlightCard extends StatelessWidget {
                   money: Money(report.receivedMinor, currency),
                   color: palette.owedToMe,
                   icon: AppIcons.arrowDownward,
+                  large: true,
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -294,10 +295,24 @@ class _HighlightCard extends StatelessWidget {
                   money: Money(report.paidOutMinor, currency),
                   color: palette.iOwe,
                   icon: AppIcons.arrowUpward,
+                  large: true,
                 ),
               ),
             ],
           ),
+          if (net != 0) ...<Widget>[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              net > 0
+                  ? localizations.reportNetReceived(
+                      context.formatting.amount(Money(net, currency)),
+                    )
+                  : localizations.reportNetPaid(
+                      context.formatting.amount(Money(-net, currency)),
+                    ),
+              style: theme.textTheme.bodySmall,
+            ),
+          ],
         ],
       ),
     );
@@ -310,12 +325,14 @@ class _MiniStat extends StatelessWidget {
     required this.money,
     required this.color,
     required this.icon,
+    this.large = false,
   });
 
   final String label;
   final Money money;
   final Color color;
   final IconData icon;
+  final bool large;
 
   @override
   Widget build(BuildContext context) {
@@ -342,7 +359,8 @@ class _MiniStat extends StatelessWidget {
         MoneyText(
           money,
           color: color,
-          style: theme.textTheme.titleSmall,
+          style: large ? theme.textTheme.titleLarge : theme.textTheme.titleSmall,
+          shrinkToFit: large,
         ),
       ],
     );
@@ -520,7 +538,7 @@ class _TrendChart extends StatelessWidget {
             runSpacing: AppSpacing.sm,
             children: <Widget>[
               _LegendDot(color: palette.settled, label: localizations.reportTrendSettled),
-              _LegendDot(color: palette.brand, label: localizations.reportTrendNewDebt),
+              _LegendDot(color: palette.gold, label: localizations.reportTrendNewDebt),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -555,21 +573,25 @@ class _TrendChart extends StatelessWidget {
                   leftTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      reservedSize: 46,
-                      getTitlesWidget: (double value, TitleMeta meta) => Padding(
-                        padding: const EdgeInsetsDirectional.only(end: 6),
-                        child: Text(
-                          context.formatting.money.amount(
-                            Money(
-                              (value * report.currency.minorFactor).round(),
-                              report.currency,
-                            ),
-                            compact: true,
+                      reservedSize: 52,
+                      // On the grid lines, so each figure names a line.
+                      interval: maxValue / 3,
+                      getTitlesWidget: (double value, TitleMeta meta) {
+                        // The chart's own top edge is not a grid line, and its
+                        // label sat on top of the highest one's.
+                        if (value == meta.max && value > maxValue) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 6),
+                          child: Text(
+                            _axisAmount(localizations, context.formatting, value),
+                            style: theme.textTheme.labelSmall,
+                            textAlign: TextAlign.end,
+                            maxLines: 1,
                           ),
-                          style: theme.textTheme.labelSmall,
-                          textAlign: TextAlign.end,
-                        ),
-                      ),
+                        );
+                      },
                     ),
                   ),
                   bottomTitles: AxisTitles(
@@ -584,10 +606,14 @@ class _TrendChart extends StatelessWidget {
                         final MonthlyTrendPoint point = points[index];
                         return Padding(
                           padding: const EdgeInsets.only(top: 6),
+                          // The month's name, not its number: "9" beside "10"
+                          // asked the reader to count.
                           child: Text(
-                            context.formatting.money
-                                .integer(point.month),
+                            context.formatting.dates.shortMonth(
+                              DateTime(point.year, point.month),
+                            ),
                             style: theme.textTheme.labelSmall,
+                            maxLines: 1,
                           ),
                         );
                       },
@@ -619,7 +645,10 @@ class _TrendChart extends StatelessWidget {
                         ),
                         BarChartRodData(
                           toY: points[i].newDebtMinor / report.currency.minorFactor,
-                          color: palette.brand,
+                          // Gold against green: a different hue and a different
+                          // lightness, so the two series part even without
+                          // colour. Two greens did not.
+                          color: palette.gold,
                           width: 12,
                           borderRadius: const BorderRadius.vertical(
                             top: Radius.circular(4),
@@ -635,6 +664,25 @@ class _TrendChart extends StatelessWidget {
       ),
     );
   }
+}
+
+/// A chart scale figure in the reader's own words: «٢٫٥ ألف», not `2.5K`.
+String _axisAmount(
+  AppLocalizations localizations,
+  AppFormatting formatting,
+  double value,
+) {
+  final double size = value.abs();
+  if (size >= 1e9) {
+    return localizations.chartBillions(formatting.money.decimal(size / 1e9));
+  }
+  if (size >= 1e6) {
+    return localizations.chartMillions(formatting.money.decimal(size / 1e6));
+  }
+  if (size >= 1e3) {
+    return localizations.chartThousands(formatting.money.decimal(size / 1e3));
+  }
+  return formatting.money.decimal(size, maxDecimals: 0);
 }
 
 class _LegendDot extends StatelessWidget {
@@ -654,7 +702,10 @@ class _LegendDot extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: AppSpacing.xs),
-        Text(label, style: Theme.of(context).textTheme.labelSmall),
+        // Wraps at the largest text size rather than running past the card.
+        Flexible(
+          child: Text(label, style: Theme.of(context).textTheme.labelSmall),
+        ),
       ],
     );
   }

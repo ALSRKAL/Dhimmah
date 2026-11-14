@@ -167,13 +167,17 @@ class _ObligationFormScreenState extends ConsumerState<ObligationFormScreen> {
                 _amountMinor = null;
                 _amountError = localizations.validationInvalidAmount;
               }),
-            ),
-            const SizedBox(height: AppSpacing.md),
-            CurrencyField(
-              value: currency,
-              suggested: ref.watch(regionCurrencyProvider),
-              onChanged: (AppCurrency value) =>
-                  setState(() => _currency = value),
+              // The currency is chosen on the amount it belongs to.
+              onCurrencyTap: () async {
+                final AppCurrency? picked = await pickCurrency(
+                  context,
+                  value: currency,
+                  suggested: ref.read(regionCurrencyProvider),
+                );
+                if (picked != null && mounted) {
+                  setState(() => _currency = picked);
+                }
+              },
             ),
             const SizedBox(height: AppSpacing.md),
             OptionField<ObligationCategory>(

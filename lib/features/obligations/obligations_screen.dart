@@ -49,7 +49,10 @@ class _ObligationsScreenState extends ConsumerState<ObligationsScreen> {
         title: Text(localizations.obligationsTitle),
         actions: <Widget>[
           IconButton(
-            tooltip: localizations.filterArchived,
+            // Says what a tap will do, not only what the eye is about.
+            tooltip: _showArchived
+                ? localizations.obligationsHideArchived
+                : localizations.obligationsShowArchived,
             icon: Icon(
               _showArchived ? AppIcons.visibilityOff : AppIcons.visibility,
               size: 20,
@@ -74,7 +77,8 @@ class _ObligationsScreenState extends ConsumerState<ObligationsScreen> {
                 AppSpacing.lg,
                 AppSpacing.sm,
                 AppSpacing.lg,
-                AppSpacing.massive,
+                // Clear of the shell's add button, so the last card is whole.
+                AppSpacing.addButtonClearance + AppSpacing.lg,
               ),
               children: <Widget>[
                 BudgetCard(asOf: asOf),
@@ -103,7 +107,8 @@ class _ObligationsScreenState extends ConsumerState<ObligationsScreen> {
               AppSpacing.lg,
               AppSpacing.sm,
               AppSpacing.lg,
-              AppSpacing.massive,
+              // Clear of the shell's add button, so the last card is whole.
+              AppSpacing.addButtonClearance + AppSpacing.lg,
             ),
             children: <Widget>[
               Text(
@@ -209,6 +214,13 @@ class ObligationCard extends ConsumerWidget {
     final ThemeData theme = Theme.of(context);
     final Obligation obligation = group.obligation;
     final ObligationInstance? current = group.current;
+    final AppFormatting formatting = context.formatting;
+    // A period that has slipped is described by the date it was due, not by
+    // "next due": an obligation three weeks late read "Next due 5 September"
+    // here while the dashboard called it overdue.
+    final bool late =
+        current != null &&
+        current.occurrence.status == ObligationStatus.overdue;
 
     return AppCard(
       onTap: () => context.push(AppRoutes.obligationPath(obligation.id)),
@@ -248,8 +260,12 @@ class ObligationCard extends ConsumerWidget {
                     Text(
                       obligation.isArchived
                           ? localizations.obligationArchived
+                          : late
+                          ? localizations.obligationWasDue(
+                              formatting.date(current.dueAt),
+                            )
                           : localizations.obligationNextDue(
-                              context.formatting.date(obligation.nextDueAt),
+                              formatting.date(obligation.nextDueAt),
                             ),
                       style: theme.textTheme.bodySmall,
                       maxLines: 2,
@@ -267,8 +283,13 @@ class ObligationCard extends ConsumerWidget {
                       const SizedBox(height: AppSpacing.xs),
                       Align(
                         alignment: AlignmentDirectional.centerStart,
-                        child: current.occurrence.status
-                            .chip(context, localizations, dense: true),
+                        child: obligationPeriodChip(
+                          context,
+                          localizations,
+                          status: current.occurrence.status,
+                          overdueBy: formatting.overdueBy(current.dueAt, asOf),
+                          dense: true,
+                        ),
                       ),
                     ],
                   ],
@@ -283,7 +304,6 @@ class ObligationCard extends ConsumerWidget {
                     Money(obligation.amountMinor, obligation.currency),
                     style: theme.textTheme.titleSmall,
                   ),
-                  const SizedBox(height: 2),
                   Text(
                     obligation.frequency.label(
                       localizations,
@@ -296,16 +316,9 @@ class ObligationCard extends ConsumerWidget {
             ],
           ),
           if (current != null && !obligation.isArchived) ...<Widget>[
-            const SizedBox(height: AppSpacing.md),
-            const AppDivider(),
             const SizedBox(height: AppSpacing.sm),
-            Row(
-              children: <Widget>[
-                Expanded(
-                  child: ObligationActionButtons(instance: current),
-                ),
-              ],
-            ),
+            const AppDivider(),
+            ObligationActionButtons(instance: current),
           ],
         ],
       ),

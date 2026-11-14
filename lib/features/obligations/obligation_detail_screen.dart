@@ -84,22 +84,11 @@ class ObligationDetailScreen extends ConsumerWidget {
               ],
               const SizedBox(height: AppSpacing.xxl),
               SectionHeader(title: localizations.obligationHistory),
-              AppCard(
-                padding: EdgeInsets.zero,
-                child: Column(
-                  children: <Widget>[
-                    for (int i = 0; i < group.history.length; i++)
-                      Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: <Widget>[
-                          _HistoryRow(instance: group.history[i]),
-                          if (i != group.history.length - 1)
-                            const AppDivider(indent: AppSpacing.lg),
-                        ],
-                      ),
-                  ],
-                ),
-              ),
+              _HistoryList(instances: group.needsAction),
+              if (group.upcoming.isNotEmpty) ...<Widget>[
+                const SizedBox(height: AppSpacing.md),
+                _UpcomingList(instances: group.upcoming),
+              ],
             ],
           ),
         );
@@ -134,6 +123,99 @@ class ObligationGroupData {
       history: sorted,
     );
   }
+
+  /// Periods still to come, soonest first. They are folded away under their
+  /// own heading: three future periods stacked above a late one pushed the
+  /// period that needed paying below them.
+  List<ObligationInstance> get upcoming =>
+      <ObligationInstance>[
+        for (final ObligationInstance instance in history)
+          if (instance.occurrence.status == ObligationStatus.upcoming) instance,
+      ]..sort((ObligationInstance a, ObligationInstance b) =>
+          a.dueAt.compareTo(b.dueAt));
+
+  /// Everything else: late and due periods first, then the ones dealt with,
+  /// newest first.
+  List<ObligationInstance> get needsAction {
+    final List<ObligationInstance> open = <ObligationInstance>[
+      for (final ObligationInstance instance in history)
+        if (instance.occurrence.status == ObligationStatus.overdue ||
+            instance.occurrence.status == ObligationStatus.dueToday)
+          instance,
+    ]..sort((ObligationInstance a, ObligationInstance b) =>
+        a.dueAt.compareTo(b.dueAt));
+    return <ObligationInstance>[
+      ...open,
+      for (final ObligationInstance instance in history)
+        if (!open.contains(instance) &&
+            instance.occurrence.status != ObligationStatus.upcoming)
+          instance,
+    ];
+  }
+}
+
+class _HistoryList extends StatelessWidget {
+  const _HistoryList({required this.instances});
+
+  final List<ObligationInstance> instances;
+
+  @override
+  Widget build(BuildContext context) {
+    if (instances.isEmpty) return const SizedBox.shrink();
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        children: <Widget>[
+          for (int i = 0; i < instances.length; i++)
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                _HistoryRow(instance: instances[i]),
+                if (i != instances.length - 1)
+                  const AppDivider(indent: AppSpacing.lg),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UpcomingList extends StatelessWidget {
+  const _UpcomingList({required this.instances});
+
+  final List<ObligationInstance> instances;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    return AppCard(
+      padding: EdgeInsets.zero,
+      child: Theme(
+        // The tile's own dividers would draw a second border inside the card.
+        data: Theme.of(context).copyWith(
+          dividerColor: context.palette.surface.withValues(alpha: 0),
+        ),
+        child: ExpansionTile(
+          title: Text(
+            localizations.obligationUpcomingCount(instances.length),
+            style: Theme.of(context).textTheme.titleSmall,
+          ),
+          childrenPadding: EdgeInsets.zero,
+          children: <Widget>[
+            for (int i = 0; i < instances.length; i++)
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const AppDivider(indent: AppSpacing.lg),
+                  _HistoryRow(instance: instances[i]),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ObligationMenu extends ConsumerWidget {
@@ -148,6 +230,7 @@ class _ObligationMenu extends ConsumerWidget {
     final AppPalette palette = context.palette;
 
     return PopupMenuButton<String>(
+      tooltip: localizations.obligationMoreActions,
       icon: const Icon(AppIcons.moreVert, size: 20),
       onSelected: (String action) async {
         final LedgerService service = ref.read(ledgerServiceProvider);
@@ -274,37 +357,41 @@ class _ObligationHeader extends StatelessWidget {
                 ),
               ),
               if (current != null)
-                current.occurrence.status.chip(context, localizations),
+                obligationPeriodChip(
+                  context,
+                  localizations,
+                  status: current.occurrence.status,
+                  overdueBy: context.formatting.overdueBy(
+                    current.dueAt,
+                    DateTime.now(),
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: AppSpacing.lg),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+          Text(
+            localizations.obligationMonthlyAmount,
+            style: theme.textTheme.labelSmall,
+          ),
+          const SizedBox(height: 2),
+          // The period sits against the amount it qualifies — "₹ 800 / monthly"
+          // — rather than at the far edge of the card, where it read as a
+          // separate fact.
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.end,
+            spacing: AppSpacing.sm,
             children: <Widget>[
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      localizations.obligationMonthlyAmount,
-                      style: theme.textTheme.labelSmall,
-                    ),
-                    const SizedBox(height: 2),
-                    MoneyText(
-                      Money(obligation.amountMinor, obligation.currency),
-                      style: theme.textTheme.headlineSmall,
-                    ),
-                  ],
-                ),
+              MoneyText(
+                Money(obligation.amountMinor, obligation.currency),
+                style: theme.textTheme.headlineSmall,
               ),
-              Text(
-                obligation.frequency.label(
-                  localizations,
-                  interval: obligation.intervalCount,
-                ),
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: palette.textSecondary,
+              Padding(
+                padding: const EdgeInsets.only(bottom: 3),
+                child: Text(
+                  '/ ${obligation.frequency.label(localizations, interval: obligation.intervalCount)}',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: palette.textSecondary,
+                  ),
                 ),
               ),
             ],
@@ -312,16 +399,31 @@ class _ObligationHeader extends StatelessWidget {
           const SizedBox(height: AppSpacing.lg),
           const AppDivider(),
           const SizedBox(height: AppSpacing.xs),
-          DetailRow(
-            icon: AppIcons.event,
-            label: localizations.obligationNextDue(
-              context.formatting.date(obligation.nextDueAt),
+          if (current != null &&
+              current.occurrence.status == ObligationStatus.overdue)
+            // A late period is described by when it was due; "next due" over a
+            // date in the past contradicted the chip beside it.
+            DetailRow(
+              icon: AppIcons.event,
+              label: localizations.obligationWasDue(
+                context.formatting.date(current.dueAt),
+              ),
+              value: context.formatting.relativeDue(
+                current.dueAt,
+                DateTime.now(),
+              ),
+            )
+          else
+            DetailRow(
+              icon: AppIcons.event,
+              label: localizations.obligationNextDue(
+                context.formatting.date(obligation.nextDueAt),
+              ),
+              value: context.formatting.relativeDue(
+                obligation.nextDueAt,
+                DateTime.now(),
+              ),
             ),
-            value: context.formatting.relativeDue(
-              obligation.nextDueAt,
-              DateTime.now(),
-            ),
-          ),
           DetailRow(
             icon: AppIcons.playCircle,
             label: localizations.fieldStartDate,

@@ -209,15 +209,38 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
 
     try {
       final Payment? existing = widget.existing;
+      Payment? recorded;
       if (existing == null) {
-        await service.recordPayment(widget.view.debt.id, draft);
+        recorded = await service.recordPayment(widget.view.debt.id, draft);
       } else {
         await service.updatePayment(existing.id, draft);
       }
       if (!mounted) return;
-      Navigator.of(context).pop(true);
+      // The navigator outlives this sheet; the receipt is opened from it once
+      // the sheet has gone.
+      final NavigatorState navigator = Navigator.of(context);
+      navigator.pop(true);
+      // A new payment on a debt with someone on it can be handed over as a
+      // receipt straight away — the moment the other party is usually there.
+      final Payment? receiptFor =
+          recorded != null && widget.view.debt.personId != null
+          ? recorded
+          : null;
+      final VoidCallback? shareReceipt = receiptFor == null
+          ? null
+          : () => showReceipt(
+              navigator.context,
+              view: widget.view,
+              payment: receiptFor,
+              navigator: navigator,
+            );
       if (_settles) {
-        AppFeedback.settled(context, localizations.debtSettled);
+        AppFeedback.settled(
+          context,
+          localizations.debtSettled,
+          actionLabel: localizations.receiptShareAction,
+          onAction: shareReceipt,
+        );
       } else {
         AppFeedback.info(
           context,
@@ -227,6 +250,8 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
               ? localizations.paymentSaved
               : localizations.recordSaved,
           icon: AppIcons.payments,
+          actionLabel: localizations.receiptShareAction,
+          onAction: shareReceipt,
         );
       }
     } on SharedDebtPaymentBlockedException {
@@ -411,7 +436,8 @@ class PaymentRow extends ConsumerWidget {
             ListTile(
               leading: Icon(AppIcons.undo, color: palette.overdue),
               textColor: palette.overdue,
-              title: Text(localizations.paymentDeleteTitle),
+              // An action, not the question the confirmation then asks.
+              title: Text(localizations.paymentDeleteAction),
               onTap: () async {
                 Navigator.of(context).pop();
                 await _delete(context, ref);

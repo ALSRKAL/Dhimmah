@@ -25,7 +25,7 @@ class MoreScreen extends StatelessWidget {
           AppSpacing.lg,
           AppSpacing.sm,
           AppSpacing.lg,
-          AppSpacing.massive,
+          AppSpacing.addButtonClearance + AppSpacing.lg,
         ),
         children: <Widget>[
           SettingsSection(
@@ -57,11 +57,15 @@ class MoreScreen extends StatelessWidget {
                 icon: AppIcons.settings,
                 onTap: () => context.push(AppRoutes.settings),
               ),
+              // "About" lived both here and in Settings. It stays in Settings
+              // beside the privacy policy and the licences it belongs with;
+              // this place goes to the backup, which is reached far more often
+              // and was two screens deep.
               SettingsTile(
-                title: localizations.settingsAbout,
-                subtitle: localizations.settingsPrivacyNote,
-                icon: AppIcons.info,
-                onTap: () => context.push(AppRoutes.about),
+                title: localizations.settingsBackup,
+                subtitle: localizations.backupSectionHint,
+                icon: AppIcons.cloudOff,
+                onTap: () => context.push(AppRoutes.backup),
               ),
             ],
           ),

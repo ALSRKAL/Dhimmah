@@ -150,8 +150,14 @@ class AmountField extends StatefulWidget {
     this.enabled = true,
     this.focusNode,
     this.onRejected,
+    this.onCurrencyTap,
     super.key,
   });
+
+  /// When set, the currency code at the end of the field is the control that
+  /// changes it. A form used to show the currency twice — a symbol inside
+  /// this field and a separate "Currency" field under it.
+  final VoidCallback? onCurrencyTap;
 
   final String label;
   final AppCurrency currency;
@@ -270,6 +276,11 @@ class _AmountFieldState extends State<AmountField> {
             ],
             decoration: InputDecoration(
               hintText: '0',
+              // A hint, drawn as one: a dark "0" read as a value already
+              // entered.
+              hintStyle: theme.textTheme.headlineSmall?.copyWith(
+                color: palette.textTertiary,
+              ),
               errorText: widget.errorText ?? _error,
               // The symbol sits inline before the digits rather than in the
               // icon slot, so the amount reads as one phrase: "₹ 12,000".
@@ -282,10 +293,27 @@ class _AmountFieldState extends State<AmountField> {
                   ),
                 ),
               ),
-              // A plain label, not a button: the currency is chosen by the
-              // field below, and a control that only explains itself is a false
-              // affordance.
-              suffixIcon: Padding(
+              suffixIcon: widget.onCurrencyTap != null
+                  ? Padding(
+                      padding: const EdgeInsetsDirectional.only(
+                        end: AppSpacing.xs,
+                      ),
+                      child: TextButton.icon(
+                        onPressed: widget.enabled ? widget.onCurrencyTap : null,
+                        iconAlignment: IconAlignment.end,
+                        icon: const Icon(AppIcons.expandMore, size: 18),
+                        label: Text(
+                          widget.currency.code,
+                          semanticsLabel:
+                              '${AppLocalizations.of(context).fieldCurrency}: '
+                              '${widget.currency.code}',
+                        ),
+                      ),
+                    )
+                  // A plain label, not a button, where the currency is chosen
+                  // somewhere else: a control that only explains itself is a
+                  // false affordance.
+                  : Padding(
                 padding: const EdgeInsetsDirectional.only(end: AppSpacing.lg),
                 child: Align(
                   widthFactor: 1,
@@ -455,6 +483,47 @@ class OptionField<T> extends StatelessWidget {
     );
     if (picked != null && picked != value && context.mounted) onChanged(picked);
   }
+}
+
+/// Opens the currency list, the place's own currency first. Returns the pick,
+/// or null when the sheet is dismissed or the same currency is chosen.
+Future<AppCurrency?> pickCurrency(
+  BuildContext context, {
+  required AppCurrency value,
+  AppCurrency? suggested,
+}) async {
+  final AppLocalizations localizations = AppLocalizations.of(context);
+  // The keyboard is put away first: the sheet's route gives focus back to the
+  // amount when it closes, and the keyboard came back up over the form.
+  FocusScope.of(context).unfocus();
+  final AppCurrency? picked = await showModalBottomSheet<AppCurrency>(
+    context: context,
+    isScrollControlled: true,
+    builder: (BuildContext sheetContext) => OptionSheet<AppCurrency>(
+      title: localizations.fieldCurrency,
+      value: value,
+      options: currenciesWithFirst(suggested),
+      labelOf: (AppCurrency currency) => currency.codeAndSymbol,
+      subtitleOf: (AppCurrency currency) => currency == suggested
+          ? localizations.currencySuggestedForRegion
+          : null,
+      iconOf: (AppCurrency _) => AppIcons.payments,
+    ),
+  );
+  if (context.mounted) await dropFocusAfterSheet(context);
+  return picked == value ? null : picked;
+}
+
+/// Puts the keyboard away once a sheet opened from a form has closed.
+///
+/// Unfocusing before the sheet is not enough: when the sheet's route goes, the
+/// page under it becomes current again and, on its next frame, gives focus
+/// back to the field that last had it — so the number pad came straight back
+/// up over the form. This waits out that frame and then lets go.
+Future<void> dropFocusAfterSheet(BuildContext context) async {
+  await WidgetsBinding.instance.endOfFrame;
+  await WidgetsBinding.instance.endOfFrame;
+  if (context.mounted) FocusScope.of(context).unfocus();
 }
 
 /// The currency of a record.

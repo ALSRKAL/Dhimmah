@@ -17,18 +17,23 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/feedback.dart';
 import '../../core/widgets/form_fields.dart';
 import '../../core/widgets/settings_tile.dart';
+import '../../data/read_models/ledger_queries.dart';
 import '../../data/services/statement_service.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/payment.dart';
 import '../../l10n/generated/app_localizations.dart';
 
 /// Opens the receipt for one payment.
+///
+/// [navigator] is for a caller whose own context is gone by the time the
+/// receipt is asked for — the payment sheet, which offers it after closing.
 Future<void> showReceipt(
   BuildContext context, {
   required DebtView view,
   required Payment payment,
+  NavigatorState? navigator,
 }) {
-  return Navigator.of(context).push<void>(
+  return (navigator ?? Navigator.of(context)).push<void>(
     MaterialPageRoute<void>(
       builder: (BuildContext context) =>
           ReceiptScreen(view: view, payment: payment),
@@ -78,9 +83,21 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
   /// each time, so a part edited or removed since is reflected. Falls back to
   /// the one row it was opened on if anything cannot be matched.
   Future<List<({DebtView view, Payment payment})>> _parts() async {
+    // The debt as it stands now, not as the caller last saw it: a receipt
+    // offered straight after saving a payment was handed the view from before
+    // it, and printed the balance the payment had just cleared.
+    DebtView current = widget.view;
+    try {
+      final DebtDetail? detail = await ref.read(
+        debtDetailProvider(widget.view.debt.id).future,
+      );
+      if (detail != null) current = detail.view;
+    } on Object {
+      // The view the screen was opened with is still a true account.
+    }
     final List<({DebtView view, Payment payment})> single =
         <({DebtView view, Payment payment})>[
-      (view: widget.view, payment: widget.payment),
+      (view: current, payment: widget.payment),
     ];
     final String? personId = widget.payment.personId;
     if (personId == null) return single;

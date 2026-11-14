@@ -231,7 +231,7 @@ void main() {
       // produces, which is the whole point of this test.
       await tester.drag(find.byType(ListView).first, const Offset(0, 2000));
       await settle(tester);
-      await tester.tap(find.text('عليّ').first);
+      await tester.tap(find.text('عليّ · سأدفعه').first);
       await settle(tester);
       await tester.enterText(
         find.descendant(
@@ -268,7 +268,7 @@ void main() {
 
       await tester.drag(find.byType(ListView).first, const Offset(0, 2000));
       await settle(tester);
-      await tester.tap(find.text('عليّ').first);
+      await tester.tap(find.text('عليّ · سأدفعه').first);
       await settle(tester);
       await tester.enterText(
         find.descendant(

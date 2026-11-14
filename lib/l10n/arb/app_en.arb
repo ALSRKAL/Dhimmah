@@ -906,7 +906,7 @@
     }
   },
   "reportTrendNewDebt": "New debts",
-  "reportTrendSettled": "Paid",
+  "reportTrendSettled": "Settled (both ways)",
   "reportsSubtitle": "A clear monthly summary",
   "reportsTitle": "Reports",
   "requiredMark": "Required",
@@ -1017,7 +1017,7 @@
   },
   "sharePaymentTitle": "Payment receipt",
   "shareSubject": "Debt details",
-  "somethingWentWrong": "Something went wrong.",
+  "somethingWentWrong": "That did not go through. Please try again.",
   "sortAmountHighest": "Highest amount",
   "sortAmountLowest": "Lowest amount",
   "sortDueLatest": "Due latest",
@@ -1587,5 +1587,155 @@
   "receiptRemainingNow": "Remaining on the debt now",
   "receiptSignature": "Signature",
   "receiptAction": "PDF receipt",
-  "receiptOptionsTitle": "Receipt options"
+  "receiptOptionsTitle": "Receipt options",
+  "peopleMoreCurrencies": "{count, plural, =1{+1 more currency} other{+{count} more currencies}}",
+  "@peopleMoreCurrencies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personOpenDebtCount": "{count, plural, =0{No open debts} =1{1 open debt} other{{count} open debts}}",
+  "@personOpenDebtCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personSettledDebtCount": "{count, plural, =1{1 debt, settled} other{{count} debts, all settled}}",
+  "@personSettledDebtCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personOpenShort": "{count, plural, other{{count} open}}",
+  "@personOpenShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personDebtCountWithOpen": "{all}, {open}",
+  "@personDebtCountWithOpen": {
+    "placeholders": {
+      "all": {
+        "type": "String"
+      },
+      "open": {
+        "type": "String"
+      }
+    }
+  },
+  "debtUntitledOn": "Debt of {date}",
+  "@debtUntitledOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "filterClearAll": "Clear filters",
+  "obligationWasDue": "Was due {date}",
+  "@obligationWasDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "obligationMoreActions": "Obligation options",
+  "obligationSkipShort": "Skip period",
+  "obligationUpcomingCount": "{count, plural, =1{Upcoming (1 period)} other{Upcoming ({count} periods)}}",
+  "@obligationUpcomingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportMonthMovement": "This month's movement",
+  "reportNetReceived": "You received {amount} more than you paid",
+  "@reportNetReceived": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNetPaid": "You paid {amount} more than you received",
+  "@reportNetPaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "chartThousands": "{value}K",
+  "@chartThousands": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "chartMillions": "{value}M",
+  "@chartMillions": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "chartBillions": "{value}B",
+  "@chartBillions": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "attentionKindObligation": "Obligation",
+  "attentionKindDebt": "Debt",
+  "debtMoreActions": "Debt options",
+  "peopleSideIOwe": "I owe",
+  "peopleSideOwedToMe": "Owed",
+  "debtFormNewTitle": "New debt",
+  "debtFormSideIOwe": "I owe · I'll pay",
+  "debtFormSideOwedToMe": "Owed to me · I'll get it",
+  "peopleSearchHint": "Search by name or number",
+  "peopleSortActiveFirst": "Open balances first",
+  "peopleSortLargest": "Largest amount",
+  "peopleSortRecent": "Most recent activity",
+  "peopleSortAlphabetical": "Alphabetical",
+  "settingsBiometricNeedsLock": "Turn on the app lock first",
+  "backupActionsSection": "Save and restore",
+  "recordsFilteredTitle": "Ledger · {filter}",
+  "@recordsFilteredTitle": {
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "obligationsShowArchived": "Show archived",
+  "obligationsHideArchived": "Hide archived",
+  "paymentDeleteAction": "Delete payment",
+  "personNameHint": "e.g. Sam Carter",
+  "personPhoneHint": "Their phone number, if you like",
+  "receiptShareAction": "Receipt",
+  "personMoreActions": "Person options",
+  "listSeparator": ", ",
+  "shareStatementFor": "Statement for {name}",
+  "@shareStatementFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

@@ -98,3 +98,28 @@ extension ObligationStatusChip on ObligationStatus {
   }
 }
 
+
+/// The chip for one obligation period, naming how late it is when it is late.
+///
+/// "Overdue" alone left the reader to work out from a date how long ago the
+/// period fell due; the list, the dashboard and the detail all say it the same
+/// way now.
+Widget obligationPeriodChip(
+  BuildContext context,
+  AppLocalizations localizations, {
+  required ObligationStatus status,
+  required String overdueBy,
+  bool dense = false,
+}) {
+  if (status != ObligationStatus.overdue || overdueBy.isEmpty) {
+    return status.chip(context, localizations, dense: dense);
+  }
+  final StatusStyle style = context.palette.obligationStyle(status);
+  return StatusChip(
+    label: overdueBy,
+    foreground: style.foreground,
+    background: style.container,
+    icon: style.icon,
+    dense: dense,
+  );
+}

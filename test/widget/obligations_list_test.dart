@@ -37,7 +37,28 @@ void main() {
 
     // The seeded bill was due on the 5th of this month.
     expect(find.text('فاتورة الإنترنت'), findsOneWidget);
-    expect(find.text('متأخر'), findsOneWidget,
+    // The chip says by how much, and the line under the name says when it
+    // was due — not "next due" over a date in the past.
+    expect(find.textContaining('متأخر'), findsOneWidget,
         reason: 'the list must mark a late obligation, not only its detail');
+    expect(find.textContaining('كان مستحقًا في'), findsOneWidget);
+    expect(find.textContaining('الاستحقاق القادم'), findsNothing);
+  });
+
+  testWidgets('the detail of a late obligation says the same thing',
+      (WidgetTester tester) async {
+    await pumpDhimmah(tester, db: db);
+    await settle(tester);
+    await tester.tap(find.text('التزامات').last);
+    await settle(tester);
+
+    await tester.tap(find.text('فاتورة الإنترنت'));
+    await settle(tester);
+
+    expect(find.textContaining('كان مستحقًا في'), findsOneWidget);
+    // The late period's chip names the delay, as on the list.
+    expect(find.textContaining('متأخر'), findsWidgets);
+    // Skipping is a named button, not a bare icon.
+    expect(find.text('تخطي الدورة'), findsOneWidget);
   });
 }

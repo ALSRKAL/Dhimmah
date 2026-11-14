@@ -8,6 +8,7 @@ import '../../core/money/money.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/search_text.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_value_view.dart';
 import '../../core/widgets/empty_state.dart';
@@ -16,21 +17,114 @@ import '../../core/widgets/person_avatar.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../l10n/generated/app_localizations.dart';
 
+/// How the people list is ordered.
+enum PeopleSort { activeFirst, largest, recent, alphabetical }
+
 /// The internal address book.
 ///
 /// Every person is a roll-up of the debts linked to them, never a stored balance,
 /// so a person's position can never disagree with the records behind it.
-class PeopleScreen extends ConsumerWidget {
+class PeopleScreen extends ConsumerStatefulWidget {
   const PeopleScreen({super.key});
 
+  /// From this many people on, the list gets a search field. Below it the
+  /// whole list is on one screen and a field would only push it down.
+  static const int searchThreshold = 6;
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<PeopleScreen> createState() => _PeopleScreenState();
+}
+
+class _PeopleScreenState extends ConsumerState<PeopleScreen> {
+  final TextEditingController _search = TextEditingController();
+  String _query = '';
+  PeopleSort _sort = PeopleSort.activeFirst;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  static int _size(PersonDirectoryEntry entry) {
+    int largest = 0;
+    for (final CurrencyTotals t in entry.totals) {
+      final int size = t.iOweMinor + t.owedToMeMinor;
+      if (size > largest) largest = size;
+    }
+    return largest;
+  }
+
+  List<PersonDirectoryEntry> _arrange(List<PersonDirectoryEntry> data) {
+    final String needle = foldForSearch(_query.trim());
+    final List<PersonDirectoryEntry> shown = <PersonDirectoryEntry>[
+      for (final PersonDirectoryEntry entry in data)
+        if (needle.isEmpty ||
+            searchMatches(entry.person.name, needle) ||
+            searchMatches(entry.person.phone, needle))
+          entry,
+    ];
+    int byName(PersonDirectoryEntry a, PersonDirectoryEntry b) =>
+        a.person.name.compareTo(b.person.name);
+    shown.sort(switch (_sort) {
+      // Anyone still owed or owing comes first; settled contacts drop to the
+      // bottom where they are out of the way but never lost.
+      PeopleSort.activeFirst => (PersonDirectoryEntry a, PersonDirectoryEntry b) {
+        final bool aActive = a.openDebtCount > 0;
+        final bool bActive = b.openDebtCount > 0;
+        if (aActive != bActive) return aActive ? -1 : 1;
+        return byName(a, b);
+      },
+      PeopleSort.largest => (PersonDirectoryEntry a, PersonDirectoryEntry b) {
+        final int bySize = _size(b).compareTo(_size(a));
+        return bySize != 0 ? bySize : byName(a, b);
+      },
+      PeopleSort.recent => (PersonDirectoryEntry a, PersonDirectoryEntry b) {
+        final int byTime = b.lastActivityAt.compareTo(a.lastActivityAt);
+        return byTime != 0 ? byTime : byName(a, b);
+      },
+      PeopleSort.alphabetical => byName,
+    });
+    return shown;
+  }
+
+  String _sortLabel(AppLocalizations localizations, PeopleSort sort) =>
+      switch (sort) {
+        PeopleSort.activeFirst => localizations.peopleSortActiveFirst,
+        PeopleSort.largest => localizations.peopleSortLargest,
+        PeopleSort.recent => localizations.peopleSortRecent,
+        PeopleSort.alphabetical => localizations.peopleSortAlphabetical,
+      };
+
+  @override
+  Widget build(BuildContext context) {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AsyncValue<List<PersonDirectoryEntry>> directory =
         ref.watch(peopleDirectoryProvider);
+    final bool hasPeople = (directory.value ?? const <PersonDirectoryEntry>[])
+        .isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: Text(localizations.peopleTitle)),
+      appBar: AppBar(
+        title: Text(localizations.peopleTitle),
+        actions: <Widget>[
+          if (hasPeople)
+            PopupMenuButton<PeopleSort>(
+              tooltip: localizations.filterSort,
+              icon: const Icon(AppIcons.swapVert, size: 20),
+              initialValue: _sort,
+              onSelected: (PeopleSort value) => setState(() => _sort = value),
+              itemBuilder: (BuildContext context) =>
+                  <PopupMenuEntry<PeopleSort>>[
+                    for (final PeopleSort sort in PeopleSort.values)
+                      PopupMenuItem<PeopleSort>(
+                        value: sort,
+                        child: Text(_sortLabel(localizations, sort)),
+                      ),
+                  ],
+            ),
+        ],
+      ),
       body: AsyncValueView<List<PersonDirectoryEntry>>(
         value: directory,
         onRetry: () => ref.invalidate(peopleDirectoryProvider),
@@ -43,37 +137,75 @@ class PeopleScreen extends ConsumerWidget {
           onAction: () => context.push(AppRoutes.personNew),
         ),
         builder: (BuildContext context, List<PersonDirectoryEntry> data) {
-          final List<PersonDirectoryEntry> sorted = List<PersonDirectoryEntry>.of(data)
-            ..sort((PersonDirectoryEntry a, PersonDirectoryEntry b) {
-              // Anyone still owed or owing comes first; settled contacts drop to
-              // the bottom where they are out of the way but never lost.
-              final bool aActive = a.openDebtCount > 0;
-              final bool bActive = b.openDebtCount > 0;
-              if (aActive != bActive) return aActive ? -1 : 1;
-              return a.person.name.compareTo(b.person.name);
-            });
+          final List<PersonDirectoryEntry> sorted = _arrange(data);
+          final bool searchable = data.length >= PeopleScreen.searchThreshold;
 
-          return ListView.builder(
-            padding: const EdgeInsets.only(bottom: AppSpacing.massive),
-            itemCount: sorted.length,
-            itemBuilder: (BuildContext context, int index) {
-              final PersonDirectoryEntry entry = sorted[index];
-              return Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  _PersonRow(entry: entry),
-                  if (index != sorted.length - 1)
-                    // Ends where the row's content ends. The balances are drawn
-                    // against that edge, and a rule that ran on to the screen
-                    // edge while they stopped short of it read as a row that
-                    // had not been squared off.
-                    const AppDivider(
-                      indent: 74,
-                      endIndent: AppSpacing.lg,
+          return Column(
+            children: <Widget>[
+              if (searchable)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                    AppSpacing.lg,
+                    AppSpacing.sm,
+                  ),
+                  child: TextField(
+                    controller: _search,
+                    onChanged: (String value) => setState(() => _query = value),
+                    textInputAction: TextInputAction.search,
+                    decoration: InputDecoration(
+                      hintText: localizations.peopleSearchHint,
+                      prefixIcon: const Icon(AppIcons.search, size: 20),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: localizations.actionClear,
+                              icon: const Icon(AppIcons.close, size: 18),
+                              onPressed: () => setState(() {
+                                _search.clear();
+                                _query = '';
+                              }),
+                            ),
                     ),
-                ],
-              );
-            },
+                  ),
+                ),
+              Expanded(
+                child: sorted.isEmpty
+                    ? EmptyState(
+                        compact: true,
+                        title: localizations.searchEmptyTitle,
+                        body: localizations.searchEmptyBody,
+                      )
+                    : ListView.builder(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: const EdgeInsets.only(
+                          bottom: AppSpacing.addButtonClearance,
+                        ),
+                        itemCount: sorted.length,
+                        itemBuilder: (BuildContext context, int index) {
+                          final PersonDirectoryEntry entry = sorted[index];
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              _PersonRow(entry: entry),
+                              if (index != sorted.length - 1)
+                                // Ends where the row's content ends. The
+                                // balances are drawn against that edge, and a
+                                // rule that ran on to the screen edge while
+                                // they stopped short of it read as a row that
+                                // had not been squared off.
+                                const AppDivider(
+                                  indent: 74,
+                                  endIndent: AppSpacing.lg,
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+              ),
+            ],
           );
         },
       ),
@@ -132,8 +264,14 @@ class _PersonRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    localizations.personDebtCount(entry.debts.length),
+                    debtCountLabel(
+                      localizations,
+                      total: entry.debts.length,
+                      open: entry.openDebtCount,
+                    ),
                     style: theme.textTheme.bodySmall,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -192,26 +330,95 @@ class _PersonBalances extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
+        // Each figure carries its side in words and a mark, not in colour
+        // alone: red over green with nothing else to tell them apart read as
+        // two amounts of the same kind to anyone who does not see the colours.
         if (first.iOweMinor > 0)
-          MoneyText(
-            Money(first.iOweMinor, first.currency),
-            style: theme.textTheme.titleSmall,
+          _SideAmount(
+            label: localizations.peopleSideIOwe,
+            icon: AppIcons.arrowUpward,
+            money: Money(first.iOweMinor, first.currency),
             color: palette.iOwe,
-            shrinkToFit: true,
           ),
         if (first.owedToMeMinor > 0)
-          MoneyText(
-            Money(first.owedToMeMinor, first.currency),
-            style: theme.textTheme.titleSmall,
+          _SideAmount(
+            label: localizations.peopleSideOwedToMe,
+            icon: AppIcons.arrowDownward,
+            money: Money(first.owedToMeMinor, first.currency),
             color: palette.owedToMe,
-            shrinkToFit: true,
           ),
         if (active.length > 1)
           Text(
-            '+${active.length - 1}',
+            localizations.peopleMoreCurrencies(active.length - 1),
             style: theme.textTheme.labelSmall,
           ),
       ],
     );
   }
+}
+
+/// One side of a person's balance: its mark, its name and the amount.
+class _SideAmount extends StatelessWidget {
+  const _SideAmount({
+    required this.label,
+    required this.icon,
+    required this.money,
+    required this.color,
+  });
+
+  final String label;
+  final IconData icon;
+  final Money money;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Icon(icon, size: 12, color: color),
+        const SizedBox(width: 2),
+        // The amount has the larger share and is drawn smaller rather than cut;
+        // the word gives way first, and the mark beside it still says the side.
+        Flexible(
+          flex: 2,
+          child: Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(color: color),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: AppSpacing.xs),
+        Flexible(
+          flex: 5,
+          child: MoneyText(
+            money,
+            style: theme.textTheme.titleSmall,
+            color: color,
+            shrinkToFit: true,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// How many debts a person has, and how many of them are still open.
+///
+/// "Two debts" alone did not say whether anything was left to settle; the
+/// count now says which of them are open.
+String debtCountLabel(
+  AppLocalizations localizations, {
+  required int total,
+  required int open,
+}) {
+  if (total == 0) return localizations.personDebtCount(0);
+  if (open == total) return localizations.personOpenDebtCount(open);
+  if (open == 0) return localizations.personSettledDebtCount(total);
+  return localizations.personDebtCountWithOpen(
+    localizations.personDebtCount(total),
+    localizations.personOpenShort(open),
+  );
 }

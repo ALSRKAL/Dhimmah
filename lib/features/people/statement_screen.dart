@@ -8,9 +8,11 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/providers.dart';
+import '../../core/formatting/app_formatting.dart';
 import '../../core/money/currency.dart';
 import '../../core/pdf/statement_models.dart';
 import '../../core/share/share_origin.dart';
+import '../../core/share/share_service.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
@@ -295,10 +297,18 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
     setState(() => _busy = true);
     try {
       final File file = await _render(ledger, currency);
+      if (!mounted) return;
+      final StatementData? data = _document;
       await SharePlus.instance.share(
         ShareParams(
           files: <XFile>[XFile(file.path, mimeType: 'application/pdf')],
           subject: localizations.reportStatementTitle,
+          text: data == null
+              ? null
+              : ShareService(
+                  localizations: localizations,
+                  formatting: context.formatting,
+                ).statementCaption(data),
           // An iPad does not open a share sheet that has nowhere to point.
           sharePositionOrigin: shareOriginFallback(),
         ),
@@ -355,7 +365,15 @@ class _Preview extends StatelessWidget {
       allowPrinting: false,
       allowSharing: false,
       dynamicLayout: false,
-      padding: const EdgeInsets.all(AppSpacing.md),
+      // The page as wide as the screen allows. The default margins around a
+      // page left it small with empty space under it; a double tap zooms in
+      // (the preview's own gesture) for the fine print.
+      padding: EdgeInsets.zero,
+      previewPageMargin: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
+      scrollViewDecoration: BoxDecoration(color: context.palette.surfaceMuted),
       loadingWidget: const Center(child: CircularProgressIndicator()),
       onError: (BuildContext context, Object error) => EmptyState(
         title: AppLocalizations.of(context).exportFailed,
@@ -421,7 +439,9 @@ class _ActionBar extends StatelessWidget {
             const SizedBox(height: AppSpacing.xs),
             SizedBox(
               width: double.infinity,
-              child: TextButton.icon(
+              // Outlined, so it reads as a button and not a caption under the
+              // primary one.
+              child: OutlinedButton.icon(
                 onPressed: busy ? null : onPrintOrSave,
                 icon: const Icon(AppIcons.print, size: 18),
                 label: Text(localizations.reportSavePdf),

@@ -906,7 +906,7 @@
     }
   },
   "reportTrendNewDebt": "ديون جديدة",
-  "reportTrendSettled": "المدفوع",
+  "reportTrendSettled": "السداد (لك وعليك)",
   "reportsSubtitle": "ملخص شهري بسيط وواضح",
   "reportsTitle": "التقارير",
   "requiredMark": "مطلوب",
@@ -1017,7 +1017,7 @@
   },
   "sharePaymentTitle": "إيصال دفعة",
   "shareSubject": "تفاصيل الدين",
-  "somethingWentWrong": "حدث خطأ غير متوقع.",
+  "somethingWentWrong": "تعذّر إكمال ذلك. حاول مرة أخرى.",
   "sortAmountHighest": "الأعلى مبلغًا",
   "sortAmountLowest": "الأقل مبلغًا",
   "sortDueLatest": "الأبعد استحقاقًا",
@@ -1587,5 +1587,155 @@
   "receiptRemainingNow": "المتبقي من الدين حاليًا",
   "receiptSignature": "التوقيع",
   "receiptAction": "إيصال PDF",
-  "receiptOptionsTitle": "خيارات السند"
+  "receiptOptionsTitle": "خيارات السند",
+  "peopleMoreCurrencies": "{count, plural, =1{وعملة أخرى} =2{وعملتان أخريان} few{و{count} عملات أخرى} other{و{count} عملة أخرى}}",
+  "@peopleMoreCurrencies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personOpenDebtCount": "{count, plural, =0{لا ديون مفتوحة} =1{دين مفتوح} =2{دينان مفتوحان} few{{count} ديون مفتوحة} other{{count} دينًا مفتوحًا}}",
+  "@personOpenDebtCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personSettledDebtCount": "{count, plural, =1{دين واحد، مسدَّد} =2{دينان، كلاهما مسدَّد} few{{count} ديون، كلها مسدَّدة} other{{count} دينًا، كلها مسدَّدة}}",
+  "@personSettledDebtCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personOpenShort": "{count, plural, =1{واحد مفتوح} =2{اثنان مفتوحان} few{{count} مفتوحة} other{{count} مفتوحًا}}",
+  "@personOpenShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "personDebtCountWithOpen": "{all}، {open}",
+  "@personDebtCountWithOpen": {
+    "placeholders": {
+      "all": {
+        "type": "String"
+      },
+      "open": {
+        "type": "String"
+      }
+    }
+  },
+  "debtUntitledOn": "دين بتاريخ {date}",
+  "@debtUntitledOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "filterClearAll": "مسح الفلاتر",
+  "obligationWasDue": "كان مستحقًا في {date}",
+  "@obligationWasDue": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "obligationMoreActions": "خيارات الالتزام",
+  "obligationSkipShort": "تخطي الدورة",
+  "obligationUpcomingCount": "{count, plural, =1{القادمة (دورة واحدة)} =2{القادمة (دورتان)} few{القادمة ({count} دورات)} other{القادمة ({count} دورة)}}",
+  "@obligationUpcomingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "reportMonthMovement": "حركة الشهر",
+  "reportNetReceived": "استلمتَ أكثر مما دفعت بـ {amount}",
+  "@reportNetReceived": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "reportNetPaid": "دفعتَ أكثر مما استلمت بـ {amount}",
+  "@reportNetPaid": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "chartThousands": "{value} ألف",
+  "@chartThousands": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "chartMillions": "{value} مليون",
+  "@chartMillions": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "chartBillions": "{value} مليار",
+  "@chartBillions": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "attentionKindObligation": "التزام",
+  "attentionKindDebt": "دين",
+  "debtMoreActions": "خيارات الدين",
+  "peopleSideIOwe": "عليّ",
+  "peopleSideOwedToMe": "لي",
+  "debtFormNewTitle": "دين جديد",
+  "debtFormSideIOwe": "عليّ · سأدفعه",
+  "debtFormSideOwedToMe": "لي · سأستلمه",
+  "peopleSearchHint": "ابحث بالاسم أو الرقم",
+  "peopleSortActiveFirst": "من له ديون مفتوحة أولًا",
+  "peopleSortLargest": "الأعلى مبلغًا",
+  "peopleSortRecent": "الأحدث نشاطًا",
+  "peopleSortAlphabetical": "أبجديًا",
+  "settingsBiometricNeedsLock": "فعّل قفل التطبيق أولًا",
+  "backupActionsSection": "حفظ واستعادة",
+  "recordsFilteredTitle": "السجل · {filter}",
+  "@recordsFilteredTitle": {
+    "placeholders": {
+      "filter": {
+        "type": "String"
+      }
+    }
+  },
+  "obligationsShowArchived": "إظهار المؤرشفة",
+  "obligationsHideArchived": "إخفاء المؤرشفة",
+  "paymentDeleteAction": "حذف الدفعة",
+  "personNameHint": "مثال: أحمد محمد",
+  "personPhoneHint": "رقم هاتفه، إن أردت",
+  "receiptShareAction": "إيصال",
+  "personMoreActions": "خيارات الشخص",
+  "listSeparator": "، ",
+  "shareStatementFor": "كشف حساب {name}",
+  "@shareStatementFor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  }
 }

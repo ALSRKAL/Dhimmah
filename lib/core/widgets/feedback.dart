@@ -22,7 +22,13 @@ abstract final class AppFeedback {
   /// A single light haptic marks the moment a write succeeded. It is used only
   /// here, so the feedback keeps meaning "something was saved" rather than
   /// becoming background noise on every tap.
-  static void info(BuildContext context, String message, {IconData? icon}) {
+  static void info(
+    BuildContext context,
+    String message, {
+    IconData? icon,
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
     final AppPalette palette = context.palette;
     unawaited(HapticFeedback.lightImpact());
     _show(
@@ -30,6 +36,12 @@ abstract final class AppFeedback {
       message: message,
       icon: icon ?? AppIcons.checkCircle,
       iconColor: palette.owedToMe,
+      actionLabel: actionLabel,
+      onAction: onAction,
+      // Long enough to reach the action when there is one.
+      duration: onAction == null
+          ? const Duration(seconds: 3)
+          : const Duration(seconds: 6),
     );
   }
 
@@ -38,7 +50,12 @@ abstract final class AppFeedback {
   /// The same confirmation as [info], with a tick that draws itself in place
   /// of the still icon. It is the one piece of good news the app delivers, and
   /// it used to look exactly like saving an edit.
-  static void settled(BuildContext context, String message) {
+  static void settled(
+    BuildContext context,
+    String message, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
     final AppPalette palette = context.palette;
     unawaited(HapticFeedback.lightImpact());
     _show(
@@ -47,6 +64,11 @@ abstract final class AppFeedback {
       icon: AppIcons.checkCircle,
       iconColor: palette.owedToMe,
       leading: DrawnTick(color: palette.owedToMe),
+      actionLabel: actionLabel,
+      onAction: onAction,
+      duration: onAction == null
+          ? const Duration(seconds: 3)
+          : const Duration(seconds: 6),
     );
   }
 

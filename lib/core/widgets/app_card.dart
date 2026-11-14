@@ -103,6 +103,9 @@ class DetailRow extends StatelessWidget {
     required this.value,
     this.valueColor,
     this.icon,
+    this.secondary,
+    this.footnote,
+    this.footnoteColor,
     super.key,
   });
 
@@ -111,47 +114,93 @@ class DetailRow extends StatelessWidget {
   final Color? valueColor;
   final IconData? icon;
 
+  /// A quieter second line under the value — "in 2 days" under a date. Two
+  /// facts joined by " · " in one value broke at whatever width the phone
+  /// had, and the dot was left hanging at the end of a line.
+  final String? secondary;
+
+  /// A sentence about the row, given the card's full width under it. A
+  /// warning squeezed into the value's half of the row broke into four short
+  /// lines.
+  final String? footnote;
+  final Color? footnoteColor;
+
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final AppPalette palette = context.palette;
+    final Widget row = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        if (icon != null) ...<Widget>[
+          Icon(icon, size: 18, color: palette.textTertiary),
+          const SizedBox(width: AppSpacing.sm),
+        ],
+        Expanded(
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: palette.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.md),
+        // The value takes the other half and is drawn against its trailing
+        // edge. It must be a *tight* box with end-aligned content: a loose
+        // `Flexible` is packed where the row's start leaves it, so the value
+        // began on the 50% line and the trailing half of the card stood empty
+        // — which in Arabic is the middle of the screen. The `Align` keeps the
+        // painted figure measurable at the edge; the box around it does not
+        // matter to the eye.
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  value,
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.titleSmall?.copyWith(color: valueColor),
+                ),
+                if (secondary != null && secondary!.isNotEmpty)
+                  Text(
+                    secondary!,
+                    textAlign: TextAlign.end,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: palette.textSecondary,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          if (icon != null) ...<Widget>[
-            Icon(icon, size: 18, color: palette.textTertiary),
-            const SizedBox(width: AppSpacing.sm),
-          ],
-          Expanded(
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: palette.textSecondary,
-              ),
+      child: footnote == null || footnote!.isEmpty
+          ? row
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                row,
+                const SizedBox(height: AppSpacing.xs),
+                Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: icon == null ? 0 : 18 + AppSpacing.sm,
+                  ),
+                  child: Text(
+                    footnote!,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: footnoteColor ?? palette.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: AppSpacing.md),
-          // The value takes the other half and is drawn against its trailing
-          // edge. It must be a *tight* box with end-aligned content: a loose
-          // `Flexible` is packed where the row's start leaves it, so the value
-          // began on the 50% line and the trailing half of the card stood empty
-          // — which in Arabic is the middle of the screen. The `Align` keeps the
-          // painted figure measurable at the edge; the box around it does not
-          // matter to the eye.
-          Expanded(
-            child: Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: Text(
-                value,
-                textAlign: TextAlign.end,
-                style: theme.textTheme.titleSmall?.copyWith(color: valueColor),
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

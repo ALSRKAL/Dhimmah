@@ -61,8 +61,16 @@ class DebtRowTile extends StatelessWidget {
     final DebtDirection direction = view.debt.direction;
     final Color amountColor = palette.forDirection(direction);
 
+    // On a person's page every row would otherwise be headed with the name of
+    // the person the page is about, and two of their debts could only be told
+    // apart by their amounts. A debt with no title of its own is named by the
+    // day it was taken.
     final String lead = personIsKnown
-        ? view.displayNameFor(knownPersonId!)
+        ? (view.debt.title.trim().isNotEmpty
+              ? view.debt.title.trim()
+              : localizations.debtUntitledOn(
+                  formatting.date(view.debt.issuedAt),
+                ))
         : view.displayName;
     final List<String> subtitleParts = <String>[
       if (!personIsKnown && view.subtitle != null) view.subtitle!,
@@ -91,7 +99,12 @@ class DebtRowTile extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: <Widget>[
-              _Leading(view: view, showDirectionBadge: showDirectionBadge),
+              _Leading(
+                view: view,
+                showDirectionBadge: showDirectionBadge,
+                // The page's own header already shows this person's picture.
+                showPerson: !personIsKnown,
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
@@ -152,15 +165,20 @@ class DebtRowTile extends StatelessWidget {
 }
 
 class _Leading extends StatelessWidget {
-  const _Leading({required this.view, required this.showDirectionBadge});
+  const _Leading({
+    required this.view,
+    required this.showDirectionBadge,
+    this.showPerson = true,
+  });
 
   final DebtView view;
   final bool showDirectionBadge;
+  final bool showPerson;
 
   @override
   Widget build(BuildContext context) {
     final AppPalette palette = context.palette;
-    if (view.person != null) {
+    if (showPerson && view.person != null) {
       if (!showDirectionBadge) return PersonAvatar.of(view.person!, size: 42);
       return Stack(
         clipBehavior: Clip.none,

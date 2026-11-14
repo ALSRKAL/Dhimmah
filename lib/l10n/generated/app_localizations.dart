@@ -3136,7 +3136,7 @@ abstract class AppLocalizations {
   /// No description provided for @reportTrendSettled.
   ///
   /// In ar, this message translates to:
-  /// **'المدفوع'**
+  /// **'السداد (لك وعليك)'**
   String get reportTrendSettled;
 
   /// No description provided for @reportsSubtitle.
@@ -3514,7 +3514,7 @@ abstract class AppLocalizations {
   /// No description provided for @somethingWentWrong.
   ///
   /// In ar, this message translates to:
-  /// **'حدث خطأ غير متوقع.'**
+  /// **'تعذّر إكمال ذلك. حاول مرة أخرى.'**
   String get somethingWentWrong;
 
   /// No description provided for @sortAmountHighest.
@@ -5226,6 +5226,258 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'خيارات السند'**
   String get receiptOptionsTitle;
+
+  /// No description provided for @peopleMoreCurrencies.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{وعملة أخرى} =2{وعملتان أخريان} few{و{count} عملات أخرى} other{و{count} عملة أخرى}}'**
+  String peopleMoreCurrencies(int count);
+
+  /// No description provided for @personOpenDebtCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =0{لا ديون مفتوحة} =1{دين مفتوح} =2{دينان مفتوحان} few{{count} ديون مفتوحة} other{{count} دينًا مفتوحًا}}'**
+  String personOpenDebtCount(int count);
+
+  /// No description provided for @personSettledDebtCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{دين واحد، مسدَّد} =2{دينان، كلاهما مسدَّد} few{{count} ديون، كلها مسدَّدة} other{{count} دينًا، كلها مسدَّدة}}'**
+  String personSettledDebtCount(int count);
+
+  /// No description provided for @personOpenShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{واحد مفتوح} =2{اثنان مفتوحان} few{{count} مفتوحة} other{{count} مفتوحًا}}'**
+  String personOpenShort(int count);
+
+  /// No description provided for @personDebtCountWithOpen.
+  ///
+  /// In ar, this message translates to:
+  /// **'{all}، {open}'**
+  String personDebtCountWithOpen(String all, String open);
+
+  /// No description provided for @debtUntitledOn.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين بتاريخ {date}'**
+  String debtUntitledOn(String date);
+
+  /// No description provided for @filterClearAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'مسح الفلاتر'**
+  String get filterClearAll;
+
+  /// No description provided for @obligationWasDue.
+  ///
+  /// In ar, this message translates to:
+  /// **'كان مستحقًا في {date}'**
+  String obligationWasDue(String date);
+
+  /// No description provided for @obligationMoreActions.
+  ///
+  /// In ar, this message translates to:
+  /// **'خيارات الالتزام'**
+  String get obligationMoreActions;
+
+  /// No description provided for @obligationSkipShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'تخطي الدورة'**
+  String get obligationSkipShort;
+
+  /// No description provided for @obligationUpcomingCount.
+  ///
+  /// In ar, this message translates to:
+  /// **'{count, plural, =1{القادمة (دورة واحدة)} =2{القادمة (دورتان)} few{القادمة ({count} دورات)} other{القادمة ({count} دورة)}}'**
+  String obligationUpcomingCount(int count);
+
+  /// No description provided for @reportMonthMovement.
+  ///
+  /// In ar, this message translates to:
+  /// **'حركة الشهر'**
+  String get reportMonthMovement;
+
+  /// No description provided for @reportNetReceived.
+  ///
+  /// In ar, this message translates to:
+  /// **'استلمتَ أكثر مما دفعت بـ {amount}'**
+  String reportNetReceived(String amount);
+
+  /// No description provided for @reportNetPaid.
+  ///
+  /// In ar, this message translates to:
+  /// **'دفعتَ أكثر مما استلمت بـ {amount}'**
+  String reportNetPaid(String amount);
+
+  /// No description provided for @chartThousands.
+  ///
+  /// In ar, this message translates to:
+  /// **'{value} ألف'**
+  String chartThousands(String value);
+
+  /// No description provided for @chartMillions.
+  ///
+  /// In ar, this message translates to:
+  /// **'{value} مليون'**
+  String chartMillions(String value);
+
+  /// No description provided for @chartBillions.
+  ///
+  /// In ar, this message translates to:
+  /// **'{value} مليار'**
+  String chartBillions(String value);
+
+  /// No description provided for @attentionKindObligation.
+  ///
+  /// In ar, this message translates to:
+  /// **'التزام'**
+  String get attentionKindObligation;
+
+  /// No description provided for @attentionKindDebt.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين'**
+  String get attentionKindDebt;
+
+  /// No description provided for @debtMoreActions.
+  ///
+  /// In ar, this message translates to:
+  /// **'خيارات الدين'**
+  String get debtMoreActions;
+
+  /// No description provided for @peopleSideIOwe.
+  ///
+  /// In ar, this message translates to:
+  /// **'عليّ'**
+  String get peopleSideIOwe;
+
+  /// No description provided for @peopleSideOwedToMe.
+  ///
+  /// In ar, this message translates to:
+  /// **'لي'**
+  String get peopleSideOwedToMe;
+
+  /// No description provided for @debtFormNewTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'دين جديد'**
+  String get debtFormNewTitle;
+
+  /// No description provided for @debtFormSideIOwe.
+  ///
+  /// In ar, this message translates to:
+  /// **'عليّ · سأدفعه'**
+  String get debtFormSideIOwe;
+
+  /// No description provided for @debtFormSideOwedToMe.
+  ///
+  /// In ar, this message translates to:
+  /// **'لي · سأستلمه'**
+  String get debtFormSideOwedToMe;
+
+  /// No description provided for @peopleSearchHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'ابحث بالاسم أو الرقم'**
+  String get peopleSearchHint;
+
+  /// No description provided for @peopleSortActiveFirst.
+  ///
+  /// In ar, this message translates to:
+  /// **'من له ديون مفتوحة أولًا'**
+  String get peopleSortActiveFirst;
+
+  /// No description provided for @peopleSortLargest.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأعلى مبلغًا'**
+  String get peopleSortLargest;
+
+  /// No description provided for @peopleSortRecent.
+  ///
+  /// In ar, this message translates to:
+  /// **'الأحدث نشاطًا'**
+  String get peopleSortRecent;
+
+  /// No description provided for @peopleSortAlphabetical.
+  ///
+  /// In ar, this message translates to:
+  /// **'أبجديًا'**
+  String get peopleSortAlphabetical;
+
+  /// No description provided for @settingsBiometricNeedsLock.
+  ///
+  /// In ar, this message translates to:
+  /// **'فعّل قفل التطبيق أولًا'**
+  String get settingsBiometricNeedsLock;
+
+  /// No description provided for @backupActionsSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'حفظ واستعادة'**
+  String get backupActionsSection;
+
+  /// No description provided for @recordsFilteredTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'السجل · {filter}'**
+  String recordsFilteredTitle(String filter);
+
+  /// No description provided for @obligationsShowArchived.
+  ///
+  /// In ar, this message translates to:
+  /// **'إظهار المؤرشفة'**
+  String get obligationsShowArchived;
+
+  /// No description provided for @obligationsHideArchived.
+  ///
+  /// In ar, this message translates to:
+  /// **'إخفاء المؤرشفة'**
+  String get obligationsHideArchived;
+
+  /// No description provided for @paymentDeleteAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'حذف الدفعة'**
+  String get paymentDeleteAction;
+
+  /// No description provided for @personNameHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'مثال: أحمد محمد'**
+  String get personNameHint;
+
+  /// No description provided for @personPhoneHint.
+  ///
+  /// In ar, this message translates to:
+  /// **'رقم هاتفه، إن أردت'**
+  String get personPhoneHint;
+
+  /// No description provided for @receiptShareAction.
+  ///
+  /// In ar, this message translates to:
+  /// **'إيصال'**
+  String get receiptShareAction;
+
+  /// No description provided for @personMoreActions.
+  ///
+  /// In ar, this message translates to:
+  /// **'خيارات الشخص'**
+  String get personMoreActions;
+
+  /// No description provided for @listSeparator.
+  ///
+  /// In ar, this message translates to:
+  /// **'، '**
+  String get listSeparator;
+
+  /// No description provided for @shareStatementFor.
+  ///
+  /// In ar, this message translates to:
+  /// **'كشف حساب {name}'**
+  String shareStatementFor(String name);
 }
 
 class _AppLocalizationsDelegate

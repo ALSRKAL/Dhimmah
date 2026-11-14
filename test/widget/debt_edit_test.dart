@@ -164,7 +164,7 @@ void main() {
       await seed(tester);
       await openEditForm(tester);
 
-      await tester.tap(find.text('لي').last);
+      await tester.tap(find.text('لي · سأستلمه').last);
       await settle(tester);
       await save(tester);
 

@@ -142,6 +142,7 @@ class _PeoplePickerSheetState extends ConsumerState<PeoplePickerSheet> {
                 suffixIcon: _search.text.isEmpty
                     ? null
                     : IconButton(
+                        tooltip: localizations.actionClear,
                         icon: const Icon(AppIcons.close, size: 18),
                         onPressed: () => setState(_search.clear),
                       ),

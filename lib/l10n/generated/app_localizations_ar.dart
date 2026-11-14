@@ -1775,7 +1775,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportTrendNewDebt => 'ديون جديدة';
 
   @override
-  String get reportTrendSettled => 'المدفوع';
+  String get reportTrendSettled => 'السداد (لك وعليك)';
 
   @override
   String get reportsSubtitle => 'ملخص شهري بسيط وواضح';
@@ -1978,7 +1978,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shareSubject => 'تفاصيل الدين';
 
   @override
-  String get somethingWentWrong => 'حدث خطأ غير متوقع.';
+  String get somethingWentWrong => 'تعذّر إكمال ذلك. حاول مرة أخرى.';
 
   @override
   String get sortAmountHighest => 'الأعلى مبلغًا';
@@ -3127,4 +3127,201 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get receiptOptionsTitle => 'خيارات السند';
+
+  @override
+  String peopleMoreCurrencies(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'و$count عملة أخرى',
+      few: 'و$count عملات أخرى',
+      two: 'وعملتان أخريان',
+      one: 'وعملة أخرى',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personOpenDebtCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دينًا مفتوحًا',
+      few: '$count ديون مفتوحة',
+      two: 'دينان مفتوحان',
+      one: 'دين مفتوح',
+      zero: 'لا ديون مفتوحة',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personSettledDebtCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count دينًا، كلها مسدَّدة',
+      few: '$count ديون، كلها مسدَّدة',
+      two: 'دينان، كلاهما مسدَّد',
+      one: 'دين واحد، مسدَّد',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personOpenShort(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count مفتوحًا',
+      few: '$count مفتوحة',
+      two: 'اثنان مفتوحان',
+      one: 'واحد مفتوح',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String personDebtCountWithOpen(String all, String open) {
+    return '$all، $open';
+  }
+
+  @override
+  String debtUntitledOn(String date) {
+    return 'دين بتاريخ $date';
+  }
+
+  @override
+  String get filterClearAll => 'مسح الفلاتر';
+
+  @override
+  String obligationWasDue(String date) {
+    return 'كان مستحقًا في $date';
+  }
+
+  @override
+  String get obligationMoreActions => 'خيارات الالتزام';
+
+  @override
+  String get obligationSkipShort => 'تخطي الدورة';
+
+  @override
+  String obligationUpcomingCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: 'القادمة ($count دورة)',
+      few: 'القادمة ($count دورات)',
+      two: 'القادمة (دورتان)',
+      one: 'القادمة (دورة واحدة)',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get reportMonthMovement => 'حركة الشهر';
+
+  @override
+  String reportNetReceived(String amount) {
+    return 'استلمتَ أكثر مما دفعت بـ $amount';
+  }
+
+  @override
+  String reportNetPaid(String amount) {
+    return 'دفعتَ أكثر مما استلمت بـ $amount';
+  }
+
+  @override
+  String chartThousands(String value) {
+    return '$value ألف';
+  }
+
+  @override
+  String chartMillions(String value) {
+    return '$value مليون';
+  }
+
+  @override
+  String chartBillions(String value) {
+    return '$value مليار';
+  }
+
+  @override
+  String get attentionKindObligation => 'التزام';
+
+  @override
+  String get attentionKindDebt => 'دين';
+
+  @override
+  String get debtMoreActions => 'خيارات الدين';
+
+  @override
+  String get peopleSideIOwe => 'عليّ';
+
+  @override
+  String get peopleSideOwedToMe => 'لي';
+
+  @override
+  String get debtFormNewTitle => 'دين جديد';
+
+  @override
+  String get debtFormSideIOwe => 'عليّ · سأدفعه';
+
+  @override
+  String get debtFormSideOwedToMe => 'لي · سأستلمه';
+
+  @override
+  String get peopleSearchHint => 'ابحث بالاسم أو الرقم';
+
+  @override
+  String get peopleSortActiveFirst => 'من له ديون مفتوحة أولًا';
+
+  @override
+  String get peopleSortLargest => 'الأعلى مبلغًا';
+
+  @override
+  String get peopleSortRecent => 'الأحدث نشاطًا';
+
+  @override
+  String get peopleSortAlphabetical => 'أبجديًا';
+
+  @override
+  String get settingsBiometricNeedsLock => 'فعّل قفل التطبيق أولًا';
+
+  @override
+  String get backupActionsSection => 'حفظ واستعادة';
+
+  @override
+  String recordsFilteredTitle(String filter) {
+    return 'السجل · $filter';
+  }
+
+  @override
+  String get obligationsShowArchived => 'إظهار المؤرشفة';
+
+  @override
+  String get obligationsHideArchived => 'إخفاء المؤرشفة';
+
+  @override
+  String get paymentDeleteAction => 'حذف الدفعة';
+
+  @override
+  String get personNameHint => 'مثال: أحمد محمد';
+
+  @override
+  String get personPhoneHint => 'رقم هاتفه، إن أردت';
+
+  @override
+  String get receiptShareAction => 'إيصال';
+
+  @override
+  String get personMoreActions => 'خيارات الشخص';
+
+  @override
+  String get listSeparator => '، ';
+
+  @override
+  String shareStatementFor(String name) {
+    return 'كشف حساب $name';
+  }
 }

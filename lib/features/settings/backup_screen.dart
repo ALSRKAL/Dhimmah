@@ -181,7 +181,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               ),
               const SizedBox(height: AppSpacing.lg),
               SettingsSection(
-                title: localizations.settingsBackup,
+                // Not the page's own title again.
+                title: localizations.backupActionsSection,
                 children: <Widget>[
                   // The two are different acts, and they are listed as such.
                   // Saving a file is how a backup leaves the app: the user picks

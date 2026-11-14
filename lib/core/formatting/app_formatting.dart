@@ -34,6 +34,9 @@ class DateFormatter {
   /// `Sep 2026` — compact month heading for chips and pickers.
   String shortMonthYear(DateTime date) => DateFormat.yM(_locale).format(date);
 
+  /// `Sep` / «سبتمبر» — a month on its own, for a chart's axis.
+  String shortMonth(DateTime date) => DateFormat.MMM(_locale).format(date);
+
   /// `22/09/2026`
   String numeric(DateTime date) => DateFormat.yMd(_locale).format(date);
 
@@ -150,6 +153,10 @@ class AppFormatting {
       _dates.relativeDue(dueAt, asOf);
 
   String date(DateTime value) => _dates.medium(value);
+
+  /// How late something is, or an empty string when it is not late.
+  String overdueBy(DateTime dueAt, DateTime asOf) =>
+      _dates.overdueBy(dueAt, asOf);
 
   static AppFormatting of({
     required AppLanguage language,

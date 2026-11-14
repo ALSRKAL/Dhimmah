@@ -38,12 +38,7 @@ import '../people/person_picker_sheet.dart';
 /// safe: the record's participants are read back from the stored debt, so
 /// changing the amount cannot quietly drop the person the debt is with.
 class DebtFormScreen extends ConsumerStatefulWidget {
-  const DebtFormScreen({
-    this.debtId,
-    this.direction,
-    this.personId,
-    super.key,
-  });
+  const DebtFormScreen({this.debtId, this.direction, this.personId, super.key});
 
   /// When set, the form edits this record instead of creating one.
   final String? debtId;
@@ -72,7 +67,14 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
   final GlobalKey _peopleKey = GlobalKey();
   final FocusNode _amountFocus = FocusNode();
 
-  late DebtDirection? _direction = widget.direction;
+  /// A form opened with no side in its context — from a person's page — used to
+  /// open with neither chosen and then stop the save with "choose the kind of
+  /// debt". Someone entering several debts in a row is usually entering the
+  /// same kind, so the last one's side is offered; it is still one tap to
+  /// change, and it is never carried past a restart.
+  late DebtDirection? _direction =
+      widget.direction ??
+      (widget.debtId == null ? ref.read(lastSavedDebtSideProvider) : null);
   AppCurrency? _currency;
 
   /// Who the record is with, in the order the user chose them.
@@ -173,7 +175,8 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
       ..clear()
       ..addAll(debt.personIds);
     // Nothing is hidden on a record that already uses the optional fields.
-    _showAdvanced = debt.title.trim().isNotEmpty ||
+    _showAdvanced =
+        debt.title.trim().isNotEmpty ||
         (debt.note ?? '').trim().isNotEmpty ||
         debt.reminderLeads.isNotEmpty ||
         debt.isRecurring ||
@@ -185,8 +188,9 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     final AppLocalizations localizations = AppLocalizations.of(context);
 
     if (_isEditing) {
-      final AsyncValue<Debt?> debt =
-          ref.watch(debtByIdProvider(widget.debtId!));
+      final AsyncValue<Debt?> debt = ref.watch(
+        debtByIdProvider(widget.debtId!),
+      );
       return AsyncValueView<Debt?>(
         value: debt,
         onRetry: () => ref.invalidate(debtByIdProvider(widget.debtId!)),
@@ -227,7 +231,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     }
     final NotificationPermission permission =
         ref.watch(notificationPermissionProvider).value ??
-            ref.read(notificationServiceProvider).permission;
+        ref.read(notificationServiceProvider).permission;
     return permission == NotificationPermission.denied
         ? localizations.reminderNotArmedDenied
         : null;
@@ -248,9 +252,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
         if (leave && mounted) this.context.pop();
       },
       child: Scaffold(
-        appBar: AppBar(
-          title: Text(_screenTitle(localizations, editing)),
-        ),
+        appBar: AppBar(title: Text(_screenTitle(localizations, editing))),
         body: Form(
           key: _formKey,
           child: ListView(
@@ -286,6 +288,25 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                 initialMinor: _amountMinor,
                 errorText: _amountError,
                 focusNode: _amountFocus,
+                // A new debt starts with the caret in the amount: it is the one
+                // thing every record needs typed. Not on an edit, where the
+                // figure is already there and the keyboard would only cover it.
+                autofocus: !_isEditing,
+                // The one place the currency is chosen, on the amount it
+                // qualifies. There used to be a second "Currency" field below.
+                onCurrencyTap: () async {
+                  final AppCurrency? picked = await pickCurrency(
+                    context,
+                    value: _currency ?? AppCurrency.inr,
+                    suggested: ref.read(regionCurrencyProvider),
+                  );
+                  if (picked != null && mounted) {
+                    setState(() {
+                      _dirty = true;
+                      _currency = picked;
+                    });
+                  }
+                },
                 onRejected: () {
                   // Past the ceiling: the figure last handed to this form is not
                   // the one on screen, so it is dropped and `_validate` refuses
@@ -305,15 +326,6 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                     _missingFields = 0;
                   });
                 },
-              ),
-              const SizedBox(height: AppSpacing.md),
-              CurrencyField(
-                value: _currency ?? AppCurrency.inr,
-                suggested: ref.watch(regionCurrencyProvider),
-                onChanged: (AppCurrency currency) => setState(() {
-                  _dirty = true;
-                  _currency = currency;
-                }),
               ),
               const SizedBox(height: AppSpacing.md),
               // The description sits in the open form, directly under the
@@ -413,7 +425,8 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
                       ],
                       labelOf: (RecurrenceFrequency value) =>
                           value.label(localizations, interval: _interval),
-                      iconOf: (RecurrenceFrequency _) => AppIcons.autorenewFilled,
+                      iconOf: (RecurrenceFrequency _) =>
+                          AppIcons.autorenewFilled,
                       title: localizations.fieldRecurrence,
                       icon: AppIcons.autorenewFilled,
                       onChanged: (RecurrenceFrequency value) => setState(() {
@@ -444,7 +457,9 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
         // window never resizes, and the Scaffold leaves its bottomNavigationBar
         // at the window bottom — behind the keyboard.
         bottomNavigationBar: Padding(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.viewInsetsOf(context).bottom,
+          ),
           child: SafeArea(
             minimum: const EdgeInsets.fromLTRB(
               AppSpacing.lg,
@@ -489,19 +504,23 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
   /// The screen's title: the side when the user already chose one, otherwise
   /// the plain act of adding a debt.
   String _screenTitle(AppLocalizations localizations, Debt? editing) {
+    // "New debt" whatever side is chosen: the title used to repeat the side
+    // ("A debt I owe") right above the switch that sets it.
     if (editing != null) return localizations.debtFormEdit;
-    final DebtDirection? direction = _direction;
-    if (direction == null) return localizations.addDebtAction;
-    return direction.isIOwe
-        ? localizations.debtFormNewIOwe
-        : localizations.debtFormNewOwedToMe;
+    return localizations.debtFormNewTitle;
   }
 
   Future<void> _addPeople(AppLocalizations localizations) async {
+    // Focus is dropped first. The picker's route hands focus back to whatever
+    // had it when it closes — the amount — and the number pad came up over
+    // the rest of the form straight after a person was chosen.
+    FocusScope.of(context).unfocus();
     final List<Person>? picked = await showPeoplePicker(
       context,
       selected: _selectedPeople(localizations),
     );
+    if (!mounted) return;
+    await dropFocusAfterSheet(context);
     if (!mounted || picked == null) return;
     setState(() {
       _dirty = true;
@@ -518,9 +537,10 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
   List<Person> _selectedPeople(AppLocalizations localizations) {
     final List<PersonDirectoryEntry> directory =
         ref.read(peopleDirectoryProvider).value ??
-            const <PersonDirectoryEntry>[];
+        const <PersonDirectoryEntry>[];
     final Map<String, Person> byId = <String, Person>{
-      for (final PersonDirectoryEntry entry in directory) entry.person.id: entry.person,
+      for (final PersonDirectoryEntry entry in directory)
+        entry.person.id: entry.person,
     };
     return <Person>[
       for (final String id in _personIds)
@@ -542,15 +562,20 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
       ParticipantRules.normalise(_personIds),
     );
     final int missing =
-        (directionMissing ? 1 : 0) + (amountMissing ? 1 : 0) + (peopleMissing ? 1 : 0);
+        (directionMissing ? 1 : 0) +
+        (amountMissing ? 1 : 0) +
+        (peopleMissing ? 1 : 0);
 
     setState(() {
-      _directionError =
-          directionMissing ? localizations.validationSelectDirection : null;
-      _amountError =
-          amountMissing ? localizations.validationInvalidAmount : null;
-      _peopleError =
-          peopleMissing ? localizations.validationSelectParticipant : null;
+      _directionError = directionMissing
+          ? localizations.validationSelectDirection
+          : null;
+      _amountError = amountMissing
+          ? localizations.validationInvalidAmount
+          : null;
+      _peopleError = peopleMissing
+          ? localizations.validationSelectParticipant
+          : null;
       _missingFields = missing;
     });
     return missing;
@@ -561,8 +586,8 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
     final GlobalKey target = _direction == null
         ? _directionKey
         : (_amountMinor == null || !AmountRules.isValid(_amountMinor!)
-            ? _amountKey
-            : _peopleKey);
+              ? _amountKey
+              : _peopleKey);
     final BuildContext? field = target.currentContext;
     if (field != null) {
       await Scrollable.ensureVisible(
@@ -586,7 +611,8 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
         title: Text(localizations.unsavedChangesTitle),
         content: Text(localizations.unsavedChangesBody),
         actions: <Widget>[
-          TextButton(
+          // The safe choice is the prominent one.
+          FilledButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(localizations.unsavedChangesStay),
           ),
@@ -615,8 +641,7 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
 
     final DebtDirection direction = _direction!;
     final AppCurrency currency = _currency ?? AppCurrency.inr;
-    final List<String> personIds =
-        ParticipantRules.normalise(_personIds);
+    final List<String> personIds = ParticipantRules.normalise(_personIds);
 
     setState(() => _busy = true);
     final DebtDraft draft = DebtDraft(
@@ -646,6 +671,9 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
         // settling one person's record never touches another's.
         createdCount = (await service.createDebts(draft)).length;
       }
+      if (!_isEditing) {
+        ref.read(lastSavedDebtSideProvider.notifier).remember(direction);
+      }
       if (!mounted) return;
       _saved = true;
       AppFeedback.info(
@@ -654,8 +682,8 @@ class _DebtFormScreenState extends ConsumerState<DebtFormScreen> {
             (_isEditing
                 ? localizations.debtUpdated
                 : createdCount > 1
-                    ? localizations.debtsCreatedCount(createdCount)
-                    : localizations.debtCreated),
+                ? localizations.debtsCreatedCount(createdCount)
+                : localizations.debtCreated),
       );
       context.pop();
     } on NewSharedDebtBlockedException {
@@ -741,12 +769,12 @@ class _DirectionField extends StatelessWidget {
             segments: <ButtonSegment<DebtDirection>>[
               ButtonSegment<DebtDirection>(
                 value: DebtDirection.iOwe,
-                label: Text(localizations.ledgerSwitchIOwe),
+                label: Text(localizations.debtFormSideIOwe),
                 icon: const Icon(AppIcons.arrowUpward, size: 18),
               ),
               ButtonSegment<DebtDirection>(
                 value: DebtDirection.owedToMe,
-                label: Text(localizations.ledgerSwitchOwedToMe),
+                label: Text(localizations.debtFormSideOwedToMe),
                 icon: const Icon(AppIcons.arrowDownward, size: 18),
               ),
             ],
@@ -766,7 +794,9 @@ class _DirectionField extends StatelessWidget {
             padding: const EdgeInsets.only(top: AppSpacing.sm),
             child: Text(
               errorText!,
-              style: theme.textTheme.bodySmall?.copyWith(color: palette.overdue),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: palette.overdue,
+              ),
             ),
           ),
       ],
@@ -799,8 +829,9 @@ class _PeopleField extends ConsumerWidget {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
-    final AsyncValue<List<PersonDirectoryEntry>> directory =
-        ref.watch(peopleDirectoryProvider);
+    final AsyncValue<List<PersonDirectoryEntry>> directory = ref.watch(
+      peopleDirectoryProvider,
+    );
     final Map<String, Person> byId = <String, Person>{
       for (final PersonDirectoryEntry entry
           in directory.value ?? const <PersonDirectoryEntry>[])
@@ -811,8 +842,9 @@ class _PeopleField extends ConsumerWidget {
         if (byId[id] != null) byId[id]!,
     ];
     // The person this form was opened for, when it is still on the record.
-    final Person? contextPerson =
-        contextPersonId == null ? null : byId[contextPersonId!];
+    final Person? contextPerson = contextPersonId == null
+        ? null
+        : byId[contextPersonId!];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -821,19 +853,25 @@ class _PeopleField extends ConsumerWidget {
         if (!expanded && contextPerson != null)
           // Opened from a person's page: the app knows who this is with, so it
           // states that instead of asking a second time.
-          Row(
-            children: <Widget>[
-              Expanded(
-                child: InputChip(
-                  avatar: PersonAvatar.of(contextPerson, size: 24),
-                  label: Text(
-                    localizations.debtFormWithPerson(contextPerson.name),
+          // Against the reading edge, like every other field's content; a chip
+          // stretched across the row drew its label in the middle.
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Flexible(
+                  child: InputChip(
+                    avatar: PersonAvatar.of(contextPerson, size: 24),
+                    label: Text(
+                      localizations.debtFormWithPerson(contextPerson.name),
+                    ),
+                    onDeleted: () => onRemove(contextPerson.id),
+                    deleteButtonTooltipMessage: localizations.actionClear,
                   ),
-                  onDeleted: () => onRemove(contextPerson.id),
-                  deleteButtonTooltipMessage: localizations.actionClear,
                 ),
-              ),
-            ],
+              ],
+            ),
           )
         // The empty row is also what shows while the directory is still
         // loading: one tap opens the picker, which has its own empty state.
@@ -880,7 +918,11 @@ class _PeopleField extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  Icon(AppIcons.expandMore, size: 20, color: palette.textTertiary),
+                  Icon(
+                    AppIcons.expandMore,
+                    size: 20,
+                    color: palette.textTertiary,
+                  ),
                 ],
               ),
             ),
@@ -919,7 +961,9 @@ class _PeopleField extends ConsumerWidget {
             padding: const EdgeInsets.only(top: AppSpacing.xs),
             child: Text(
               errorText!,
-              style: theme.textTheme.bodySmall?.copyWith(color: palette.overdue),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: palette.overdue,
+              ),
             ),
           ),
       ],
@@ -958,8 +1002,9 @@ class _MissingFieldsBanner extends StatelessWidget {
             Expanded(
               child: Text(
                 message,
-                style: theme.textTheme.bodyMedium
-                    ?.copyWith(color: palette.overdue),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: palette.overdue,
+                ),
               ),
             ),
           ],
@@ -1020,8 +1065,8 @@ List<({String label, DateTime? value})> dueQuickOptions({
   required AppLocalizations localizations,
 }) {
   final DateTime start = dateOnly(today);
-  final List<({String label, DateTime? value})> options =
-      <({String label, DateTime? value})>[
+  final List<({String label, DateTime? value})>
+  options = <({String label, DateTime? value})>[
     (label: localizations.dueQuickWeek, value: addDays(start, 7)),
     // From *today*, clamped to the target month: the 31st plus a month is the
     // 30th of a 30-day month and the 28th of February, which is the day a person
@@ -1125,4 +1170,17 @@ class _AdvancedSection extends StatelessWidget {
       ],
     );
   }
+}
+
+/// The side of the last debt saved in this run of the app, offered to the next
+/// new debt whose side its context does not decide. Held in memory only.
+final NotifierProvider<LastSavedDebtSide, DebtDirection?>
+lastSavedDebtSideProvider =
+    NotifierProvider<LastSavedDebtSide, DebtDirection?>(LastSavedDebtSide.new);
+
+class LastSavedDebtSide extends Notifier<DebtDirection?> {
+  @override
+  DebtDirection? build() => null;
+
+  void remember(DebtDirection side) => state = side;
 }

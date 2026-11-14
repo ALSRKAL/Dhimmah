@@ -56,6 +56,14 @@ class MoneyFormatter {
     return buffer.toString();
   }
 
+  /// A plain number with at most [maxDecimals] places, honouring the numeral
+  /// style — for chart scales, where a figure is a size and not an amount.
+  String decimal(double value, {int maxDecimals = 1}) {
+    final String pattern =
+        maxDecimals <= 0 ? '#,##0' : '#,##0.${'#' * maxDecimals}';
+    return _applyNumerals(NumberFormat(pattern, _numericLocale).format(value));
+  }
+
   /// The amount without any currency marker.
   String amount(
     Money money, {

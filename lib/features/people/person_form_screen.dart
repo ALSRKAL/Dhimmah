@@ -118,7 +118,9 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
             AppTextField(
               label: localizations.personNameLabel,
               controller: _name,
-              hint: localizations.fieldPersonHint,
+              // The picker's "choose or add someone" was the hint here too,
+              // on a field that only takes a name.
+              hint: localizations.personNameHint,
               prefixIcon: AppIcons.person,
               autofocus: !_isEditing,
               maxLength: 120,
@@ -136,10 +138,9 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
               label:
                   '${localizations.personPhoneLabel} · ${localizations.fieldOptional}',
               controller: _phone,
-              // The isolate keeps the example number LTR inside the RTL field:
-              // bare, it rendered group-reversed with the + on the wrong end
-              // ("7XX … 967+") — proven at zoom on the device.
-              hint: '\u2066+967 7XX XXX XXX\u2069',
+              // No example number: one country's format in the hint read as
+              // the format the field wanted, wherever the phone was.
+              hint: localizations.personPhoneHint,
               prefixIcon: AppIcons.phone,
               keyboardType: TextInputType.phone,
               maxLength: 32,
@@ -254,7 +255,8 @@ class _PersonFormScreenState extends ConsumerState<PersonFormScreen> {
         title: Text(localizations.unsavedChangesTitle),
         content: Text(localizations.unsavedChangesBody),
         actions: <Widget>[
-          TextButton(
+          // The safe choice is the prominent one.
+          FilledButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: Text(localizations.unsavedChangesStay),
           ),

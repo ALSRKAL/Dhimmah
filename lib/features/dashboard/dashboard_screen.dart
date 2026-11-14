@@ -20,9 +20,9 @@ import '../../core/widgets/record_rows.dart';
 import '../../domain/entities/activity_entry.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/obligation.dart';
+import '../../domain/enums/obligation_enums.dart';
 import '../../domain/services/attention_list.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../debts/debt_list.dart';
 import '../shell/app_shell.dart';
 import 'widgets/dashboard_header.dart';
 
@@ -257,6 +257,17 @@ class _RecentActivity extends StatelessWidget {
   final List<ActivityEntry> entries;
   final DateTime asOf;
 
+  static String? _routeFor(ActivityEntry entry) {
+    final String? id = entry.entityId;
+    if (id == null || id.isEmpty) return null;
+    return switch (entry.entityType) {
+      RelatedEntityType.debt => AppRoutes.debtPath(id),
+      RelatedEntityType.obligation => AppRoutes.obligationPath(id),
+      RelatedEntityType.person => AppRoutes.personPath(id),
+      _ => null,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final AppLocalizations localizations = AppLocalizations.of(context);
@@ -282,7 +293,15 @@ class _RecentActivity extends StatelessWidget {
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
-                    ActivityRowTile(entry: entries[i], asOf: asOf),
+                    ActivityRowTile(
+                      entry: entries[i],
+                      asOf: asOf,
+                      // A row that looked tappable and did nothing. It opens
+                      // the record it is about, where there is one to open.
+                      onTap: _routeFor(entries[i]) == null
+                          ? null
+                          : () => context.push(_routeFor(entries[i])!),
+                    ),
                     if (i != entries.length - 1)
                       const AppDivider(indent: 64),
                   ],
@@ -391,10 +410,10 @@ class _NeedsAttention extends StatelessWidget {
                 ],
               ),
             ),
-          // Without this the last row comes to rest under the add button, and on
-          // a dashboard whose whole job is showing what needs attention, that
-          // means hiding an amount behind a button.
-          const SliverBottomSpacer(),
+          // No add-button clearance here: this section is in the middle of the
+          // page, and the clearance it used to carry opened a screen-tall gap
+          // between it and the sections below. The page's own last sliver
+          // keeps the final row clear of the button.
         ],
       ),
     );
@@ -478,6 +497,13 @@ class _AttentionRow extends StatelessWidget {
     final Color amountColor = item.direction == null
         ? palette.textPrimary
         : palette.forDirection(item.direction!);
+    String kind(AppLocalizations l) => item.isObligation
+        ? l.attentionKindObligation
+        : item.direction == null
+        ? l.attentionKindDebt
+        : item.direction!.isIOwe
+        ? l.dashboardIOwe
+        : l.dashboardOwedToMe;
 
     return InkWell(
       onTap: () => context.push(
@@ -509,10 +535,12 @@ class _AttentionRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    // How long there is, then the date itself. Leading with the
-                    // deadline is what makes the row scannable; the date is
-                    // there for when it is not enough.
-                    '${context.formatting.dates.attentionLabel(item.dueAt, asOf)}'
+                    // What the row is, how long there is, then the date. The
+                    // kind comes first because the amounts are coloured by side
+                    // for debts and plain for obligations, and one list mixing
+                    // the two needed to say which was which.
+                    '${kind(localizations)}'
+                    ' · ${context.formatting.dates.attentionLabel(item.dueAt, asOf)}'
                     ' · ${context.formatting.date(item.dueAt)}',
                     style: theme.textTheme.bodySmall,
                     maxLines: 1,
