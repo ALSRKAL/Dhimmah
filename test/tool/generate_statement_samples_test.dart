@@ -250,6 +250,26 @@ void main() {
       ),
     );
 
+    // A bounded period: the movements inside it, and the balance the account
+    // opened it with. Everything before the first day still counts.
+    final StatementOptions period = StatementOptions(
+      scope: StatementScope.all,
+      periodFrom: addDays(today, -100),
+      periodTo: addDays(today, -10),
+    );
+    await write(
+      target: ahmed,
+      language: AppLanguage.arabic,
+      fileName: 'ar-period.pdf',
+      options: period,
+    );
+    await write(
+      target: ahmed,
+      language: AppLanguage.english,
+      fileName: 'en-period.pdf',
+      options: period,
+    );
+
     // A statement leaves settled debts out unless asked, and this person's
     // only debt is settled: with the default scope there would be no row to
     // print, which is the case the screen answers with an explanation instead

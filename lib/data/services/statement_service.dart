@@ -104,6 +104,17 @@ class StatementService {
       for (final DebtView view in inCurrency) view.debt,
     ];
 
+    // The movements inside the stated period, plus the balance the period
+    // opens with. Without a period this is every movement and no opening
+    // balance — the document the app has always printed.
+    final StatementHistory history = buildStatementHistory(
+      debts: debts,
+      payments: payments,
+      currency: currency,
+      from: options.hasPeriod ? options.periodFrom : null,
+      to: options.hasPeriod ? options.periodTo : null,
+    );
+
     return StatementData(
       documentNumber: _documentNumber(ledger.person.id, now),
       generatedAt: now,
@@ -135,17 +146,19 @@ class StatementService {
             note: view.debt.note,
           ),
       ],
-      entries: buildStatementEntries(
-        debts: debts,
-        payments: payments,
-        currency: currency,
-      ),
+      entries: history.entries,
       options: options,
       notes: options.includeNotes
           ? _collectedNotes(inCurrency)
           : null,
       hiddenSettledCount: hidden.settled,
       hiddenArchivedCount: hidden.archived,
+      periodFrom: options.hasPeriod ? options.periodFrom : null,
+      periodTo: options.hasPeriod ? options.periodTo : null,
+      openingBalanceMinor: history.openingMinor,
+      // Null without a period: the document then closes on its last printed
+      // movement, exactly as it did before periods were offered.
+      closingBalanceMinor: options.hasPeriod ? history.closingMinor : null,
     );
   }
 

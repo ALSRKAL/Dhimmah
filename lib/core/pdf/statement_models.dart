@@ -6,6 +6,7 @@ import '../../domain/enums/debt_enums.dart';
 import '../../domain/enums/preference_enums.dart';
 import '../money/currency.dart';
 import '../money/money.dart';
+import '../utils/dates.dart';
 
 /// Which of a person's debts a statement covers.
 enum StatementScope {
@@ -41,6 +42,8 @@ class StatementOptions {
     this.includeArchived = false,
     this.selectedDebtIds = const <String>{},
     this.issuerName = '',
+    this.periodFrom,
+    this.periodTo,
   });
 
   /// The payment history table.
@@ -78,6 +81,20 @@ class StatementOptions {
   /// own user, and adding one is a schema change this does not make.
   final String issuerName;
 
+  /// The first day the statement covers, or null for the whole history.
+  ///
+  /// A statement with a period prints only the movements inside it, and states
+  /// the balance the account opened the period with. Both ends are inclusive
+  /// calendar days. The two fields are set together; [hasPeriod] is the one
+  /// question the rest of the code asks.
+  final DateTime? periodFrom;
+
+  /// The last day the statement covers, or null for the whole history.
+  final DateTime? periodTo;
+
+  /// Whether these options state a bounded period.
+  bool get hasPeriod => periodFrom != null && periodTo != null;
+
   StatementOptions copyWith({
     bool? includePayments,
     bool? includePhone,
@@ -87,6 +104,8 @@ class StatementOptions {
     bool? includeArchived,
     Set<String>? selectedDebtIds,
     String? issuerName,
+    Object? periodFrom = _unsetPeriod,
+    Object? periodTo = _unsetPeriod,
   }) {
     return StatementOptions(
       includePayments: includePayments ?? this.includePayments,
@@ -97,6 +116,14 @@ class StatementOptions {
       includeArchived: includeArchived ?? this.includeArchived,
       selectedDebtIds: selectedDebtIds ?? this.selectedDebtIds,
       issuerName: issuerName ?? this.issuerName,
+      // Sentinels, so the period can be cleared as well as replaced: passing
+      // null was indistinguishable from leaving the field alone.
+      periodFrom: identical(periodFrom, _unsetPeriod)
+          ? this.periodFrom
+          : periodFrom as DateTime?,
+      periodTo: identical(periodTo, _unsetPeriod)
+          ? this.periodTo
+          : periodTo as DateTime?,
     );
   }
 
@@ -109,7 +136,8 @@ class StatementOptions {
       scope == StatementScope.openOnly &&
       !includeArchived &&
       selectedDebtIds.isEmpty &&
-      issuerName.trim().isEmpty;
+      issuerName.trim().isEmpty &&
+      !hasPeriod;
 
   /// Compared by value: the preview is keyed on these, and two sets of options
   /// that print the same document must not rebuild it.
@@ -124,6 +152,8 @@ class StatementOptions {
           other.scope == scope &&
           other.includeArchived == includeArchived &&
           other.issuerName == issuerName &&
+          other.periodFrom == periodFrom &&
+          other.periodTo == periodTo &&
           other.selectedDebtIds.length == selectedDebtIds.length &&
           other.selectedDebtIds.containsAll(selectedDebtIds);
 
@@ -136,9 +166,13 @@ class StatementOptions {
         scope,
         includeArchived,
         issuerName,
+        periodFrom,
+        periodTo,
         Object.hashAllUnordered(selectedDebtIds),
       );
 }
+
+const Object _unsetPeriod = Object();
 
 /// One line of the payment history table.
 @immutable
@@ -249,6 +283,10 @@ class StatementData {
     this.notes,
     this.hiddenSettledCount = 0,
     this.hiddenArchivedCount = 0,
+    this.periodFrom,
+    this.periodTo,
+    this.openingBalanceMinor = 0,
+    this.closingBalanceMinor,
   });
 
   /// Human-readable number, stable for a given person and day.
@@ -297,6 +335,28 @@ class StatementData {
   /// user's own filing, and a document that told its reader "two archived debts
   /// not shown" would be telling them about records the user put away.
   final int hiddenArchivedCount;
+
+  /// The first day the movements cover, or null for the whole history.
+  final DateTime? periodFrom;
+
+  /// The last day the movements cover, or null for the whole history.
+  final DateTime? periodTo;
+
+  /// Whether the document states a bounded period.
+  bool get hasPeriod => periodFrom != null && periodTo != null;
+
+  /// The signed balance the account opened the period with.
+  ///
+  /// Positive means the user was owed on balance. Zero without a period, and
+  /// zero for a period that starts before the first record.
+  final int openingBalanceMinor;
+
+  /// The signed balance at the end of the stated period.
+  ///
+  /// Null without a period, where the closing figure is the running balance of
+  /// the last printed movement — the behaviour the document had before periods
+  /// existed.
+  final int? closingBalanceMinor;
 
   Money get total => Money(totalMinor, currency);
   Money get paid => Money(paidMinor, currency);
@@ -477,6 +537,28 @@ class ReceiptLine {
   final Money remainingNow;
 }
 
+/// The movement history of an account, with the balance either side of it.
+@immutable
+class StatementHistory {
+  const StatementHistory({
+    required this.entries,
+    required this.openingMinor,
+    required this.closingMinor,
+  });
+
+  /// The movements to print, oldest first.
+  final List<StatementEntry> entries;
+
+  /// The signed balance before the first printed movement.
+  ///
+  /// Positive means the user was owed. Zero for an unbounded history, and for
+  /// a period that begins before the first record.
+  final int openingMinor;
+
+  /// The signed balance after the last printed movement.
+  final int closingMinor;
+}
+
 /// Builds the statement's history from real records.
 ///
 /// One list, oldest first, with a running balance, so the table reads as the
@@ -484,17 +566,30 @@ class ReceiptLine {
 /// payment brings its debt down. No line is invented — every row corresponds to
 /// a stored record.
 ///
+/// With [from] and [to] the printed movements are bounded to those calendar
+/// days, both inclusive. Everything before [from] still counts: it is applied
+/// first and its result is the opening balance, so the first printed row starts
+/// from what the account actually held that morning. Movements after [to] are
+/// not applied at all, which is what makes the closing figure the balance at
+/// the end of the period rather than today's.
+///
 /// Two things this used to get wrong. It listed every debt first and every
 /// payment after, whatever their dates, so a debt recorded in August sat above
 /// a payment made in June and the balance column passed through figures the
 /// account never had. And it added money owed to the user and money the user
 /// owes into one total. The balance is now the two sides set against each
 /// other, and each debt stops at zero, as it does on the debt's own page.
-List<StatementEntry> buildStatementEntries({
+StatementHistory buildStatementHistory({
   required List<Debt> debts,
   required List<Payment> payments,
   required AppCurrency currency,
+  DateTime? from,
+  DateTime? to,
 }) {
+  final bool bounded = from != null && to != null;
+  final DateTime? start = bounded ? dateOnly(from) : null;
+  final DateTime? end = bounded ? dateOnly(to) : null;
+
   final Map<String, Debt> byId = <String, Debt>{
     for (final Debt debt in debts)
       if (debt.currency == currency) debt.id: debt,
@@ -533,17 +628,27 @@ List<StatementEntry> buildStatementEntries({
     return owedToMe - iOwe;
   }
 
+  int opening = 0;
   final List<StatementEntry> entries = <StatementEntry>[];
   for (final _HistoryEvent event in events) {
+    final DateTime day = dateOnly(event.date);
+    if (bounded) {
+      // After the period, nothing is applied: the closing balance is the one
+      // the account held when the period ended, not the one it holds now.
+      if (day.isAfter(end!)) continue;
+      // Before it, the event is still applied, and the position it leaves is
+      // the balance the period opens with.
+      if (day.isBefore(start!)) {
+        _apply(event, remaining);
+        opening = position();
+        continue;
+      }
+    }
+
+    _apply(event, remaining);
+    final int balance = position();
     final Debt debt = event.debt;
     final Payment? payment = event.payment;
-    if (payment == null) {
-      remaining[debt.id] = debt.principalMinor;
-    } else {
-      final int left = (remaining[debt.id] ?? 0) - payment.amountMinor;
-      remaining[debt.id] = left < 0 ? 0 : left;
-    }
-    final int balance = position();
     final String title = debt.title.trim();
     entries.add(
       StatementEntry(
@@ -563,7 +668,40 @@ List<StatementEntry> buildStatementEntries({
       ),
     );
   }
-  return entries;
+  return StatementHistory(
+    entries: entries,
+    openingMinor: opening,
+    // Wanted even for an unbounded history: the document still falls back to
+    // the last printed row without a period, but callers can ask where the
+    // account ended up either way.
+    closingMinor: entries.isEmpty
+        ? opening
+        : position(),
+  );
+}
+
+/// The unbounded history, as the statement printed it before periods existed.
+List<StatementEntry> buildStatementEntries({
+  required List<Debt> debts,
+  required List<Payment> payments,
+  required AppCurrency currency,
+}) =>
+    buildStatementHistory(
+      debts: debts,
+      payments: payments,
+      currency: currency,
+    ).entries;
+
+/// Applies [event] to the per-debt remaining balances.
+void _apply(_HistoryEvent event, Map<String, int> remaining) {
+  final Debt debt = event.debt;
+  final Payment? payment = event.payment;
+  if (payment == null) {
+    remaining[debt.id] = debt.principalMinor;
+  } else {
+    final int left = (remaining[debt.id] ?? 0) - payment.amountMinor;
+    remaining[debt.id] = left < 0 ? 0 : left;
+  }
 }
 
 /// A debt being recorded, or a payment on it: one row of the history.

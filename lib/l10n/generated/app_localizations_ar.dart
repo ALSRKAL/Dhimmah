@@ -3057,6 +3057,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportMovementsTitle => 'كشف الحركات';
 
   @override
+  String get reportPeriod => 'الفترة';
+
+  @override
+  String get reportPeriodUntil => 'حتى';
+
+  @override
+  String get reportOpeningBalance => 'رصيد سابق';
+
+  @override
+  String get statementPeriodChip => 'الفترة';
+
+  @override
+  String get statementPeriodAll => 'كل الفترات';
+
+  @override
   String get reportEntryDebt => 'دين جديد';
 
   @override

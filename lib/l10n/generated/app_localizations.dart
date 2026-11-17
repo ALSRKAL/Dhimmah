@@ -5089,6 +5089,36 @@ abstract class AppLocalizations {
   /// **'كشف الحركات'**
   String get reportMovementsTitle;
 
+  /// No description provided for @reportPeriod.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفترة'**
+  String get reportPeriod;
+
+  /// No description provided for @reportPeriodUntil.
+  ///
+  /// In ar, this message translates to:
+  /// **'حتى'**
+  String get reportPeriodUntil;
+
+  /// No description provided for @reportOpeningBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد سابق'**
+  String get reportOpeningBalance;
+
+  /// No description provided for @statementPeriodChip.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفترة'**
+  String get statementPeriodChip;
+
+  /// No description provided for @statementPeriodAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل الفترات'**
+  String get statementPeriodAll;
+
   /// No description provided for @reportEntryDebt.
   ///
   /// In ar, this message translates to:

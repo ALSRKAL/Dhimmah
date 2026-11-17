@@ -2995,6 +2995,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportMovementsTitle => 'Movements';
 
   @override
+  String get reportPeriod => 'Period';
+
+  @override
+  String get reportPeriodUntil => 'As of';
+
+  @override
+  String get reportOpeningBalance => 'Opening balance';
+
+  @override
+  String get statementPeriodChip => 'Period';
+
+  @override
+  String get statementPeriodAll => 'All periods';
+
+  @override
   String get reportEntryDebt => 'New debt';
 
   @override

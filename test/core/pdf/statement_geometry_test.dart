@@ -200,6 +200,72 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
     });
   });
 
+  group('a period', () {
+    final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
+
+    test('prints an opening row and stays inside the page', () async {
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            periodFrom: DateTime(2026, 3),
+            periodTo: DateTime(2026, 8, 31),
+            openingBalanceMinor: 412500,
+            closingBalanceMinor: 227500,
+          ),
+        ),
+      );
+      expectInsideMargins(page, 'a period');
+      // The row that says where the period began, and the dates in the header
+      // that say which days it covers.
+      expect(
+        lineWithAllWords(page, l10n.reportOpeningBalance),
+        isNotEmpty,
+        reason: 'the opening balance is the first row of the movements',
+      );
+      expect(
+        lineWithAllWords(page, l10n.reportClosingBalance),
+        isNotEmpty,
+        reason: 'and the closing balance is still the last',
+      );
+      expect(
+        lineWithAllWords(page, l10n.reportPeriod),
+        isNotEmpty,
+        reason: 'the header has to say the period it covers',
+      );
+    });
+
+    test('there is no opening row without a period', () async {
+      final PdfInspection page = inspectPdf(await render(_arabicStatement()));
+      expect(
+        lineWithAllWords(page, l10n.reportOpeningBalance),
+        isEmpty,
+        reason: 'without a period the first row is the first movement',
+      );
+      expect(
+        lineWithAllWords(page, l10n.reportPeriodUntil),
+        isNotEmpty,
+        reason: 'and the header says the statement runs to its issue date',
+      );
+    });
+
+    test('an empty period still prints both balances', () async {
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            payments: 0,
+            periodFrom: DateTime(2026, 9),
+            periodTo: DateTime(2026, 9, 20),
+            openingBalanceMinor: 6850000,
+            closingBalanceMinor: 6850000,
+          ),
+        ),
+      );
+      expectInsideMargins(page, 'an empty period');
+      expect(lineWithAllWords(page, l10n.reportOpeningBalance), isNotEmpty);
+      expect(lineWithAllWords(page, l10n.reportClosingBalance), isNotEmpty);
+    });
+  });
+
   group('no text leaves the page', () {
     test('a long Arabic statement stays inside the margins', () async {
       final PdfInspection page = inspectPdf(await render(_arabicStatement()));
@@ -1011,6 +1077,10 @@ StatementData _arabicStatement({
   DebtDirection direction = DebtDirection.iOwe,
   StatementOptions options = const StatementOptions(),
   String? paymentNote,
+  DateTime? periodFrom,
+  DateTime? periodTo,
+  int openingBalanceMinor = 0,
+  int? closingBalanceMinor,
 }) {
   const AppCurrency currency = AppCurrency.inr;
   final DateTime today = DateTime(2026, 9, 23);
@@ -1066,5 +1136,9 @@ StatementData _arabicStatement({
     ],
     options: options,
     notes: notes,
+    periodFrom: periodFrom,
+    periodTo: periodTo,
+    openingBalanceMinor: openingBalanceMinor,
+    closingBalanceMinor: closingBalanceMinor,
   );
 }
