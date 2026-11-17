@@ -60,37 +60,57 @@ class _DebtLedgerScreenState extends ConsumerState<DebtLedgerScreen> {
         value: views,
         onRetry: () => ref.invalidate(debtViewsProvider),
         loading: const ListSkeleton(),
-        builder: (BuildContext context, List<DebtView> _) => DebtListBody(
-          views: scoped,
-          direction: direction,
-          headerSlivers: <Widget>[
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.lg,
-                  AppSpacing.sm,
-                  AppSpacing.lg,
-                  0,
+        builder: (BuildContext context, List<DebtView> _) => AnimatedSwitcher(
+          // Switching sides changes every row and the total above them. A cut
+          // reads as a refresh; a short cross-fade reads as the same list
+          // turned over, which is what happened. Zero with remove-animations.
+          duration: AppMotion.of(context, AppMotion.normal),
+          switchInCurve: AppMotion.standard,
+          switchOutCurve: AppMotion.standard,
+          layoutBuilder: (Widget? current, List<Widget> previous) => Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              ...previous,
+              ?current,
+            ],
+          ),
+          child: KeyedSubtree(
+            key: ValueKey<DebtDirection>(direction),
+            child: DebtListBody(
+              views: scoped,
+              direction: direction,
+              headerSlivers: <Widget>[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                      AppSpacing.lg,
+                      0,
+                    ),
+                    child: _SideSwitch(
+                      direction: direction,
+                      onChanged: (DebtDirection value) =>
+                          setState(() => direction = value),
+                    ),
+                  ),
                 ),
-                child: _SideSwitch(
-                  direction: direction,
-                  onChanged: (DebtDirection value) =>
-                      setState(() => direction = value),
+                SliverToBoxAdapter(
+                  child: _SummaryStrip(totals: totals, direction: direction),
                 ),
+              ],
+              emptyTitle: isIOwe
+                  ? localizations.ioweEmptyTitle
+                  : localizations.owedToMeEmptyTitle,
+              emptyBody: isIOwe
+                  ? localizations.ioweEmptyBody
+                  : localizations.owedToMeEmptyBody,
+              emptyActionLabel: localizations.addDebtAction,
+              onEmptyAction: () => context.push(
+                '${AppRoutes.debtNew}?direction=${direction.name}',
               ),
             ),
-            SliverToBoxAdapter(
-              child: _SummaryStrip(totals: totals, direction: direction),
-            ),
-          ],
-          emptyTitle:
-              isIOwe ? localizations.ioweEmptyTitle : localizations.owedToMeEmptyTitle,
-          emptyBody: isIOwe
-              ? localizations.ioweEmptyBody
-              : localizations.owedToMeEmptyBody,
-          emptyActionLabel: localizations.addDebtAction,
-          onEmptyAction: () =>
-              context.push('${AppRoutes.debtNew}?direction=${direction.name}'),
+          ),
         ),
       ),
       // No add button here: this screen is a shell destination, and the shell
