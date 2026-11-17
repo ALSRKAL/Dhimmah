@@ -1,0 +1,3 @@
+/* Face ID, in Arabic. The value in Info.plist is the fallback for a build
+   whose localization does not match; this is what an Arabic phone shows. */
+"NSFaceIDUsageDescription" = "يُستخدم Face ID لفتح التطبيق والاطّلاع على سجلاتك المالية.";
