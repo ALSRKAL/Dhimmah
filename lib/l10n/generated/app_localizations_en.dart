@@ -3007,6 +3007,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportClearanceTitle => 'Clearance';
 
   @override
+  String get reportFooterNotice =>
+      'Prepared from the issuer\'s own records in Dhimmah; it is not an acknowledgement by the other party.';
+
+  @override
   String reportClearanceSentence(String date) {
     return 'Nothing is outstanding between the two parties as of $date, according to the records kept in Dhimmah.';
   }

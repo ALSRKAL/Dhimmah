@@ -478,7 +478,13 @@ abstract class _Sheet {
   }
 
   /// The foot of every page: who made it, its number, and the page count.
+  ///
+  /// The last page carries one more line: a plain statement that the document
+  /// was made from the issuer's own records and is not the other party's
+  /// acknowledgement. It is deliberately only on the last page — a disclaimer
+  /// repeated under every page is noise, and a document is read to its end.
   pw.Widget _footerOf(pw.Context context, String number) {
+    final bool isLastPage = context.pageNumber == context.pagesCount;
     return pw.Container(
       margin: const pw.EdgeInsets.only(top: 12),
       padding: const pw.EdgeInsets.only(top: 6),
@@ -487,36 +493,52 @@ abstract class _Sheet {
           top: pw.BorderSide(color: DocumentColors.border, width: 0.8),
         ),
       ),
-      child: _row(
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: <pw.Widget>[
-          _text(
-            localizations.reportGeneratedBy,
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
-            ),
+          _row(
+            children: <pw.Widget>[
+              _text(
+                localizations.reportGeneratedBy,
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: DocumentColors.secondary,
+                ),
+              ),
+              pw.Spacer(),
+              // The number the header gives, on every page. A second, unexplained
+              // code used to follow it.
+              _text(
+                number,
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: DocumentColors.secondary,
+                ),
+              ),
+              pw.SizedBox(width: 10),
+              _text(
+                localizations.reportPageOf(
+                  context.pageNumber,
+                  context.pagesCount,
+                ),
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: DocumentColors.secondary,
+                ),
+              ),
+            ],
           ),
-          pw.Spacer(),
-          // The number the header gives, on every page. A second, unexplained
-          // code used to follow it.
-          _text(
-            number,
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
+          if (isLastPage) ...<pw.Widget>[
+            pw.SizedBox(height: 4),
+            _text(
+              localizations.reportFooterNotice,
+              style: const pw.TextStyle(
+                fontSize: 8.5,
+                color: DocumentColors.secondary,
+              ),
+              maxWidth: _contentWidth,
             ),
-          ),
-          pw.SizedBox(width: 10),
-          _text(
-            localizations.reportPageOf(
-              context.pageNumber,
-              context.pagesCount,
-            ),
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
-            ),
-          ),
+          ],
         ],
       ),
     );

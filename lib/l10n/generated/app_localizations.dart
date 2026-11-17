@@ -5113,6 +5113,12 @@ abstract class AppLocalizations {
   /// **'مخالصة'**
   String get reportClearanceTitle;
 
+  /// No description provided for @reportFooterNotice.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُعدّ هذا المستند من سجلات مُصدِره في تطبيق ذِمّة، ولا يُعدّ إقرارًا من الطرف الآخر.'**
+  String get reportFooterNotice;
+
   /// No description provided for @reportClearanceSentence.
   ///
   /// In ar, this message translates to:

@@ -3069,6 +3069,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportClearanceTitle => 'مخالصة';
 
   @override
+  String get reportFooterNotice =>
+      'أُعدّ هذا المستند من سجلات مُصدِره في تطبيق ذِمّة، ولا يُعدّ إقرارًا من الطرف الآخر.';
+
+  @override
   String reportClearanceSentence(String date) {
     return 'لا متبقٍّ بين الطرفين حتى $date، بحسب السجلات المسجّلة في ذِمّة.';
   }

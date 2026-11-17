@@ -1562,6 +1562,7 @@
   "reportPeriodUntil": "حتى",
   "reportOpeningBalance": "رصيد سابق",
   "reportClearanceTitle": "مخالصة",
+  "reportFooterNotice": "أُعدّ هذا المستند من سجلات مُصدِره في تطبيق ذِمّة، ولا يُعدّ إقرارًا من الطرف الآخر.",
   "reportClearanceSentence": "لا متبقٍّ بين الطرفين حتى {date}، بحسب السجلات المسجّلة في ذِمّة.",
   "@reportClearanceSentence": {
     "placeholders": {
