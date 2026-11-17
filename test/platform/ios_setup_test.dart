@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:dhimmah/core/files/backup_folder_channel.dart';
+import 'package:dhimmah/core/files/document_save_channel.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 /// iOS configuration that no Dart test can otherwise see.
@@ -67,6 +69,46 @@ void main() {
         isTrue,
         reason: 'Arabic has to be a known region for the localisation to ship',
       );
+    });
+  });
+
+  group('saving a document', () {
+    final String swift =
+        File('ios/Runner/BackupFolderChannel.swift').readAsStringSync();
+
+    test('answers the four calls the Dart channel makes', () {
+      for (final String method in <String>[
+        'createDocument',
+        'write',
+        'read',
+        'metadata',
+      ]) {
+        expect(
+          RegExp('case "$method":').hasMatch(swift),
+          isTrue,
+          reason: '$method is called by DocumentSaveChannel and must answer here',
+        );
+      }
+    });
+
+    test('exports through the system picker Apple names for it', () {
+      expect(
+        swift,
+        contains('UIDocumentPickerViewController(forExporting:'),
+        reason: 'the iOS 14+ export flow is the one the task names',
+      );
+      expect(
+        swift,
+        contains('.exportToService'),
+        reason: 'iOS 13 has no forExporting: initialiser and gets the old one',
+      );
+    });
+
+    test('the channel name is the same one Dart uses', () {
+      // Two Dart clients share it: the folder flow and the save-a-document one.
+      expect(swift, contains('"dhimmah/backup_file"'));
+      expect(BackupFolderChannel.methodChannelName, 'dhimmah/backup_file');
+      expect(DocumentSaveChannel.methodChannelName, 'dhimmah/backup_file');
     });
   });
 
