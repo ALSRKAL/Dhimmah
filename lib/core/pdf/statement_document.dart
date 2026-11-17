@@ -329,6 +329,7 @@ abstract class _Sheet {
     required DateTime issuedAt,
     DateTime? periodFrom,
     DateTime? periodTo,
+    bool showCoverage = true,
   }) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
@@ -342,6 +343,7 @@ abstract class _Sheet {
               issuedAt,
               periodFrom: periodFrom,
               periodTo: periodTo,
+              showCoverage: showCoverage,
             ),
           ],
         ),
@@ -405,6 +407,7 @@ abstract class _Sheet {
     DateTime issuedAt, {
     DateTime? periodFrom,
     DateTime? periodTo,
+    bool showCoverage = true,
   }) {
     pw.Widget line(String label, String value) => _row(
           children: <pw.Widget>[
@@ -437,13 +440,20 @@ abstract class _Sheet {
           localizations.reportIssuedOn,
           formatting.date(issuedAt),
         ),
-        pw.SizedBox(height: 3),
-        line(
-          hasPeriod ? localizations.reportPeriod : localizations.reportPeriodUntil,
-          hasPeriod
-              ? '${formatting.date(periodFrom)} – ${formatting.date(periodTo)}'
-              : formatting.date(issuedAt),
-        ),
+        // A receipt has already said when the payment happened and when it was
+        // issued; repeating the issue date under "As of" would say one fact
+        // twice. A statement has no other line that says what it covers.
+        if (showCoverage) ...<pw.Widget>[
+          pw.SizedBox(height: 3),
+          line(
+            hasPeriod
+                ? localizations.reportPeriod
+                : localizations.reportPeriodUntil,
+            hasPeriod
+                ? '${formatting.date(periodFrom)} – ${formatting.date(periodTo)}'
+                : formatting.date(issuedAt),
+          ),
+        ],
       ],
     );
   }
