@@ -1585,7 +1585,6 @@
   "receiptPaidOn": "Paid on",
   "receiptFor": "For",
   "receiptRemainingNow": "Remaining on the debt now",
-  "receiptSignature": "Signature",
   "receiptAction": "PDF receipt",
   "receiptOptionsTitle": "Receipt options",
   "peopleMoreCurrencies": "{count, plural, =1{+1 more currency} other{+{count} more currencies}}",

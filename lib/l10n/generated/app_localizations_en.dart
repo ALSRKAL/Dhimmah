@@ -3058,9 +3058,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get receiptRemainingNow => 'Remaining on the debt now';
 
   @override
-  String get receiptSignature => 'Signature';
-
-  @override
   String get receiptAction => 'PDF receipt';
 
   @override

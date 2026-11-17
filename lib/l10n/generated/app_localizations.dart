@@ -5209,12 +5209,6 @@ abstract class AppLocalizations {
   /// **'المتبقي من الدين حاليًا'**
   String get receiptRemainingNow;
 
-  /// No description provided for @receiptSignature.
-  ///
-  /// In ar, this message translates to:
-  /// **'التوقيع'**
-  String get receiptSignature;
-
   /// No description provided for @receiptAction.
   ///
   /// In ar, this message translates to:

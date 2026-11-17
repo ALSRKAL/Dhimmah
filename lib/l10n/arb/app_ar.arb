@@ -1585,7 +1585,6 @@
   "receiptPaidOn": "تاريخ الدفع",
   "receiptFor": "وذلك عن",
   "receiptRemainingNow": "المتبقي من الدين حاليًا",
-  "receiptSignature": "التوقيع",
   "receiptAction": "إيصال PDF",
   "receiptOptionsTitle": "خيارات السند",
   "peopleMoreCurrencies": "{count, plural, =1{وعملة أخرى} =2{وعملتان أخريان} few{و{count} عملات أخرى} other{و{count} عملة أخرى}}",

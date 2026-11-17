@@ -3120,9 +3120,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String get receiptRemainingNow => 'المتبقي من الدين حاليًا';
 
   @override
-  String get receiptSignature => 'التوقيع';
-
-  @override
   String get receiptAction => 'إيصال PDF';
 
   @override

@@ -55,9 +55,9 @@ class ReceiptDocument extends _Sheet {
           pw.SizedBox(height: 14),
           _amountBlock(),
           pw.SizedBox(height: 14),
+          // No signature line: the developer took the signature box out of
+          // the documents (PLAN.md ق13).
           _detailsBlock(),
-          pw.SizedBox(height: 44),
-          _signatureLine(),
         ],
       ),
     );
@@ -199,28 +199,5 @@ class ReceiptDocument extends _Sheet {
         ],
       ],
     );
-  }
-
-  /// A line to sign on, for a receipt that is printed and handed over.
-  pw.Widget _signatureLine() {
-    return _rowOnReadingSide(<pw.Widget>[
-      _text(
-        '${localizations.receiptSignature}:',
-        style: const pw.TextStyle(
-          fontSize: 9,
-          color: DocumentColors.secondary,
-        ),
-      ),
-      pw.SizedBox(width: 8),
-      pw.Container(
-        width: 170,
-        height: 12,
-        decoration: const pw.BoxDecoration(
-          border: pw.Border(
-            bottom: pw.BorderSide(color: DocumentColors.secondary, width: 0.8),
-          ),
-        ),
-      ),
-    ]);
   }
 }
