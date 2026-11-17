@@ -24,6 +24,12 @@ class AppUpdateCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // The update system is Google Play's. On a platform that has no equivalent
+    // — iOS — there is nothing to offer and nothing to draw, whatever state a
+    // service happens to hold.
+    if (Theme.of(context).platform != TargetPlatform.android) {
+      return const SizedBox.shrink();
+    }
     final AppUpdateState update = ref.watch(appUpdateControllerProvider);
     if (!update.isVisible) return const SizedBox.shrink();
 
