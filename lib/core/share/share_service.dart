@@ -98,12 +98,32 @@ class ShareService {
   /// without opening a PDF.
   String statementCaption(StatementData data) {
     final StringBuffer buffer = StringBuffer()
-      ..writeln(localizations.shareStatementFor(data.personName))
-      ..writeln(
-        localizations.shareLineRemaining(
-          formatting.amount(data.remaining, showCode: true),
+      ..writeln(localizations.shareStatementFor(data.personName));
+    final DateTime? from = data.periodFrom;
+    final DateTime? to = data.periodTo;
+    if (from != null && to != null) {
+      // A period is read at its own end. The caption says so, and says which
+      // days it is about; a due date is a today fact and is left out.
+      final String period = localizations.reportPeriodRange(
+        formatting.date(from),
+        formatting.date(to),
+      );
+      buffer.writeln(
+        localizations.shareLinePeriodBalance(
+          period,
+          formatting.amount(
+            Money(data.closingBalanceMinor ?? 0, data.currency),
+            showCode: true,
+          ),
         ),
       );
+      return buffer.toString().trimRight();
+    }
+    buffer.writeln(
+      localizations.shareLineRemaining(
+        formatting.amount(data.remaining, showCode: true),
+      ),
+    );
     final DateTime? due = data.dueAt;
     if (due != null && data.remainingMinor > 0) {
       buffer.writeln(localizations.shareLineDue(formatting.date(due)));

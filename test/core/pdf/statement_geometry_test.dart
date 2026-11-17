@@ -348,6 +348,42 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       expect(lineWithAllWords(page, l10n.reportOpeningBalance), isNotEmpty);
       expect(lineWithAllWords(page, l10n.reportClosingBalance), isNotEmpty);
     });
+
+    test('the status column and badge belong to today, so a period leaves '
+        'them out', () async {
+      final PdfInspection withPeriod = inspectPdf(
+        await render(
+          _arabicStatement(
+            extraDebts: <String>['سلفة'],
+            periodFrom: DateTime(2026, 3),
+            periodTo: DateTime(2026, 8, 31),
+            openingBalanceMinor: 412500,
+            closingBalanceMinor: 227500,
+          ),
+        ),
+      );
+      expect(
+        lineWithAllWords(withPeriod, l10n.reportColumnStatus),
+        isEmpty,
+        reason: 'a period has no status to state',
+      );
+      expect(
+        lineWithAllWords(withPeriod, l10n.statusOverdue),
+        isEmpty,
+        reason: 'and no badge stating one',
+      );
+
+      // The contrast that keeps the assertion honest: the same document without
+      // a period still states both.
+      final PdfInspection unbounded = inspectPdf(
+        await render(_arabicStatement(extraDebts: <String>['سلفة'])),
+      );
+      expect(
+        lineWithAllWords(unbounded, l10n.reportColumnStatus),
+        isNotEmpty,
+      );
+      expect(lineWithAllWords(unbounded, l10n.statusOverdue), isNotEmpty);
+    });
   });
 
   group('no text leaves the page', () {

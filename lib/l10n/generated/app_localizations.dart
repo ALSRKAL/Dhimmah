@@ -3487,6 +3487,12 @@ abstract class AppLocalizations {
   /// **'المتبقي: {amount}'**
   String shareLineRemaining(String amount);
 
+  /// No description provided for @shareLinePeriodBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد نهاية الفترة {period}: {amount}'**
+  String shareLinePeriodBalance(String period, String amount);
+
   /// No description provided for @shareLineTotal.
   ///
   /// In ar, this message translates to:

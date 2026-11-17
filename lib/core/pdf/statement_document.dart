@@ -1095,8 +1095,13 @@ class StatementDocument extends _Sheet {
             ),
             maxWidth: _heroWidth,
           ),
-          pw.SizedBox(height: 10),
-          _rowOnReadingSide(<pw.Widget>[_statusBadge()]),
+          // A status is today's fact; a period is read at its own end. The
+          // badge is left off rather than stating a state the period cannot
+          // have.
+          if (!data.hasPeriod) ...<pw.Widget>[
+            pw.SizedBox(height: 10),
+            _rowOnReadingSide(<pw.Widget>[_statusBadge()]),
+          ],
           if (due != null) ...<pw.Widget>[
             pw.SizedBox(height: 8),
             _summaryFact(
@@ -1360,6 +1365,10 @@ class StatementDocument extends _Sheet {
 
   pw.Widget _debtTable() {
     final bool mixed = data.isMixed;
+    // A status column states today's state. A period has no such state to
+    // state, so the column is left out rather than filled with a present-tense
+    // word beside figures that belong to another day.
+    final bool showStatus = !data.hasPeriod;
     final List<String> headers = <String>[
       localizations.reportColumnDebt,
       // Which side each debt is on only needs saying when there are two.
@@ -1368,7 +1377,7 @@ class StatementDocument extends _Sheet {
       localizations.reportColumnPaid,
       localizations.reportColumnRemaining,
       localizations.reportColumnDue,
-      localizations.reportColumnStatus,
+      if (showStatus) localizations.reportColumnStatus,
     ];
 
     final List<List<String>> rows = <List<String>>[
@@ -1387,16 +1396,20 @@ class StatementDocument extends _Sheet {
           line.dueAt == null ? '—' : formatting.date(line.dueAt!),
           // In words: a settled debt used to be told apart only by the zero
           // in its remaining column.
-          line.status.label(localizations),
+          if (showStatus) line.status.label(localizations),
         ],
     ];
 
     return _table(
       headers: headers,
       rows: rows,
-      widthFractions: mixed
-          ? const <double>[0.22, 0.08, 0.14, 0.13, 0.14, 0.16, 0.13]
-          : const <double>[0.24, 0.15, 0.14, 0.15, 0.17, 0.15],
+      widthFractions: showStatus
+          ? (mixed
+              ? const <double>[0.22, 0.08, 0.14, 0.13, 0.14, 0.16, 0.13]
+              : const <double>[0.24, 0.15, 0.14, 0.15, 0.17, 0.15])
+          : (mixed
+              ? const <double>[0.24, 0.09, 0.15, 0.14, 0.15, 0.23]
+              : const <double>[0.27, 0.17, 0.16, 0.18, 0.22]),
       numericFrom: mixed ? 2 : 1,
       // A total adds like to like. With debts on both sides the summary above
       // states each side and the difference, and one row adding them would not.
@@ -1408,7 +1421,7 @@ class StatementDocument extends _Sheet {
               _money(data.paid),
               _money(data.remaining),
               '',
-              '',
+              if (showStatus) '',
             ],
     );
   }

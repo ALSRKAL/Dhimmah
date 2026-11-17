@@ -1949,6 +1949,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String shareLinePeriodBalance(String period, String amount) {
+    return 'Period-end balance $period: $amount';
+  }
+
+  @override
   String shareLineTotal(String amount) {
     return 'Total: $amount';
   }

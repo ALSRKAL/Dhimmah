@@ -993,6 +993,17 @@
       }
     }
   },
+  "shareLinePeriodBalance": "Period-end balance {period}: {amount}",
+  "@shareLinePeriodBalance": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "shareLineTotal": "Total: {amount}",
   "@shareLineTotal": {
     "placeholders": {

@@ -1962,6 +1962,11 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String shareLinePeriodBalance(String period, String amount) {
+    return 'رصيد نهاية الفترة $period: $amount';
+  }
+
+  @override
   String shareLineTotal(String amount) {
     return 'إجمالي الدين: $amount';
   }

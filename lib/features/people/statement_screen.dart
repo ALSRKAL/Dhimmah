@@ -160,13 +160,25 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
           final List<AppCurrency> currencies =
               StatementService.currenciesFor(data, options: _options);
           final AppCurrency? currency = _resolveCurrency(data, currencies);
-          final ({int settled, int archived}) hidden = currency == null
-              ? (settled: 0, archived: 0)
-              : StatementService.hiddenCounts(
-                  ledger: data,
-                  currency: currency,
-                  options: _options,
-                );
+          final ({int settled, int archived}) hidden;
+          if (currency == null) {
+            hidden = (settled: 0, archived: 0);
+          } else {
+            final ({int settled, int archived}) counts =
+                StatementService.hiddenCounts(
+              ledger: data,
+              currency: currency,
+              options: _options,
+            );
+            // A period's table shows every debt that was open on one of its
+            // days, including one settled during it. A debt settled before the
+            // period is outside the period, not hidden from its reader, so the
+            // settled count is not stated against a period.
+            hidden = (
+              settled: _options.hasPeriod ? 0 : counts.settled,
+              archived: counts.archived,
+            );
+          }
 
           return Column(
             children: <Widget>[

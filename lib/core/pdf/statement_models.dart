@@ -559,6 +559,9 @@ class StatementHistory {
     required this.entries,
     required this.openingMinor,
     required this.closingMinor,
+    this.remainingAtStart = const <String, int>{},
+    this.remainingAtEnd = const <String, int>{},
+    this.paidAtEnd = const <String, int>{},
   });
 
   /// The movements to print, oldest first.
@@ -572,6 +575,26 @@ class StatementHistory {
 
   /// The signed balance after the last printed movement.
   final int closingMinor;
+
+  /// Per debt, what was left the morning the period began.
+  ///
+  /// The same pass that produces the history produces this, so the figures the
+  /// document prints about a period are the figures the account actually held
+  /// on its first day — no second arithmetic can drift from the first. Empty
+  /// for an unbounded history.
+  final Map<String, int> remainingAtStart;
+
+  /// Per debt, what was left when the period ended.
+  ///
+  /// Empty for an unbounded history, where the current remaining is the figure
+  /// the document has always printed.
+  final Map<String, int> remainingAtEnd;
+
+  /// Per debt, everything paid up to and including the last day of the period.
+  ///
+  /// Payments after the period are not in this map, which is what lets the
+  /// document's "paid" column state the amount as of the period's end.
+  final Map<String, int> paidAtEnd;
 }
 
 /// Builds the statement's history from real records.
@@ -645,6 +668,12 @@ StatementHistory buildStatementHistory({
 
   int opening = 0;
   final List<StatementEntry> entries = <StatementEntry>[];
+  final Map<String, int> paid = <String, int>{};
+  // What the account held the morning the period began. Captured once, before
+  // the first movement inside the period is applied; a debt settled before the
+  // period is therefore absent from the document's period figures.
+  Map<String, int> atStart = const <String, int>{};
+  bool capturedStart = !bounded;
   for (final _HistoryEvent event in events) {
     final DateTime day = dateOnly(event.date);
     if (bounded) {
@@ -654,13 +683,19 @@ StatementHistory buildStatementHistory({
       // Before it, the event is still applied, and the position it leaves is
       // the balance the period opens with.
       if (day.isBefore(start!)) {
-        _apply(event, remaining);
+        _apply(event, remaining, paid);
         opening = position();
         continue;
       }
+      // Everything before the period has been applied by the time the first
+      // movement inside it is reached.
+      if (!capturedStart) {
+        atStart = Map<String, int>.of(remaining);
+        capturedStart = true;
+      }
     }
 
-    _apply(event, remaining);
+    _apply(event, remaining, paid);
     final int balance = position();
     final Debt debt = event.debt;
     final Payment? payment = event.payment;
@@ -683,6 +718,11 @@ StatementHistory buildStatementHistory({
       ),
     );
   }
+  if (!capturedStart) {
+    // No movement inside the period: its opening and closing are the same
+    // position, and that position is the whole history's.
+    atStart = Map<String, int>.of(remaining);
+  }
   return StatementHistory(
     entries: entries,
     openingMinor: opening,
@@ -692,6 +732,9 @@ StatementHistory buildStatementHistory({
     closingMinor: entries.isEmpty
         ? opening
         : position(),
+    remainingAtStart: atStart,
+    remainingAtEnd: Map<String, int>.of(remaining),
+    paidAtEnd: Map<String, int>.of(paid),
   );
 }
 
@@ -707,8 +750,12 @@ List<StatementEntry> buildStatementEntries({
       currency: currency,
     ).entries;
 
-/// Applies [event] to the per-debt remaining balances.
-void _apply(_HistoryEvent event, Map<String, int> remaining) {
+/// Applies [event] to the per-debt remaining balances and paid totals.
+void _apply(
+  _HistoryEvent event,
+  Map<String, int> remaining,
+  Map<String, int> paid,
+) {
   final Debt debt = event.debt;
   final Payment? payment = event.payment;
   if (payment == null) {
@@ -716,6 +763,7 @@ void _apply(_HistoryEvent event, Map<String, int> remaining) {
   } else {
     final int left = (remaining[debt.id] ?? 0) - payment.amountMinor;
     remaining[debt.id] = left < 0 ? 0 : left;
+    paid[debt.id] = (paid[debt.id] ?? 0) + payment.amountMinor;
   }
 }
 

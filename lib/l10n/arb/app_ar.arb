@@ -993,6 +993,17 @@
       }
     }
   },
+  "shareLinePeriodBalance": "رصيد نهاية الفترة {period}: {amount}",
+  "@shareLinePeriodBalance": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "shareLineTotal": "إجمالي الدين: {amount}",
   "@shareLineTotal": {
     "placeholders": {

@@ -11,6 +11,7 @@ import '../../core/money/currency.dart';
 import '../../core/money/money.dart';
 import '../../core/pdf/statement_document.dart';
 import '../../core/pdf/statement_models.dart';
+import '../../core/utils/dates.dart';
 import '../../domain/entities/debt.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../domain/entities/payment.dart';
@@ -67,53 +68,101 @@ class StatementService {
     // this list and nothing else, so a debt that is left out is left out of
     // every figure too. A statement can never show a total that includes a row
     // it did not print.
+    final bool bounded = options.hasPeriod;
+    final DateTime? start = bounded ? dateOnly(options.periodFrom!) : null;
+    final DateTime? end = bounded ? dateOnly(options.periodTo!) : null;
+
     final List<DebtView> inCurrency = debtsInScope(
       ledger: ledger,
       currency: currency,
       options: options,
     );
-    final ({int settled, int archived}) hidden = hiddenCounts(
-      ledger: ledger,
-      currency: currency,
-      options: options,
-    );
 
-    final int total = inCurrency.fold<int>(
-      0,
-      (int sum, DebtView view) => sum + view.debt.principalMinor,
-    );
-    final int paid = inCurrency.fold<int>(
-      0,
-      (int sum, DebtView view) => sum + view.paidMinor,
-    );
-    final int remaining = inCurrency.fold<int>(
-      0,
-      (int sum, DebtView view) => sum + view.remainingMinor,
-    );
+    // A period asks a second question of the scope: was this debt part of the
+    // account inside those days? A debt opened after the period is not, and a
+    // debt settled before it is not either. The screen's current scope is the
+    // starting point, but its settled test is today's: a debt settled after the
+    // period was still open when the period ended, and belongs on the page with
+    // the figure it held then.
+    final List<DebtView> base =
+        bounded && options.scope == StatementScope.openOnly
+            ? debtsInScope(
+                ledger: ledger,
+                currency: currency,
+                options: options.copyWith(scope: StatementScope.all),
+              )
+            : inCurrency;
 
-    // The statement speaks for the whole account, so its status is the most
-    // demanding one among the debts it covers: a settled debt and a late one
-    // together are not "paid".
-    final DebtLifecycleStatus status = _worstStatus(inCurrency);
-
-    final DebtView? nextDue = _earliestOpenDue(inCurrency);
-    final DateTime? dueAt = nextDue?.debt.dueAt;
-    final String? dueTitle = nextDue?.debt.title.trim();
-
-    final List<Debt> debts = <Debt>[
-      for (final DebtView view in inCurrency) view.debt,
+    // The history is built from every debt that could matter inside the period,
+    // including one settled today, so its payments up to the period's end are
+    // applied. Without a period this is exactly the list it always was.
+    final List<Debt> historyDebts = <Debt>[
+      for (final DebtView view in bounded ? base : inCurrency) view.debt,
     ];
 
     // The movements inside the stated period, plus the balance the period
-    // opens with. Without a period this is every movement and no opening
-    // balance — the document the app has always printed.
+    // opens with and the per-debt position at its end. Without a period this is
+    // every movement and no opening balance — the document the app has always
+    // printed.
     final StatementHistory history = buildStatementHistory(
-      debts: debts,
+      debts: historyDebts,
       payments: payments,
       currency: currency,
-      from: options.hasPeriod ? options.periodFrom : null,
-      to: options.hasPeriod ? options.periodTo : null,
+      from: bounded ? options.periodFrom : null,
+      to: bounded ? options.periodTo : null,
     );
+
+    // The debts this document is about. With a period it is the debts that had
+    // a balance on at least one of its days: opened inside it, or already open
+    // when it began. A debt settled before it, or opened after it, has no
+    // figure on a page about those days.
+    final List<DebtView> covered = !bounded
+        ? inCurrency
+        : base.where((DebtView view) {
+            final DateTime issued = dateOnly(view.debt.issuedAt);
+            if (issued.isAfter(end!)) return false;
+            if (options.scope != StatementScope.openOnly) return true;
+            if (!issued.isBefore(start!)) return true;
+            return (history.remainingAtStart[view.debt.id] ?? 0) > 0;
+          }).toList();
+
+    final ({int settled, int archived}) hidden = _hiddenCounts(
+      ledger: ledger,
+      currency: currency,
+      options: options,
+      covered: bounded ? covered : null,
+    );
+
+    final int total = covered.fold<int>(
+      0,
+      (int sum, DebtView view) => sum + view.debt.principalMinor,
+    );
+    // A period's figures are the ones the same pass just worked out for its
+    // last day. Without a period the current values are what the document has
+    // always printed and are used unchanged.
+    final int paid = covered.fold<int>(
+      0,
+      (int sum, DebtView view) => sum +
+          (bounded ? (history.paidAtEnd[view.debt.id] ?? 0) : view.paidMinor),
+    );
+    final int remaining = covered.fold<int>(
+      0,
+      (int sum, DebtView view) => sum +
+          (bounded
+              ? (history.remainingAtEnd[view.debt.id] ?? 0)
+              : view.remainingMinor),
+    );
+
+    // A status is a fact about today, and a period has none: the model carries
+    // the neutral state and the document leaves the badge and column out. The
+    // next due date is the same kind of fact and is left null for a period.
+    final DebtLifecycleStatus status = bounded
+        ? DebtLifecycleStatus.active
+        : _worstStatus(covered);
+
+    final DebtView? nextDue = bounded ? null : _earliestOpenDue(covered);
+    final DateTime? dueAt = nextDue?.debt.dueAt;
+    final String? dueTitle = nextDue?.debt.title.trim();
 
     return StatementData(
       documentNumber: _documentNumber(ledger.person.id, now),
@@ -130,17 +179,21 @@ class StatementService {
       // Named only when there is more than one debt to tell apart: on a
       // statement of one debt the date can only be that debt's.
       dueDebtTitle:
-          inCurrency.length > 1 && dueTitle != null && dueTitle.isNotEmpty
+          covered.length > 1 && dueTitle != null && dueTitle.isNotEmpty
               ? dueTitle
               : null,
       debts: <StatementDebtLine>[
-        for (final DebtView view in inCurrency)
+        for (final DebtView view in covered)
           StatementDebtLine(
             title: view.debt.title,
             direction: view.debt.direction,
             principal: view.principal,
-            paid: view.paid,
-            remaining: view.remaining,
+            paid: bounded
+                ? Money(history.paidAtEnd[view.debt.id] ?? 0, currency)
+                : view.paid,
+            remaining: bounded
+                ? Money(history.remainingAtEnd[view.debt.id] ?? 0, currency)
+                : view.remaining,
             status: view.status,
             dueAt: view.debt.dueAt,
             note: view.debt.note,
@@ -149,7 +202,7 @@ class StatementService {
       entries: history.entries,
       options: options,
       notes: options.includeNotes
-          ? _collectedNotes(inCurrency)
+          ? _collectedNotes(covered)
           : null,
       hiddenSettledCount: hidden.settled,
       hiddenArchivedCount: hidden.archived,
@@ -160,6 +213,37 @@ class StatementService {
       // movement, exactly as it did before periods were offered.
       closingBalanceMinor: options.hasPeriod ? history.closingMinor : null,
     );
+  }
+
+  /// How many records the scope left out, counting against [covered] when a
+  /// period decides inclusion rather than today's state.
+  static ({int settled, int archived}) _hiddenCounts({
+    required PersonLedger ledger,
+    required AppCurrency currency,
+    required StatementOptions options,
+    required List<DebtView>? covered,
+  }) {
+    if (covered == null) {
+      return hiddenCounts(
+        ledger: ledger,
+        currency: currency,
+        options: options,
+      );
+    }
+    final Set<String> shown = <String>{
+      for (final DebtView view in covered) view.debt.id,
+    };
+    int settled = 0;
+    int archived = 0;
+    for (final DebtView view in ledger.debts) {
+      if (view.currency != currency || shown.contains(view.debt.id)) continue;
+      if (view.debt.isArchived) {
+        archived++;
+      } else if (view.isSettled) {
+        settled++;
+      }
+    }
+    return (settled: settled, archived: archived);
   }
 
   /// How many of the person's debts in [currency] the scope leaves out, by why.
