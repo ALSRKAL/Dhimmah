@@ -1561,6 +1561,15 @@
   "reportPeriod": "Period",
   "reportPeriodUntil": "As of",
   "reportOpeningBalance": "Opening balance",
+  "reportClearanceTitle": "Clearance",
+  "reportClearanceSentence": "Nothing is outstanding between the two parties as of {date}, according to the records kept in Dhimmah.",
+  "@reportClearanceSentence": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "statementPeriodChip": "Period",
   "statementPeriodAll": "All periods",
   "reportEntryDebt": "New debt",

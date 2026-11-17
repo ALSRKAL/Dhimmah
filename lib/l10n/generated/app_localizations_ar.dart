@@ -3066,6 +3066,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportOpeningBalance => 'رصيد سابق';
 
   @override
+  String get reportClearanceTitle => 'مخالصة';
+
+  @override
+  String reportClearanceSentence(String date) {
+    return 'لا متبقٍّ بين الطرفين حتى $date، بحسب السجلات المسجّلة في ذِمّة.';
+  }
+
+  @override
   String get statementPeriodChip => 'الفترة';
 
   @override

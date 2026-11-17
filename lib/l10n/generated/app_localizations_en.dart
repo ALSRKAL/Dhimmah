@@ -3004,6 +3004,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportOpeningBalance => 'Opening balance';
 
   @override
+  String get reportClearanceTitle => 'Clearance';
+
+  @override
+  String reportClearanceSentence(String date) {
+    return 'Nothing is outstanding between the two parties as of $date, according to the records kept in Dhimmah.';
+  }
+
+  @override
   String get statementPeriodChip => 'Period';
 
   @override

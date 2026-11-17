@@ -713,6 +713,14 @@ class StatementDocument extends _Sheet {
   /// by the other party, for whom those words point the wrong way.
   String get _name => data.personName.trim();
 
+  /// What the document calls itself.
+  ///
+  /// A statement whose every record is settled is not a statement any more: it
+  /// is the page that says the account is closed, and it says so in its title.
+  String get _documentTitle => data.isClearance
+      ? localizations.reportClearanceTitle
+      : localizations.reportStatementTitle;
+
   /// Builds the document.
   ///
   /// The footer is drawn by the page theme rather than by the body content, so a
@@ -725,9 +733,9 @@ class StatementDocument extends _Sheet {
     );
 
     final pw.Document document = pw.Document(
-      title: '${localizations.reportStatementTitle} · ${data.personName}',
+      title: '$_documentTitle · ${data.personName}',
       author: localizations.appName,
-      subject: localizations.reportStatementTitle,
+      subject: _documentTitle,
       creator: localizations.appName,
       producer: localizations.appName,
     );
@@ -810,7 +818,7 @@ class StatementDocument extends _Sheet {
   // --- Header --------------------------------------------------------------
 
   pw.Widget _header() => _headerOf(
-        title: localizations.reportStatementTitle,
+        title: _documentTitle,
         number: data.documentNumber,
         issuedAt: data.generatedAt,
         periodFrom: data.periodFrom,
@@ -829,7 +837,7 @@ class StatementDocument extends _Sheet {
       child: _row(
         children: <pw.Widget>[
           _text(
-            '${localizations.appName} · ${localizations.reportStatementTitle}',
+            '${localizations.appName} · $_documentTitle',
             style: const pw.TextStyle(
               fontSize: 8.5,
               color: DocumentColors.secondary,
@@ -958,6 +966,17 @@ class StatementDocument extends _Sheet {
   /// backwards for the person reading it, and this page is made to be sent.
   (String, Money) _headline() {
     final Money nothing = Money(0, data.currency);
+    // A clearance states the fact it exists to state, in one approved sentence,
+    // and not a figure: the figure is zero, and the sentence says what that
+    // means. The date is the one the records were stated through — the end of
+    // a period, or the day the document was issued.
+    if (data.isClearance) {
+      final DateTime through = data.periodTo ?? data.generatedAt;
+      return (
+        localizations.reportClearanceSentence(formatting.date(through)),
+        nothing,
+      );
+    }
     // A period is answered with the balance the account held when it ended:
     // the reader asked what was left at that moment, not what is left today.
     final int? closing = data.closingBalanceMinor;
@@ -1203,7 +1222,11 @@ class StatementDocument extends _Sheet {
   /// The shape carries the meaning for anyone who cannot separate the colours,
   /// and the word carries it for anyone reading a greyscale printout.
   pw.Widget _statusBadge() {
-    final (PdfColor color, bool filled, String label) = switch (data.status) {
+    // A clearance always carries the closed state, whatever the individual
+    // records were filed as: the badge is part of what the document says.
+    final (PdfColor color, bool filled, String label) = data.isClearance
+        ? (DocumentColors.settled, true, localizations.statusPaid)
+        : switch (data.status) {
       DebtLifecycleStatus.paid => (
           DocumentColors.settled,
           true,

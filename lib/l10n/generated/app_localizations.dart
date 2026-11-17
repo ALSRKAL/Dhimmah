@@ -5107,6 +5107,18 @@ abstract class AppLocalizations {
   /// **'رصيد سابق'**
   String get reportOpeningBalance;
 
+  /// No description provided for @reportClearanceTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخالصة'**
+  String get reportClearanceTitle;
+
+  /// No description provided for @reportClearanceSentence.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا متبقٍّ بين الطرفين حتى {date}، بحسب السجلات المسجّلة في ذِمّة.'**
+  String reportClearanceSentence(String date);
+
   /// No description provided for @statementPeriodChip.
   ///
   /// In ar, this message translates to:

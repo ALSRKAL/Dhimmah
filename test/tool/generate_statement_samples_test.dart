@@ -289,6 +289,20 @@ void main() {
       fileName: 'en-settled.pdf',
       options: everything,
     );
+    // The same account stated as closed: a statement whose every record is
+    // settled is a clearance, with its own title and its own sentence.
+    await write(
+      target: settled,
+      language: AppLanguage.arabic,
+      fileName: 'ar-clearance.pdf',
+      options: everything,
+    );
+    await write(
+      target: settled,
+      language: AppLanguage.english,
+      fileName: 'en-clearance.pdf',
+      options: everything,
+    );
 
     // The receipt for one payment, both ways round and in both languages: the
     // settled person paid the user, and the user paid Ahmed.

@@ -1561,6 +1561,15 @@
   "reportPeriod": "الفترة",
   "reportPeriodUntil": "حتى",
   "reportOpeningBalance": "رصيد سابق",
+  "reportClearanceTitle": "مخالصة",
+  "reportClearanceSentence": "لا متبقٍّ بين الطرفين حتى {date}، بحسب السجلات المسجّلة في ذِمّة.",
+  "@reportClearanceSentence": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "statementPeriodChip": "الفترة",
   "statementPeriodAll": "كل الفترات",
   "reportEntryDebt": "دين جديد",

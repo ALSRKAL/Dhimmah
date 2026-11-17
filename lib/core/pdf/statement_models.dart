@@ -371,6 +371,17 @@ class StatementData {
       debts.any((StatementDebtLine line) => line.direction.isIOwe) &&
       debts.any((StatementDebtLine line) => !line.direction.isIOwe);
 
+  /// Whether this document states that nothing is left between the parties.
+  ///
+  /// True when the scope holds at least one record and every one of them is
+  /// settled — a statement of nothing is not a clearance. A period also has to
+  /// have closed at zero: a clearance of a month that ended with money owing is
+  /// not a clearance of anything.
+  bool get isClearance =>
+      debts.isNotEmpty &&
+      debts.every((StatementDebtLine line) => line.remaining.minorUnits == 0) &&
+      (!hasPeriod || closingBalanceMinor == 0);
+
   /// The one side every debt is on, or null when there are none or both.
   DebtDirection? get direction =>
       debts.isEmpty || isMixed ? null : debts.first.direction;
@@ -402,7 +413,11 @@ class StatementData {
         '${generatedAt.year.toString().padLeft(4, '0')}-'
         '${generatedAt.month.toString().padLeft(2, '0')}-'
         '${generatedAt.day.toString().padLeft(2, '0')}';
-    return 'Dhimmah_${safeName}_$date.pdf';
+    // A clearance is a different document with a different purpose, and its
+    // name says so: a folder of shared files should not make the reader open
+    // one to learn that it is the one that closes the account.
+    final String prefix = isClearance ? 'Dhimmah_Clearance' : 'Dhimmah';
+    return '${prefix}_${safeName}_$date.pdf';
   }
 
   /// The document title shown at the top of the sheet and in the share dialog.
