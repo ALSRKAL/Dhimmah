@@ -450,7 +450,10 @@ abstract class _Sheet {
                 ? localizations.reportPeriod
                 : localizations.reportPeriodUntil,
             hasPeriod
-                ? '${formatting.date(periodFrom)} – ${formatting.date(periodTo)}'
+                ? localizations.reportPeriodRange(
+                    formatting.date(periodFrom),
+                    formatting.date(periodTo),
+                  )
                 : formatting.date(issuedAt),
           ),
         ],
@@ -1241,8 +1244,10 @@ class StatementDocument extends _Sheet {
     };
     final String period = data.hasPeriod
         ? ' · ${localizations.reportPeriod}: '
-            '${formatting.date(data.periodFrom!)} – '
-            '${formatting.date(data.periodTo!)}'
+            '${localizations.reportPeriodRange(
+              formatting.date(data.periodFrom!),
+              formatting.date(data.periodTo!),
+            )}'
         : '';
     if (data.hiddenSettledCount <= 0) return '$scope$period';
     return '$scope$period · '

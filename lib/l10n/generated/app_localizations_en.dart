@@ -2998,6 +2998,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportPeriod => 'Period';
 
   @override
+  String reportPeriodRange(String from, String to) {
+    return '$from – $to';
+  }
+
+  @override
   String get reportPeriodUntil => 'As of';
 
   @override

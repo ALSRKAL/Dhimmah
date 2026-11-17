@@ -5095,6 +5095,12 @@ abstract class AppLocalizations {
   /// **'الفترة'**
   String get reportPeriod;
 
+  /// No description provided for @reportPeriodRange.
+  ///
+  /// In ar, this message translates to:
+  /// **'من {from} إلى {to}'**
+  String reportPeriodRange(String from, String to);
+
   /// No description provided for @reportPeriodUntil.
   ///
   /// In ar, this message translates to:

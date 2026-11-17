@@ -175,8 +175,10 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                 hiddenSettled: hidden.settled,
                 hiddenArchived: hidden.archived,
                 periodLabel: _options.hasPeriod
-                    ? '${context.formatting.date(_options.periodFrom!)} – '
-                        '${context.formatting.date(_options.periodTo!)}'
+                    ? localizations.reportPeriodRange(
+                        context.formatting.date(_options.periodFrom!),
+                        context.formatting.date(_options.periodTo!),
+                      )
                     : null,
                 onScope: (StatementScope scope) => _chooseScope(data, scope),
                 onPickPeriod: _pickPeriod,

@@ -1559,6 +1559,17 @@
   "reportColumnPaymentAmount": "دفعة",
   "reportMovementsTitle": "كشف الحركات",
   "reportPeriod": "الفترة",
+  "reportPeriodRange": "من {from} إلى {to}",
+  "@reportPeriodRange": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
   "reportPeriodUntil": "حتى",
   "reportOpeningBalance": "رصيد سابق",
   "reportClearanceTitle": "مخالصة",

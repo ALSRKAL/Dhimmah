@@ -3060,6 +3060,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportPeriod => 'الفترة';
 
   @override
+  String reportPeriodRange(String from, String to) {
+    return 'من $from إلى $to';
+  }
+
+  @override
   String get reportPeriodUntil => 'حتى';
 
   @override

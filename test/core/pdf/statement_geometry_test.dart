@@ -109,6 +109,11 @@ int pngHeight(ByteData png) =>
 String visual(String logicalWord) =>
     shapeArabic(logicalWord).split('').reversed.join();
 
+/// The run text a word is drawn as: Arabic is shaped and reversed, a number or
+/// a Latin word is left as written by the renderer.
+String drawnWord(String logicalWord) =>
+    containsArabic(logicalWord) ? visual(logicalWord) : logicalWord;
+
 /// The line that draws every one of [words].
 ///
 /// A phrase is not one run — the renderer draws a run per word, in visual order
@@ -231,6 +236,85 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
         lineWithAllWords(page, l10n.reportPeriod),
         isNotEmpty,
         reason: 'the header has to say the period it covers',
+      );
+    });
+
+    test('the period reads from its first day to its last', () async {
+      final AppFormatting formatting = AppFormatting(
+        language: AppLanguage.arabic,
+        numerals: NumeralsStyle.latin,
+        defaultCurrency: AppCurrency.inr,
+        localizations: l10n,
+      );
+      final String value = l10n.reportPeriodRange(
+        formatting.date(DateTime(2026, 8, 9)),
+        formatting.date(DateTime(2026, 11, 7)),
+      );
+      final List<String> expected =
+          value.split(' ').map(drawnWord).toList(growable: false);
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            periodFrom: DateTime(2026, 8, 9),
+            periodTo: DateTime(2026, 11, 7),
+            openingBalanceMinor: 412500,
+            closingBalanceMinor: 227500,
+          ),
+        ),
+      );
+      final List<PdfRun> line = page.lines.firstWhere(
+        (List<PdfRun> line) => expected.every(
+          (String word) =>
+              line.any((PdfRun run) => run.text == word),
+        ),
+        orElse: () => const <PdfRun>[],
+      );
+      expect(line, isNotEmpty, reason: 'the header has to state the period');
+      // The page is drawn left to right and read right to left, so the line
+      // reversed is the order a reader sees: each day in turn.
+      expect(
+        line.reversed.map((PdfRun run) => run.text).toList(),
+        expected,
+        reason: 'each day stays between the two words that bound it',
+      );
+    });
+
+    test('the English period reads the same way round', () async {
+      final AppLocalizations english =
+          lookupAppLocalizations(const Locale('en'));
+      final AppFormatting formatting = AppFormatting(
+        language: AppLanguage.english,
+        numerals: NumeralsStyle.latin,
+        defaultCurrency: AppCurrency.inr,
+        localizations: english,
+      );
+      final String value = english.reportPeriodRange(
+        formatting.date(DateTime(2026, 8, 9)),
+        formatting.date(DateTime(2026, 11, 7)),
+      );
+      final List<String> expected =
+          value.split(' ').map(drawnWord).toList(growable: false);
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            periodFrom: DateTime(2026, 8, 9),
+            periodTo: DateTime(2026, 11, 7),
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      final List<PdfRun> line = page.lines.firstWhere(
+        (List<PdfRun> line) => expected.every(
+          (String word) =>
+              line.any((PdfRun run) => run.text == word),
+        ),
+        orElse: () => const <PdfRun>[],
+      );
+      expect(line, isNotEmpty, reason: 'the header has to state the period');
+      expect(
+        line.map((PdfRun run) => run.text).toList(),
+        expected,
       );
     });
 
