@@ -280,7 +280,12 @@ class _PersonHeader extends StatelessWidget {
           children: <Widget>[
             Row(
               children: <Widget>[
-                PersonAvatar.of(ledger.person, size: 48),
+                PersonAvatar.of(
+                  ledger.person,
+                  size: 48,
+                  // The list's row for this person carries the same tag.
+                  heroTag: 'person-avatar:${ledger.person.id}',
+                ),
                 const SizedBox(width: AppSpacing.md),
                 Expanded(
                   child: Text(

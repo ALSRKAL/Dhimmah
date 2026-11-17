@@ -235,7 +235,13 @@ class _PersonRow extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            PersonAvatar.of(entry.person, size: 46),
+            PersonAvatar.of(
+              entry.person,
+              size: 46,
+              // The same person's header carries this tag: opening their page
+              // brings the picture with it.
+              heroTag: 'person-avatar:${entry.person.id}',
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

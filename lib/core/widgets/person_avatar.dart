@@ -15,12 +15,14 @@ class PersonAvatar extends StatelessWidget {
     required this.colorIndex,
     this.size = 44,
     this.archived = false,
+    this.heroTag,
     super.key,
   });
 
   PersonAvatar.of(
     Person person, {
     this.size = 44,
+    this.heroTag,
     super.key,
   })  : initials = person.initials,
         colorIndex = person.colorIndex,
@@ -30,6 +32,17 @@ class PersonAvatar extends StatelessWidget {
   final int colorIndex;
   final double size;
   final bool archived;
+
+  /// The tag that lets this avatar fly between two screens, or null to stay
+  /// where it is.
+  ///
+  /// Given on the people list and the person's page, which both draw the same
+  /// person's avatar: tapping a row then carries the picture into the header
+  /// instead of cutting to it. It is per person and passed in rather than
+  /// derived here, because the same person can be drawn twice on one screen —
+  /// in a picker and in the form behind it — and two heroes with one tag is an
+  /// exception, not a transition.
+  final Object? heroTag;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +65,7 @@ class PersonAvatar extends StatelessWidget {
             surface: palette.surface,
           );
 
-    return Semantics(
+    final Widget avatar = Semantics(
       label: initials,
       child: Container(
         width: size,
@@ -70,5 +83,11 @@ class PersonAvatar extends StatelessWidget {
         ),
       ),
     );
+
+    final Object? tag = heroTag;
+    // A flight is motion like any other: with the system's "remove animations"
+    // on, the destination avatar is simply there.
+    if (tag == null || MediaQuery.disableAnimationsOf(context)) return avatar;
+    return Hero(tag: tag, child: avatar);
   }
 }
