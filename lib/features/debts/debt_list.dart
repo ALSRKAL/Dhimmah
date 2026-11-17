@@ -22,6 +22,7 @@ import '../../../l10n/enum_labels.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/widgets/motion.dart';
+import 'payment_sheet.dart';
 
 /// A time window the list can be narrowed to.
 enum DateWindow { any, today, thisWeek, thisMonth, custom }
@@ -281,28 +282,174 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
                         if (mounted) setState(() => _arriving = false);
                       }
                     : null,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    DebtRowTile(
-                      view: view,
-                      asOf: asOf,
-                      showDirectionBadge: widget.direction == null,
-                      knownPersonId: widget.knownPersonId,
-                      onTap: () =>
-                          context.push(AppRoutes.debtPath(view.debt.id)),
-                      onLongPress: () => _openRowActions(context, view),
-                    ),
-                    if (index != sorted.length - 1)
-                      const AppDivider(indent: AppSpacing.lg),
-                  ],
-                ),
+                            child: Dismissible(
+                              key: ValueKey<String>(
+                                'debt-row-${view.debt.id}',
+                              ),
+                              // A settled debt has nothing to pay, so only the
+                              // archive gesture is offered at all: a swipe that
+                              // cannot do anything should not advertise itself.
+                              direction: view.isSettled
+                                  ? DismissDirection.endToStart
+                                  : DismissDirection.horizontal,
+                              // The reading start is the primary side: swiping
+                              // that way records a payment, the everyday action.
+                              // The other way archives. The physical side flips
+                              // with the language; the meaning does not. A
+                              // settled row has one direction only, so the
+                              // archive strip is its `background` — Dismissible
+                              // requires a background whenever a second one is
+                              // set at all.
+                              background: view.isSettled
+                                  ? _swipeBackground(context, view, payment: false)
+                                  : _swipeBackground(context, view, payment: true),
+                              secondaryBackground: view.isSettled
+                                  ? null
+                                  : _swipeBackground(
+                                      context,
+                                      view,
+                                      payment: false,
+                                    ),
+                              movementDuration:
+                                  AppMotion.of(context, AppMotion.normal),
+                              resizeDuration:
+                                  AppMotion.of(context, AppMotion.normal),
+                              confirmDismiss: (DismissDirection direction) =>
+                                  _onSwipe(context, view, direction),
+                              // The list is data-driven: the write above has
+                              // already made this row leave `views`, so there is
+                              // nothing left to remove here.
+                              onDismissed: (DismissDirection direction) {},
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: <Widget>[
+                                  DebtRowTile(
+                                    view: view,
+                                    asOf: asOf,
+                                    showDirectionBadge: widget.direction == null,
+                                    knownPersonId: widget.knownPersonId,
+                                    onTap: () =>
+                                        context.push(AppRoutes.debtPath(view.debt.id)),
+                                    onLongPress: () => _openRowActions(context, view),
+                                  ),
+                                  if (index != sorted.length - 1)
+                                    const AppDivider(indent: AppSpacing.lg),
+                                ],
+                              ),
+                            ),
               );
             },
           ),
         const SliverToBoxAdapter(child: SliverBottomSpacer()),
       ],
     );
+  }
+
+  /// What a swipe reveals: the action it will perform, named.
+  ///
+  /// One side is a payment and the other is archiving; the colours follow the
+  /// app's meaning system — the brand for the action, the quiet surface for
+  /// filing away.
+  Widget _swipeBackground(
+    BuildContext context,
+    DebtView view, {
+    required bool payment,
+  }) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final AppPalette palette = context.palette;
+    final bool archive = !payment;
+    final Color background =
+        payment ? palette.brandContainer : palette.surfaceMuted;
+    final Color foreground =
+        payment ? palette.brand : palette.textSecondary;
+    final String label = payment
+        ? localizations.detailRecordPayment
+        : (view.debt.isArchived
+            ? localizations.actionUnarchive
+            : localizations.actionArchive);
+    return Container(
+      color: background,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      // The revealed strip sits under the edge the finger is pulling: on the
+      // reading side for a payment, the far side for archiving.
+      alignment: payment
+          ? AlignmentDirectional.centerStart
+          : AlignmentDirectional.centerEnd,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            archive
+                ? (view.debt.isArchived ? AppIcons.unarchive : AppIcons.archive)
+                : AppIcons.payments,
+            size: 20,
+            color: foreground,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: foreground,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// What a swipe does once it passes the threshold.
+  ///
+  /// Both actions are the ones the row's own menu and the debt's page already
+  /// perform — no new write path. A payment opens the same sheet the button
+  /// opens and writes nothing itself; archiving is reversible for six seconds.
+  Future<bool> _onSwipe(
+    BuildContext context,
+    DebtView view,
+    DismissDirection direction,
+  ) async {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    if (direction == DismissDirection.startToEnd) {
+      // Unreachable on a settled row (its only allowed direction is the other
+      // one), but the guard is the rule stated in one place.
+      if (view.isSettled) return false;
+      await showPaymentSheet(context, view: view);
+      // The row stays where it is: a payment is recorded in the sheet, and the
+      // list then rebuilds from the records.
+      return false;
+    }
+
+    final LedgerService service = ref.read(ledgerServiceProvider);
+    final bool wasArchived = view.debt.isArchived;
+    final ScaffoldMessengerState messenger = ScaffoldMessenger.of(context);
+    final Color errorIcon = context.palette.overdue;
+    try {
+      await service.setDebtArchived(view.debt.id, !wasArchived);
+    } on Object {
+      if (context.mounted) {
+        AppFeedback.error(context, localizations.somethingWentWrong);
+      }
+      return false;
+    }
+    if (!context.mounted) return true;
+    AppFeedback.undoable(
+      context,
+      message:
+          wasArchived ? localizations.debtRestored : localizations.debtArchived,
+      onUndo: () async {
+        try {
+          await service.setDebtArchived(view.debt.id, wasArchived);
+        } on Object {
+          AppFeedback.errorDetached(
+            messenger: messenger,
+            message: localizations.somethingWentWrong,
+            iconColor: errorIcon,
+          );
+        }
+      },
+    );
+    // The record has left this list: the provider has rebuilt it without the
+    // archived row, so the row is dismissed rather than springing back.
+    return true;
   }
 
   Future<void> _openFilters(BuildContext context) async {
