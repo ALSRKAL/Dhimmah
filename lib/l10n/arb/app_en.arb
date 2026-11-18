@@ -517,6 +517,15 @@
   },
   "monthEndLastDay": "Last day of the month",
   "moreFollowUpSection": "Follow-up",
+  "moreAppSection": "App",
+  "backupLastDone": "Last backup: {date}",
+  "@backupLastDone": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "moreTitle": "More",
   "navHome": "Home",
   "navIOwe": "I Owe",

@@ -1057,6 +1057,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get moreFollowUpSection => 'المتابعة';
 
   @override
+  String get moreAppSection => 'التطبيق';
+
+  @override
+  String backupLastDone(String date) {
+    return 'آخر نسخة: $date';
+  }
+
+  @override
   String get moreTitle => 'المزيد';
 
   @override

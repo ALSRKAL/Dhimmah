@@ -1044,6 +1044,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get moreFollowUpSection => 'Follow-up';
 
   @override
+  String get moreAppSection => 'App';
+
+  @override
+  String backupLastDone(String date) {
+    return 'Last backup: $date';
+  }
+
+  @override
   String get moreTitle => 'More';
 
   @override

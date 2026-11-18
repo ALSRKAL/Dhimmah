@@ -1892,6 +1892,18 @@ abstract class AppLocalizations {
   /// **'المتابعة'**
   String get moreFollowUpSection;
 
+  /// No description provided for @moreAppSection.
+  ///
+  /// In ar, this message translates to:
+  /// **'التطبيق'**
+  String get moreAppSection;
+
+  /// No description provided for @backupLastDone.
+  ///
+  /// In ar, this message translates to:
+  /// **'آخر نسخة: {date}'**
+  String backupLastDone(String date);
+
   /// No description provided for @moreTitle.
   ///
   /// In ar, this message translates to:

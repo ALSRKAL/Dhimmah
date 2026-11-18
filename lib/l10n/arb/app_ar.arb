@@ -517,6 +517,15 @@
   },
   "monthEndLastDay": "آخر يوم من الشهر",
   "moreFollowUpSection": "المتابعة",
+  "moreAppSection": "التطبيق",
+  "backupLastDone": "آخر نسخة: {date}",
+  "@backupLastDone": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "moreTitle": "المزيد",
   "navHome": "الرئيسية",
   "navIOwe": "عليّ",
