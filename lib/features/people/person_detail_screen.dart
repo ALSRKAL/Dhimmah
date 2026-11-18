@@ -528,6 +528,7 @@ class _PersonActions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
+    final ThemeData theme = Theme.of(context);
 
     // A legacy shared record cannot take a payment — one would settle everybody
     // at once — so it does not count as payable, and the page offers "add a
@@ -600,18 +601,35 @@ class _PersonActions extends ConsumerWidget {
               ),
             ],
             const SizedBox(width: AppSpacing.sm),
-            IconButton.outlined(
-              tooltip: localizations.reportShareStatement,
-              // A person with no debts has nothing to state: the button used
-              // to open a screen whose only content was an explanation of why
-              // there was no document. Disabled, it says so where it stands.
-              onPressed: ledger.debts.isEmpty
-                  ? null
-                  : () => showStatement(context, personId),
-              icon: const Icon(AppIcons.receiptLong, size: 20),
-              style: IconButton.styleFrom(
-                minimumSize: const Size(52, 52),
-                side: BorderSide(color: palette.borderStrong),
+            Tooltip(
+              message: localizations.reportShareStatement,
+              child: OutlinedButton(
+                // A caption under the mark, not a third full-width label: the
+                // row has two labelled actions already, and a third one would
+                // take the width the other two need at a large text size.
+                onPressed: ledger.debts.isEmpty
+                    ? null
+                    : () => showStatement(context, personId),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size(60, 52),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
+                  side: BorderSide(color: palette.borderStrong),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: <Widget>[
+                    const Icon(AppIcons.receiptLong, size: 18),
+                    const SizedBox(height: 2),
+                    Text(
+                      localizations.reportStatementShort,
+                      style: theme.textTheme.labelSmall,
+                      maxLines: 1,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

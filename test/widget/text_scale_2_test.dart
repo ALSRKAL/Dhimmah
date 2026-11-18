@@ -107,6 +107,8 @@ void main() {
     await tapAndSettle(tester, find.text('الأشخاص').last);
     await tapAndSettle(tester, find.textContaining('محمد').first);
     expectNoOverflow(tester, 'person page');
+    expect(find.text('كشف'), findsOneWidget);
+    expect(find.byTooltip('مشاركة كشف'), findsOneWidget);
 
     final Finder debt = find.textContaining('قرض');
     await reveal(tester, debt);
