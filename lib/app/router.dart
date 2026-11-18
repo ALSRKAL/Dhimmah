@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_icons.dart';
 import '../core/widgets/empty_state.dart';
+import '../domain/entities/person.dart';
 import '../domain/enums/debt_enums.dart';
 import '../features/dashboard/dashboard_screen.dart';
 import '../features/debts/debt_detail_screen.dart';
@@ -203,7 +204,14 @@ GoRouter buildRouter({
       GoRoute(
         path: AppRoutes.personDetail,
         builder: (BuildContext context, GoRouterState state) =>
-            PersonDetailScreen(personId: state.pathParameters['id']!),
+            PersonDetailScreen(
+              personId: state.pathParameters['id']!,
+              // The list hands over the person it is showing so the header,
+              // and the Hero flying into it, exist before the ledger loads.
+              // A notification or a deep link arrives without one, and the
+              // page loads exactly as it always did.
+              person: state.extra is Person ? state.extra as Person : null,
+            ),
       ),
       GoRoute(
         path: AppRoutes.personEdit,

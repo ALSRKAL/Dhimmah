@@ -13,6 +13,7 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_value_view.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/money_text.dart';
+import '../../core/widgets/motion.dart';
 import '../../core/widgets/person_avatar.dart';
 import '../../domain/entities/ledger_views.dart';
 import '../../l10n/generated/app_localizations.dart';
@@ -39,6 +40,10 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
   final TextEditingController _search = TextEditingController();
   String _query = '';
   PeopleSort _sort = PeopleSort.activeFirst;
+
+  /// True while the list is appearing for the first time; its first rows
+  /// arrive one after another, once.
+  bool _arriving = true;
 
   @override
   void dispose() {
@@ -186,21 +191,39 @@ class _PeopleScreenState extends ConsumerState<PeopleScreen> {
                         itemCount: sorted.length,
                         itemBuilder: (BuildContext context, int index) {
                           final PersonDirectoryEntry entry = sorted[index];
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: <Widget>[
-                              _PersonRow(entry: entry),
-                              if (index != sorted.length - 1)
-                                // Ends where the row's content ends. The
-                                // balances are drawn against that edge, and a
-                                // rule that ran on to the screen edge while
-                                // they stopped short of it read as a row that
-                                // had not been squared off.
-                                const AppDivider(
-                                  indent: 74,
-                                  endIndent: AppSpacing.lg,
-                                ),
-                            ],
+                          final int lastStaggered =
+                              (sorted.length < ArrivingRow.maxRows
+                                  ? sorted.length
+                                  : ArrivingRow.maxRows) -
+                              1;
+                          return ArrivingRow(
+                            index: index,
+                            animate: _arriving,
+                            // The last row to move ends the arrival, so a row
+                            // scrolled away and back does not arrive again.
+                            onArrived: index == lastStaggered
+                                ? () {
+                                    if (mounted) {
+                                      setState(() => _arriving = false);
+                                    }
+                                  }
+                                : null,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: <Widget>[
+                                _PersonRow(entry: entry),
+                                if (index != sorted.length - 1)
+                                  // Ends where the row's content ends. The
+                                  // balances are drawn against that edge, and a
+                                  // rule that ran on to the screen edge while
+                                  // they stopped short of it read as a row that
+                                  // had not been squared off.
+                                  const AppDivider(
+                                    indent: 74,
+                                    endIndent: AppSpacing.lg,
+                                  ),
+                              ],
+                            ),
                           );
                         },
                       ),
@@ -227,7 +250,13 @@ class _PersonRow extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
 
     return InkWell(
-      onTap: () => context.push(AppRoutes.personPath(entry.person.id)),
+      onTap: () => context.push(
+        AppRoutes.personPath(entry.person.id),
+        // The page needs the person it is about before the ledger arrives: its
+        // header is the Hero's destination, and a loading skeleton has no
+        // picture to fly into.
+        extra: entry.person,
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
@@ -235,7 +264,13 @@ class _PersonRow extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            PersonAvatar.of(entry.person, size: 46),
+            PersonAvatar.of(
+              entry.person,
+              size: 46,
+              // The same person's header carries this tag: opening their page
+              // brings the picture with it.
+              heroTag: 'person-avatar:${entry.person.id}',
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

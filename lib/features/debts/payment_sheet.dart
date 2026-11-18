@@ -29,13 +29,20 @@ import 'receipt_screen.dart';
 ///
 /// With [existing], the same sheet corrects that payment instead of adding a
 /// new one.
+///
+/// [useRootNavigator] lifts the sheet above the app shell rather than above the
+/// tab that opened it. A sheet opened by a swipe inside a tab needs it: the
+/// shell's floating add button is a sibling of that tab's navigator and paints
+/// over the sheet's save button.
 Future<bool> showPaymentSheet(
   BuildContext context, {
   required DebtView view,
   Payment? existing,
+  bool useRootNavigator = false,
 }) async {
   final bool? recorded = await showAppSheet<bool>(
     context,
+    useRootNavigator: useRootNavigator,
     child: PaymentSheet(view: view, existing: existing),
   );
   return recorded ?? false;
