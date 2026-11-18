@@ -99,11 +99,10 @@ class NotificationSyncResult {
 /// * Reconciliation cancels *pending* notifications only. The old
 ///   `cancelAll()` also cleared the notification shade, so every save wiped the
 ///   reminders the user had already received.
-/// * Only the soonest [maxScheduled] are armed. Android — and Samsung's
-///   implementation in particular — does not hold an unbounded number of alarms
-///   per app, and a ledger with thousands of records asks for more than any
-///   phone will keep. The soonest are always among them, and every launch, every
-///   save and every environment change re-runs this.
+/// * Only the soonest [NotificationService.maxScheduledForPlatform] are armed —
+///   400 on Android, 60 on iOS, which drops anything past its own ceiling
+///   silently. The soonest are always among them, and every launch, every save
+///   and every environment change re-runs this.
 class NotificationService {
   NotificationService({NotificationGateway? gateway})
       : _gateway = gateway ?? FlutterLocalNotificationsGateway();
@@ -118,6 +117,25 @@ class NotificationService {
   /// The selection is by time, so the records that need reminding soonest are
   /// the ones that are armed.
   static const int maxScheduled = 400;
+
+  /// iOS's own ceiling, with room kept back.
+  ///
+  /// iOS holds at most 64 pending local notifications per app; asking for more
+  /// does not throw, it silently drops the later ones. 60 keeps the four the
+  /// system prefers to keep for itself. The selection is the same function of
+  /// time and id, so the same reminders are armed on both platforms — iOS just
+  /// stops earlier.
+  static const int maxScheduledIOS = 60;
+
+  /// The limit this platform can actually honour.
+  ///
+  /// Explicit for both platforms rather than an Android default with an iOS
+  /// exception: a third platform would otherwise inherit an Android number it
+  /// was never measured against.
+  static int get maxScheduledForPlatform =>
+      defaultTargetPlatform == TargetPlatform.iOS
+          ? maxScheduledIOS
+          : maxScheduled;
 
   bool _initialized = false;
   NotificationPermission _permission = NotificationPermission.unsupported;
@@ -278,7 +296,8 @@ class NotificationService {
       return const NotificationSyncResult.blocked();
     }
 
-    final List<ComposedNotification> armed = selectArmed(desired);
+    final List<ComposedNotification> armed =
+        selectArmed(desired, limit: maxScheduledForPlatform);
 
     final Set<int> wanted = <int>{
       for (final ComposedNotification n in armed) n.id,

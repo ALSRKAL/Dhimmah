@@ -10,8 +10,8 @@ import 'app/app.dart';
 import 'app/app_update_controller.dart';
 import 'app/providers.dart';
 import 'app/startup_failure.dart';
+import 'data/services/app_update_service_factory.dart';
 import 'data/services/ledger_service.dart';
-import 'data/services/play_app_update_service.dart';
 import 'data/services/statement_service.dart';
 import 'domain/entities/app_settings.dart';
 
@@ -53,8 +53,10 @@ Future<void> _boot() async {
       // Google Play's own update system, and nothing else: no server is asked
       // for a version, no APK is downloaded, and no permission is involved. The
       // Play Store app decides whether an update is available and performs the
-      // whole download and install itself.
-      appUpdateServiceProvider.overrideWithValue(PlayAppUpdateService()),
+      // whole download and install itself. On a platform that has no such
+      // system — iOS above all — the service that does nothing is registered
+      // instead, and the card that shows an update never has anything to show.
+      appUpdateServiceProvider.overrideWithValue(platformAppUpdateService()),
     ],
   );
 

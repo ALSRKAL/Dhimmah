@@ -185,6 +185,17 @@ class AmountField extends StatefulWidget {
 class _AmountFieldState extends State<AmountField> {
   late final TextEditingController _controller;
   late final bool _ownsController;
+  late final FocusNode _focus;
+  late final bool _ownsFocus;
+
+  /// The keyboard's "Done" bar, drawn over the keyboard on iOS.
+  ///
+  /// iOS's decimal keypad has no return key at all, so the only way out of the
+  /// field is to tap elsewhere. Android's has one, which is why the bar is not
+  /// drawn there: it would be a second way to do what the keyboard already
+  /// offers.
+  final OverlayPortalController _doneBar = OverlayPortalController();
+
   String? _error;
 
   /// Whether what is typed is currently past what the parser will accept.
@@ -201,6 +212,21 @@ class _AmountFieldState extends State<AmountField> {
               : formatMinorForInput(widget.initialMinor!, widget.currency),
         );
     _controller.addListener(_handleChange);
+    _ownsFocus = widget.focusNode == null;
+    _focus = widget.focusNode ?? FocusNode();
+    _focus.addListener(_handleFocusChange);
+  }
+
+  /// Shows the bar while the field has the keyboard, and takes it away after.
+  void _handleFocusChange() {
+    if (!mounted) return;
+    final bool ios = Theme.of(context).platform == TargetPlatform.iOS;
+    if (ios && _focus.hasFocus) {
+      if (!_doneBar.isShowing) _doneBar.show();
+    } else if (_doneBar.isShowing) {
+      _doneBar.hide();
+    }
+    setState(() {});
   }
 
   void _handleChange() {
@@ -233,6 +259,9 @@ class _AmountFieldState extends State<AmountField> {
   void dispose() {
     _controller.removeListener(_handleChange);
     if (_ownsController) _controller.dispose();
+    _focus.removeListener(_handleFocusChange);
+    if (_ownsFocus) _focus.dispose();
+    if (_doneBar.isShowing) _doneBar.hide();
     super.dispose();
   }
 
@@ -248,15 +277,20 @@ class _AmountFieldState extends State<AmountField> {
         // An amount is written left to right in both languages. It used to
         // take the app's direction, so in Arabic tapping the field beside the
         // digits put the caret before the first one.
-        DirectionalField(
-          controller: _controller,
-          direction: TextDirection.ltr,
-          builder: (BuildContext context, FieldLayout field) => TextFormField(
-            controller: field.controller,
-            textDirection: field.direction,
-            textAlign: field.align,
-            onTap: field.onTap,
-            focusNode: widget.focusNode,
+        // The portal draws nothing until the field is focused on iOS; on
+        // Android the keyboard already has a return key.
+        OverlayPortal(
+          controller: _doneBar,
+          overlayChildBuilder: _doneBarOverlay,
+          child: DirectionalField(
+            controller: _controller,
+            direction: TextDirection.ltr,
+            builder: (BuildContext context, FieldLayout field) => TextFormField(
+              controller: field.controller,
+              textDirection: field.direction,
+              textAlign: field.align,
+              onTap: field.onTap,
+              focusNode: _focus,
             enabled: widget.enabled,
             autofocus: widget.autofocus,
             keyboardType:
@@ -328,7 +362,42 @@ class _AmountFieldState extends State<AmountField> {
             ),
           ),
         ),
+        ),
       ],
+    );
+  }
+
+  /// The bar that sits above iOS's decimal keypad.
+  ///
+  /// iOS draws a number pad with no return key, so a field whose only input is
+  /// digits had no way to dismiss the keyboard except tapping somewhere else.
+  /// The bar is the keyboard's own missing key: one button, at the trailing
+  /// edge, that leaves the field. It is positioned against the keyboard's top
+  /// inset, so it stays above the keys as they animate in.
+  Widget _doneBarOverlay(BuildContext context) {
+    final AppPalette palette = context.palette;
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: MediaQuery.viewInsetsOf(context).bottom,
+      child: Material(
+        color: palette.surface,
+        child: Container(
+          height: 44,
+          padding: const EdgeInsetsDirectional.only(end: AppSpacing.sm),
+          decoration: BoxDecoration(
+            border: Border(top: BorderSide(color: palette.border)),
+          ),
+          alignment: AlignmentDirectional.centerEnd,
+          child: TextButton(
+            onPressed: () {
+              _focus.unfocus();
+              if (_doneBar.isShowing) _doneBar.hide();
+            },
+            child: Text(AppLocalizations.of(context).actionDone),
+          ),
+        ),
+      ),
     );
   }
 }

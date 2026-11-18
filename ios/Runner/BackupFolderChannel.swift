@@ -41,6 +41,17 @@ import UIKit
   /// before the user chose, and the choice never reached Dart.
   private var pickerDelegate: FolderPickerDelegate?
 
+  /// The open export picker's delegate, held for the same reason.
+  private var exportDelegate: ExportPickerDelegate?
+
+  /// Where a document waits between `createDocument` and `write`.
+  ///
+  /// The channel's Dart caller asks where to save first, then hands over the
+  /// bytes. iOS has no empty-document step like Android's SAF, so the file waits
+  /// here, named as the app suggested, and `write` exports it with
+  /// `UIDocumentPickerViewController(forExporting:)` once it holds the bytes.
+  private static let stagingFolderName = "dhimmah-save"
+
   /// Answers the channel on [messenger].
   ///
   /// Takes the messenger rather than a plugin registrar: this is a method
@@ -110,6 +121,32 @@ import UIKit
         case "releaseFolder":
           // A bookmark has nothing to hand back; forgetting it is enough.
           reply(["released": true])
+        // The same four calls Android's `DocumentSaveChannel` uses. They share
+        // this channel because they are the same feature (a document the user
+        // saves), and the same names so the Dart side cannot tell the platforms
+        // apart — which is the point of the channel.
+        case "createDocument":
+          let name = arguments?["name"] as? String ?? "backup.dhimmah"
+          let url = try self.makeStagingFile(named: name)
+          self.purgeStaging()
+          reply(self.describeStaging(url))
+        case "write":
+          let url = try self.stagingFile(from: uri)
+          let bytes = (arguments?["bytes"] as? FlutterStandardTypedData)?.data ?? Data()
+          if bytes.isEmpty {
+            throw FolderError(code: "empty_bytes", message: "refusing to write an empty document")
+          }
+          // The bytes are on disk before the user is asked where they should
+          // go; the export picker hands the file to the provider itself.
+          try bytes.write(to: url, options: [.atomic])
+          DispatchQueue.main.async {
+            self.presentExport(url, count: bytes.count, result: result)
+          }
+        case "read":
+          let url = try self.stagingFile(from: uri)
+          reply(FlutterStandardTypedData(bytes: try Data(contentsOf: url)))
+        case "metadata":
+          reply(self.describeStaging(try self.stagingFile(from: uri)))
         default:
           reply(FlutterMethodNotImplemented)
         }
@@ -121,6 +158,145 @@ import UIKit
     }
   }
 
+  // MARK: - Saving one document
+
+  /// The folder a document waits in before it is exported.
+  private func stagingFolder() -> URL {
+    FileManager.default.temporaryDirectory
+      .appendingPathComponent(Self.stagingFolderName, isDirectory: true)
+  }
+
+  /// Creates the empty file `createDocument` describes to Dart.
+  ///
+  /// Nothing is shown yet: iOS's export picker needs the finished file, and the
+  /// bytes arrive on the next call. The name is the app's suggestion; the
+  /// provider is free to change it when the user saves.
+  private func makeStagingFile(named name: String) throws -> URL {
+    let folder = stagingFolder()
+    try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    let safeName = name.replacingOccurrences(of: "/", with: "_")
+    let url = folder.appendingPathComponent(safeName)
+    if FileManager.default.fileExists(atPath: url.path) {
+      try FileManager.default.removeItem(at: url)
+    }
+    guard FileManager.default.createFile(atPath: url.path, contents: Data()) else {
+      throw FolderError(code: "io_error", message: "the document could not be prepared")
+    }
+    return url
+  }
+
+  /// The staging file an opaque identifier names.
+  ///
+  /// The identifier is `staging:` plus the path in base64: opaque to Dart, and
+  /// deliberately **not** a bookmark, because this file is in the app's own
+  /// temporary directory and needs no security-scoped access. The path is
+  /// checked against the staging folder, so a value from Dart cannot name a
+  /// file anywhere else.
+  private func stagingFile(from raw: String?) throws -> URL {
+    let prefix = "staging:"
+    guard let raw, raw.hasPrefix(prefix),
+          let data = Data(base64Encoded: String(raw.dropFirst(prefix.count))),
+          let path = String(data: data, encoding: .utf8) else {
+      throw FolderError(code: "bad_uri", message: "no document was named")
+    }
+    let url = URL(fileURLWithPath: path).standardizedFileURL
+    let folder = stagingFolder().standardizedFileURL
+    guard url.path.hasPrefix(folder.path + "/") else {
+      throw FolderError(code: "bad_uri", message: "the document is not in this app's staging folder")
+    }
+    return url
+  }
+
+  private func identifier(for url: URL) -> String {
+    "staging:" + Data(url.path.utf8).base64EncodedString()
+  }
+
+  /// What Dart is told about the document.
+  private func describeStaging(_ url: URL) -> [String: Any] {
+    let attributes = try? FileManager.default.attributesOfItem(atPath: url.path)
+    let size = (attributes?[.size] as? NSNumber)?.intValue ?? 0
+    return [
+      "uri": identifier(for: url),
+      "displayName": url.lastPathComponent,
+      "size": size,
+    ]
+  }
+
+  /// Removes documents left behind by an earlier save.
+  ///
+  /// A staged file is deleted by the system with the temporary directory, but a
+  /// run of saves should not accumulate until then. An hour is far longer than
+  /// the two calls a save makes, and far shorter than a session.
+  private func purgeStaging() {
+    let folder = stagingFolder()
+    guard let entries = try? FileManager.default.contentsOfDirectory(
+      at: folder,
+      includingPropertiesForKeys: [.contentModificationDateKey]
+    ) else { return }
+    let cutoff = Date().addingTimeInterval(-3600)
+    for entry in entries {
+      let modified = (try? entry.resourceValues(forKeys: [.contentModificationDateKey]))?
+        .contentModificationDate ?? .distantPast
+      if modified < cutoff {
+        try? FileManager.default.removeItem(at: entry)
+      }
+    }
+  }
+
+  /// Asks the user where the finished document should go.
+  ///
+  /// `UIDocumentPickerViewController(forExporting:)` copies the staging file
+  /// into the provider the user chooses. iOS does not tell an app where an
+  /// exported copy went — that is the point of the picker — so the success
+  /// answer is the byte count the app wrote, and verification afterwards reads
+  /// the staged copy. Nothing is claimed about a destination the app cannot see.
+  private func presentExport(
+    _ url: URL,
+    count: Int,
+    result: @escaping FlutterResult
+  ) {
+    if exportDelegate != nil {
+      result(FlutterError(code: "io_error", message: "a save is already open", details: nil))
+      return
+    }
+    guard let presenter = currentPresenter() else {
+      result(FlutterError(code: "io_error", message: "could not open the save dialog", details: nil))
+      return
+    }
+    let picker: UIDocumentPickerViewController
+    if #available(iOS 14.0, *) {
+      // The export flow Apple added in iOS 14: the app hands over a finished
+      // file and the provider copies it to wherever the user points.
+      picker = UIDocumentPickerViewController(forExporting: [url], asCopy: true)
+    } else {
+      // iOS 13's only export initialiser. Same delegate, same answer.
+      picker = UIDocumentPickerViewController(url: url, in: .exportToService)
+    }
+    picker.allowsMultipleSelection = false
+    let delegate = ExportPickerDelegate { [weak self] exported in
+      self?.exportDelegate = nil
+      if exported {
+        result(count)
+      } else {
+        // Backing out is an answer, not a crash: Dart reports that nothing was
+        // saved rather than claiming a copy exists.
+        result(FlutterError(code: "cancelled", message: "the save was cancelled", details: nil))
+      }
+    }
+    picker.delegate = delegate
+    exportDelegate = delegate
+    presenter.present(picker, animated: true)
+  }
+
+  /// The view controller a picker can be presented from.
+  private func currentPresenter() -> UIViewController? {
+    UIApplication.shared.connectedScenes
+      .compactMap({ $0 as? UIWindowScene })
+      .flatMap({ $0.windows })
+      .first(where: { $0.isKeyWindow })?
+      .rootViewController
+  }
+
   // MARK: - Choosing
 
   private func presentFolderPicker(_ result: @escaping FlutterResult) {
@@ -130,12 +306,7 @@ import UIKit
       result(FlutterError(code: "io_error", message: "a folder choice is already open", details: nil))
       return
     }
-    let presenter = UIApplication.shared.connectedScenes
-      .compactMap({ $0 as? UIWindowScene })
-      .flatMap({ $0.windows })
-      .first(where: { $0.isKeyWindow })?
-      .rootViewController
-    guard let presenter else {
+    guard let presenter = currentPresenter() else {
       // Nothing on screen to present from: answered, rather than left waiting.
       result(FlutterError(code: "io_error", message: "could not open the folder picker", details: nil))
       return
@@ -294,5 +465,30 @@ final class FolderPickerDelegate: NSObject, UIDocumentPickerDelegate {
 
   func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
     onFinish(nil, "", true)
+  }
+}
+
+/// Holds the export picker's answer until it arrives.
+///
+/// For an export, iOS calls `didPickDocumentsAt` with the documents it was
+/// given, not the destination the user chose — the provider owns the copy from
+/// then on. So the only question this delegate can answer is "did the save
+/// happen", and that is all it reports.
+final class ExportPickerDelegate: NSObject, UIDocumentPickerDelegate {
+  private let onFinish: (Bool) -> Void
+
+  init(onFinish: @escaping (Bool) -> Void) {
+    self.onFinish = onFinish
+  }
+
+  func documentPicker(
+    _ controller: UIDocumentPickerViewController,
+    didPickDocumentsAt urls: [URL]
+  ) {
+    onFinish(true)
+  }
+
+  func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+    onFinish(false)
   }
 }

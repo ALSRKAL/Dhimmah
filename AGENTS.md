@@ -297,3 +297,25 @@ point beside it.
 absent — it is restricted by Play Store policy for alarm-clock-style apps and this
 is not one. The app uses `inexactAllowWhileIdle` on purpose. The CI guard fails if
 it appears.
+
+---
+
+## 6. Native channels — who answers what
+
+Every `MethodChannel` and `EventChannel` the app opens, the file that answers it
+on each platform, and what the Dart side does when there is no listener. A new
+channel is added to this table in the same change that adds it, and implemented
+on **both** platforms or marked Android-only with a stated iOS behaviour.
+
+| Channel | Methods / events | Android | iOS | When no implementation |
+|---|---|---|---|---|
+| `dhimmah/backup_file` (folder) | `chooseFolder`, `createFolder`, `writeDocument`, `readDocument`, `listDocuments`, `deleteDocument`, `verifyWritable`, `describeFolder`, `releaseFolder` | `BackupFileChannel.kt` (SAF / `ACTION_OPEN_DOCUMENT_TREE`) | `BackupFolderChannel.swift` (security-scoped bookmarks) | Dart reports the feature unavailable; a desktop build has no folder picker. |
+| `dhimmah/backup_file` (one document) | `createDocument`, `write`, `read`, `metadata` | `BackupFileChannel.kt` (`ACTION_CREATE_DOCUMENT`) | `BackupFolderChannel.swift` (export picker; a staging file in between) | `MissingPluginException` → `DocumentFailure.unavailable`. |
+| `com.dhimmah.dhimmah/privacy` | `setSecure(bool)` | `MainActivity.kt` (`FLAG_SECURE`) | — none: iOS has no equivalent flag | Catches `MissingPluginException`; iOS draws the opaque Flutter cover in `lock_gate.dart` instead. |
+| `dhimmah/app_update` | `check`, `startFlexible`, `startImmediate`, `complete` | `AppUpdateChannel.kt` (Play in-app updates) | — none: an app cannot drive the App Store | `platformAppUpdateService()` registers a service that does nothing on iOS; if the channel were called it answers null. |
+| `dhimmah/app_update/events` | install state stream | `AppUpdateChannel.kt` | — none | The no-op service returns an empty stream, so nothing subscribes. |
+
+The two `backup_file` rows share one channel name on purpose: they are the same
+feature (a document the user owns), and the Dart side must not learn which
+platform it is on. The channel names are pinned by
+`test/platform/android_setup_test.dart` and `test/platform/ios_setup_test.dart`.

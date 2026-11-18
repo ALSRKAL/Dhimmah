@@ -1,0 +1,3 @@
+/* Face ID, in English. Apple reviews this string: it has to say what the
+   permission is for, not just name it. */
+"NSFaceIDUsageDescription" = "Face ID is used to unlock Dhimmah and view your financial records.";

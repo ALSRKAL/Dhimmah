@@ -25,6 +25,10 @@ void main() {
     WidgetTester tester, {
     required String language,
     Brightness brightness = Brightness.light,
+    // The card is a Google Play surface, and the test host is not Android. The
+    // platform is stated rather than left to the host, because it is part of
+    // what this file is testing.
+    TargetPlatform platform = TargetPlatform.android,
   }) async {
     final Locale locale = Locale(language);
     final ProviderContainer container = ProviderContainer(
@@ -44,9 +48,10 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          theme: brightness == Brightness.dark
-              ? AppTheme.dark()
-              : AppTheme.light(),
+          theme: (brightness == Brightness.dark
+                  ? AppTheme.dark()
+                  : AppTheme.light())
+              .copyWith(platform: platform),
           home: const Scaffold(
             body: Padding(
               padding: EdgeInsets.all(16),
@@ -92,6 +97,16 @@ void main() {
     await pumpCard(tester, language: 'ar');
     expect(find.text('تحديث جديد متوفر'), findsNothing);
     // The card itself is present in the tree; it draws nothing.
+    expect(find.byType(FilledButton), findsNothing);
+  });
+
+  testWidgets('on iOS nothing is drawn even when an update is offered',
+      (WidgetTester tester) async {
+    // The update system is Google Play's, and iOS has no equivalent. A state
+    // that somehow carried an update must still draw nothing.
+    await pumpCard(tester, language: 'ar', platform: TargetPlatform.iOS);
+    await reach(tester, AppUpdatePhase.available);
+    expect(find.text('تحديث جديد متوفر'), findsNothing);
     expect(find.byType(FilledButton), findsNothing);
   });
 
