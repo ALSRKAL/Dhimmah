@@ -250,7 +250,13 @@ class _PersonRow extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
 
     return InkWell(
-      onTap: () => context.push(AppRoutes.personPath(entry.person.id)),
+      onTap: () => context.push(
+        AppRoutes.personPath(entry.person.id),
+        // The page needs the person it is about before the ledger arrives: its
+        // header is the Hero's destination, and a loading skeleton has no
+        // picture to fly into.
+        extra: entry.person,
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,

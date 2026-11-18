@@ -18,6 +18,7 @@ import '../../core/widgets/money_text.dart';
 import '../../core/widgets/person_avatar.dart';
 import '../../data/services/ledger_service.dart';
 import '../../domain/entities/ledger_views.dart';
+import '../../domain/entities/person.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../debts/debt_list.dart';
 import '../debts/person_payment_sheet.dart';
@@ -28,9 +29,21 @@ import 'statement_screen.dart';
 /// The debts list is the same widget the ledger tabs use, so filtering, sorting
 /// and the empty state behave identically here.
 class PersonDetailScreen extends ConsumerStatefulWidget {
-  const PersonDetailScreen({required this.personId, super.key});
+  const PersonDetailScreen({
+    required this.personId,
+    this.person,
+    super.key,
+  });
 
   final String personId;
+
+  /// The person as the list already knows them, when the page was opened from
+  /// it.
+  ///
+  /// The header is drawn from this before the ledger arrives, which is what
+  /// gives the avatar's Hero a destination from the first frame. A notification
+  /// or a deep link has no person to hand over, and the page loads as before.
+  final Person? person;
 
   @override
   ConsumerState<PersonDetailScreen> createState() => _PersonDetailScreenState();
@@ -72,7 +85,18 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
     return AsyncValueView<PersonLedger?>(
       value: ledger,
       onRetry: () => ref.invalidate(personLedgerProvider(personId)),
-      loading: Scaffold(appBar: AppBar(), body: const ListSkeleton()),
+      loading: widget.person == null
+          ? Scaffold(appBar: AppBar(), body: const ListSkeleton())
+          : Scaffold(
+              appBar: AppBar(),
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  _PersonLoadingHeader(person: widget.person!),
+                  const Expanded(child: ListSkeleton(rows: 4)),
+                ],
+              ),
+            ),
       isEmpty: (PersonLedger? value) => value == null,
       empty: Scaffold(
         appBar: AppBar(),
@@ -134,6 +158,49 @@ class _PersonDetailScreenState extends ConsumerState<PersonDetailScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+/// The header while the ledger is still loading, drawn from the person the
+/// list handed over.
+///
+/// It is deliberately the same card and the same avatar as the loaded header:
+/// the Hero has somewhere to land on the first frame, so the picture flies
+/// instead of disappearing and reappearing once the data arrives.
+class _PersonLoadingHeader extends StatelessWidget {
+  const _PersonLoadingHeader({required this.person});
+
+  final Person person;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        0,
+      ),
+      child: AppCard(
+        child: Row(
+          children: <Widget>[
+            PersonAvatar.of(
+              person,
+              size: 48,
+              heroTag: 'person-avatar:${person.id}',
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                person.name,
+                style: theme.textTheme.headlineSmall,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
