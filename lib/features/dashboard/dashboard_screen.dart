@@ -348,6 +348,9 @@ class _NeedsAttention extends StatelessWidget {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
+    final int lateCount = items
+        .where((AttentionItem item) => item.reason == AttentionReason.overdue)
+        .length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -399,11 +402,47 @@ class _NeedsAttention extends StatelessWidget {
               padding: EdgeInsets.zero,
               child: Column(
                 children: <Widget>[
+                  if (lateCount > 1) ...<Widget>[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.md,
+                        AppSpacing.lg,
+                        AppSpacing.sm,
+                      ),
+                      child: Row(
+                        children: <Widget>[
+                          Icon(
+                            AppIcons.error,
+                            size: 18,
+                            color: palette.overdue,
+                          ),
+                          const SizedBox(width: AppSpacing.md),
+                          Expanded(
+                            child: Text(
+                              localizations.attentionOverdueGroup(lateCount),
+                              style: theme.textTheme.titleSmall?.copyWith(
+                                color: palette.overdue,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   for (int i = 0; i < items.length; i++)
                     Column(
                       mainAxisSize: MainAxisSize.min,
                       children: <Widget>[
-                        _AttentionRow(item: items[i], asOf: asOf),
+                        _AttentionRow(
+                          item: items[i],
+                          asOf: asOf,
+                          // One late group has one red mark, on its heading.
+                          // Repeating it down every row made the list read as
+                          // four separate alarms about the same thing.
+                          showStatusIcon: !(lateCount > 1 &&
+                              items[i].reason == AttentionReason.overdue),
+                        ),
                         if (i != items.length - 1)
                           const AppDivider(indent: AppSpacing.lg),
                       ],
@@ -437,27 +476,35 @@ class _AttentionAmounts extends StatelessWidget {
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
 
-    // Each figure is its own wrap: at a large text size the label and the
-    // figure may take two lines, but neither is cut and the amount stays whole.
-    Widget figure(String label, Money money, Color color) => Wrap(
-          spacing: AppSpacing.xs,
-          runSpacing: AppSpacing.xxs,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            Text(
-              label,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: palette.textSecondary,
-              ),
-            ),
-            MoneyText(
-              money,
-              color: color,
-              style: theme.textTheme.titleSmall,
-              shrinkToFit: true,
-            ),
-          ],
-        );
+    // Each figure is a row while the text fits, and its own wrap when it does
+    // not: at a large text size the label and the figure may take two lines,
+    // but neither is cut and the amount stays whole.
+    final bool stacked = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    Widget figure(String label, Money money, Color color) {
+      final Widget labelText = Text(
+        '$label ',
+        style: theme.textTheme.bodySmall?.copyWith(
+          color: palette.textSecondary,
+        ),
+      );
+      final Widget moneyText = MoneyText(
+        money,
+        color: color,
+        style: theme.textTheme.titleSmall,
+        shrinkToFit: true,
+      );
+      return stacked
+          ? Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xxs,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[labelText, moneyText],
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[labelText, moneyText],
+            );
+    }
 
     return Wrap(
       spacing: AppSpacing.lg,
@@ -473,10 +520,18 @@ class _AttentionAmounts extends StatelessWidget {
 }
 
 class _AttentionRow extends StatelessWidget {
-  const _AttentionRow({required this.item, required this.asOf});
+  const _AttentionRow({
+    required this.item,
+    required this.asOf,
+    this.showStatusIcon = true,
+  });
 
   final AttentionItem item;
   final DateTime asOf;
+
+  /// Whether the row draws its own status mark. The late group carries one on
+  /// its heading, so its rows do not repeat it.
+  final bool showStatusIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -519,7 +574,10 @@ class _AttentionRow extends StatelessWidget {
         ),
         child: Row(
           children: <Widget>[
-            Icon(icon, size: 18, color: color),
+            if (showStatusIcon)
+              Icon(icon, size: 18, color: color)
+            else
+              const SizedBox(width: 18),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(

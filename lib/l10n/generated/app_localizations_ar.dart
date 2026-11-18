@@ -203,6 +203,11 @@ class AppLocalizationsAr extends AppLocalizations {
   String get attentionOverdue => 'متأخر';
 
   @override
+  String attentionOverdueGroup(int count) {
+    return 'متأخرة ($count)';
+  }
+
+  @override
   String get biometricNotEnrolled => 'لم تُسجَّل أي بصمة على هذا الجهاز بعد.';
 
   @override
@@ -1761,6 +1766,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportShareStatement => 'مشاركة كشف';
+
+  @override
+  String get reportStatementShort => 'كشف';
 
   @override
   String get reportStatementFor => 'الحساب مع';

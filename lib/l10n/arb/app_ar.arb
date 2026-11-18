@@ -74,6 +74,14 @@
   "attentionDueSoon": "قريب الاستحقاق",
   "attentionDueToday": "يستحق اليوم",
   "attentionOverdue": "متأخر",
+  "attentionOverdueGroup": "متأخرة ({count})",
+  "@attentionOverdueGroup": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "biometricNotEnrolled": "لم تُسجَّل أي بصمة على هذا الجهاز بعد.",
   "biometricUnavailable": "البصمة غير متاحة على هذا الجهاز.",
   "brandPromise": "هذا المكان يحفظ كل شيء عليّ ولي، ويذكّرني بما يجب أن أدفعه وما يجب أن أستلمه.",
@@ -902,6 +910,7 @@
   "reportSettled": "إجمالي ما تم سداده",
   "reportSharePdf": "مشاركة PDF",
   "reportShareStatement": "مشاركة كشف",
+  "reportStatementShort": "كشف",
   "reportStatementFor": "الحساب مع",
   "reportStatementReady": "تم إنشاء كشف الحساب",
   "reportStatementReadyBody": "يمكنك مراجعته قبل الإرسال.",

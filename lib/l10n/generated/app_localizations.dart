@@ -482,6 +482,12 @@ abstract class AppLocalizations {
   /// **'متأخر'**
   String get attentionOverdue;
 
+  /// No description provided for @attentionOverdueGroup.
+  ///
+  /// In ar, this message translates to:
+  /// **'متأخرة ({count})'**
+  String attentionOverdueGroup(int count);
+
   /// No description provided for @biometricNotEnrolled.
   ///
   /// In ar, this message translates to:
@@ -3108,6 +3114,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'مشاركة كشف'**
   String get reportShareStatement;
+
+  /// No description provided for @reportStatementShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'كشف'**
+  String get reportStatementShort;
 
   /// No description provided for @reportStatementFor.
   ///

@@ -204,6 +204,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get attentionOverdue => 'Overdue';
 
   @override
+  String attentionOverdueGroup(int count) {
+    return 'Overdue ($count)';
+  }
+
+  @override
   String get biometricNotEnrolled =>
       'No fingerprint or face is enrolled on this device yet.';
 
@@ -1746,6 +1751,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportShareStatement => 'Share statement';
+
+  @override
+  String get reportStatementShort => 'Statement';
 
   @override
   String get reportStatementFor => 'Statement for';

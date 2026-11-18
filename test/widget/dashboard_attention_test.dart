@@ -1,4 +1,5 @@
 import 'package:dhimmah/core/money/currency.dart';
+import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/core/utils/dates.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/data/services/ledger_service.dart';
@@ -136,6 +137,82 @@ void main() {
       figure(l10n.dashboardDueSoon, '1,234'),
       findsOneWidget,
       reason: "tomorrow's period is due soon",
+    );
+  });
+
+  testWidgets('four late records are one group, oldest first, one mark',
+      (WidgetTester tester) async {
+    final LedgerService service = buildService(db);
+    final DateTime today = dateOnly(DateTime.now());
+    const List<String> names = <String>['الأقدم', 'الثاني', 'الثالث', 'الأحدث'];
+    for (int i = 0; i < names.length; i++) {
+      final Person person =
+          await service.createPerson(PersonDraft(name: names[i]));
+      await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.iOwe,
+          personIds: <String>[person.id],
+          title: 'دين ${i + 1}',
+          principalMinor: 100000,
+          currency: AppCurrency.inr,
+          issuedAt: addDays(today, -40),
+          dueAt: addDays(today, -(names.length - i)),
+        ),
+      );
+    }
+
+    await pumpDhimmah(tester, db: db);
+    await settle(tester);
+
+    expect(
+      find.text(l10n.attentionOverdueGroup(4)),
+      findsOneWidget,
+      reason: 'the four late rows share one heading with their count',
+    );
+    expect(
+      find.byIcon(AppIcons.error),
+      findsOneWidget,
+      reason: 'the heading carries the one late mark',
+    );
+
+    double previousTop = double.negativeInfinity;
+    for (final String name in names) {
+      final double top = tester.getTopLeft(find.text(name)).dy;
+      expect(top, greaterThan(previousTop), reason: '$name is out of order');
+      previousTop = top;
+    }
+  });
+
+  testWidgets('one late record stays a row, with no group heading',
+      (WidgetTester tester) async {
+    final LedgerService service = buildService(db);
+    final DateTime today = dateOnly(DateTime.now());
+    final Person person =
+        await service.createPerson(const PersonDraft(name: 'متأخر وحده'));
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[person.id],
+        title: 'دين متأخر',
+        principalMinor: 100000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -40),
+        dueAt: addDays(today, -3),
+      ),
+    );
+
+    await pumpDhimmah(tester, db: db);
+    await settle(tester);
+
+    expect(
+      find.text(l10n.attentionOverdueGroup(1)),
+      findsNothing,
+      reason: 'a group of one is not a group',
+    );
+    expect(
+      find.byIcon(AppIcons.error),
+      findsOneWidget,
+      reason: 'the single late row keeps its own mark',
     );
   });
 }
