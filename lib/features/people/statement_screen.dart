@@ -16,6 +16,7 @@ import '../../core/share/share_service.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
 import '../../core/theme/app_spacing.dart';
+import '../../core/utils/dates.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/async_value_view.dart';
 import '../../core/widgets/bottom_sheet_shell.dart';
@@ -159,13 +160,25 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
           final List<AppCurrency> currencies =
               StatementService.currenciesFor(data, options: _options);
           final AppCurrency? currency = _resolveCurrency(data, currencies);
-          final ({int settled, int archived}) hidden = currency == null
-              ? (settled: 0, archived: 0)
-              : StatementService.hiddenCounts(
-                  ledger: data,
-                  currency: currency,
-                  options: _options,
-                );
+          final ({int settled, int archived}) hidden;
+          if (currency == null) {
+            hidden = (settled: 0, archived: 0);
+          } else {
+            final ({int settled, int archived}) counts =
+                StatementService.hiddenCounts(
+              ledger: data,
+              currency: currency,
+              options: _options,
+            );
+            // A period's table shows every debt that was open on one of its
+            // days, including one settled during it. A debt settled before the
+            // period is outside the period, not hidden from its reader, so the
+            // settled count is not stated against a period.
+            hidden = (
+              settled: _options.hasPeriod ? 0 : counts.settled,
+              archived: counts.archived,
+            );
+          }
 
           return Column(
             children: <Widget>[
@@ -173,7 +186,17 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
                 scope: _options.scope,
                 hiddenSettled: hidden.settled,
                 hiddenArchived: hidden.archived,
+                periodLabel: _options.hasPeriod
+                    ? localizations.reportPeriodRange(
+                        context.formatting.date(_options.periodFrom!),
+                        context.formatting.date(_options.periodTo!),
+                      )
+                    : null,
                 onScope: (StatementScope scope) => _chooseScope(data, scope),
+                onPickPeriod: _pickPeriod,
+                onClearPeriod: () => _setOptions(
+                  _options.copyWith(periodFrom: null, periodTo: null),
+                ),
                 onShowSettled: () => _setOptions(
                   _options.copyWith(scope: StatementScope.all),
                 ),
@@ -281,6 +304,35 @@ class _StatementScreenState extends ConsumerState<StatementScreen> {
     );
     _document = data;
     return service.render(data);
+  }
+
+  /// Asks for the days the statement should cover.
+  ///
+  /// The picker is the platform's own, in the app's language, and it cannot
+  /// choose a day in the future: a statement is a record of what happened, and
+  /// a period that has not happened yet would print a closing balance that is
+  /// not a balance anyone held. Backing out leaves the current period alone.
+  Future<void> _pickPeriod() async {
+    final DateTime last = dateOnly(DateTime.now());
+    final DateTimeRange? range = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(last.year - 10),
+      lastDate: last,
+      locale: Localizations.localeOf(context),
+      initialDateRange: _options.hasPeriod
+          ? DateTimeRange(
+              start: _options.periodFrom!,
+              end: _options.periodTo!,
+            )
+          : null,
+    );
+    if (range == null || !mounted) return;
+    _setOptions(
+      _options.copyWith(
+        periodFrom: dateOnly(range.start),
+        periodTo: dateOnly(range.end),
+      ),
+    );
   }
 
   Future<void> _openOptions() async {
@@ -464,7 +516,10 @@ class _ScopeBar extends StatelessWidget {
     required this.scope,
     required this.hiddenSettled,
     required this.hiddenArchived,
+    required this.periodLabel,
     required this.onScope,
+    required this.onPickPeriod,
+    required this.onClearPeriod,
     required this.onShowSettled,
     required this.onShowArchived,
   });
@@ -472,7 +527,12 @@ class _ScopeBar extends StatelessWidget {
   final StatementScope scope;
   final int hiddenSettled;
   final int hiddenArchived;
+
+  /// The chosen period in words, or null when the statement covers everything.
+  final String? periodLabel;
   final ValueChanged<StatementScope> onScope;
+  final VoidCallback onPickPeriod;
+  final VoidCallback onClearPeriod;
   final VoidCallback onShowSettled;
   final VoidCallback onShowArchived;
 
@@ -524,6 +584,19 @@ class _ScopeBar extends StatelessWidget {
               chip(StatementScope.openOnly, localizations.reportScopeOpen),
               chip(StatementScope.all, localizations.reportScopeAll),
               chip(StatementScope.selected, localizations.reportScopeSelected),
+              // Beside the scope, because both answer "what does this document
+              // cover". The selected chip carries the dates themselves, so the
+              // period is readable without opening the picker again.
+              FilterChip(
+                label: Text(periodLabel ?? localizations.statementPeriodChip),
+                selected: periodLabel != null,
+                onSelected: (_) => onPickPeriod(),
+              ),
+              if (periodLabel != null)
+                ActionChip(
+                  label: Text(localizations.statementPeriodAll),
+                  onPressed: onClearPeriod,
+                ),
             ],
           ),
           if (hiddenSettled > 0)

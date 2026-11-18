@@ -327,6 +327,9 @@ abstract class _Sheet {
     required String title,
     required String number,
     required DateTime issuedAt,
+    DateTime? periodFrom,
+    DateTime? periodTo,
+    bool showCoverage = true,
   }) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
@@ -335,7 +338,13 @@ abstract class _Sheet {
           children: <pw.Widget>[
             _brandLockupOf(title),
             pw.Spacer(),
-            _identityOf(number, issuedAt),
+            _identityOf(
+              number,
+              issuedAt,
+              periodFrom: periodFrom,
+              periodTo: periodTo,
+              showCoverage: showCoverage,
+            ),
           ],
         ),
         pw.SizedBox(height: 12),
@@ -387,8 +396,19 @@ abstract class _Sheet {
     );
   }
 
-  /// Document number and date, on the opposite side.
-  pw.Widget _identityOf(String number, DateTime issuedAt) {
+  /// Document number, date and what the document covers, on the opposite side.
+  ///
+  /// The third line answers "until when": a stated period names both ends, and
+  /// an unbounded statement says it runs up to the day it was issued. Without
+  /// that line a reader could not tell a statement of the last month from one
+  /// of the whole account.
+  pw.Widget _identityOf(
+    String number,
+    DateTime issuedAt, {
+    DateTime? periodFrom,
+    DateTime? periodTo,
+    bool showCoverage = true,
+  }) {
     pw.Widget line(String label, String value) => _row(
           children: <pw.Widget>[
             _text(
@@ -410,6 +430,7 @@ abstract class _Sheet {
           ],
         );
 
+    final bool hasPeriod = periodFrom != null && periodTo != null;
     return pw.Column(
       crossAxisAlignment: _crossStart,
       children: <pw.Widget>[
@@ -419,6 +440,23 @@ abstract class _Sheet {
           localizations.reportIssuedOn,
           formatting.date(issuedAt),
         ),
+        // A receipt has already said when the payment happened and when it was
+        // issued; repeating the issue date under "As of" would say one fact
+        // twice. A statement has no other line that says what it covers.
+        if (showCoverage) ...<pw.Widget>[
+          pw.SizedBox(height: 3),
+          line(
+            hasPeriod
+                ? localizations.reportPeriod
+                : localizations.reportPeriodUntil,
+            hasPeriod
+                ? localizations.reportPeriodRange(
+                    formatting.date(periodFrom),
+                    formatting.date(periodTo),
+                  )
+                : formatting.date(issuedAt),
+          ),
+        ],
       ],
     );
   }
@@ -453,7 +491,13 @@ abstract class _Sheet {
   }
 
   /// The foot of every page: who made it, its number, and the page count.
+  ///
+  /// The last page carries one more line: a plain statement that the document
+  /// was made from the issuer's own records and is not the other party's
+  /// acknowledgement. It is deliberately only on the last page — a disclaimer
+  /// repeated under every page is noise, and a document is read to its end.
   pw.Widget _footerOf(pw.Context context, String number) {
+    final bool isLastPage = context.pageNumber == context.pagesCount;
     return pw.Container(
       margin: const pw.EdgeInsets.only(top: 12),
       padding: const pw.EdgeInsets.only(top: 6),
@@ -462,36 +506,52 @@ abstract class _Sheet {
           top: pw.BorderSide(color: DocumentColors.border, width: 0.8),
         ),
       ),
-      child: _row(
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: <pw.Widget>[
-          _text(
-            localizations.reportGeneratedBy,
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
-            ),
+          _row(
+            children: <pw.Widget>[
+              _text(
+                localizations.reportGeneratedBy,
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: DocumentColors.secondary,
+                ),
+              ),
+              pw.Spacer(),
+              // The number the header gives, on every page. A second, unexplained
+              // code used to follow it.
+              _text(
+                number,
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: DocumentColors.secondary,
+                ),
+              ),
+              pw.SizedBox(width: 10),
+              _text(
+                localizations.reportPageOf(
+                  context.pageNumber,
+                  context.pagesCount,
+                ),
+                style: const pw.TextStyle(
+                  fontSize: 8,
+                  color: DocumentColors.secondary,
+                ),
+              ),
+            ],
           ),
-          pw.Spacer(),
-          // The number the header gives, on every page. A second, unexplained
-          // code used to follow it.
-          _text(
-            number,
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
+          if (isLastPage) ...<pw.Widget>[
+            pw.SizedBox(height: 4),
+            _text(
+              localizations.reportFooterNotice,
+              style: const pw.TextStyle(
+                fontSize: 8.5,
+                color: DocumentColors.secondary,
+              ),
+              maxWidth: _contentWidth,
             ),
-          ),
-          pw.SizedBox(width: 10),
-          _text(
-            localizations.reportPageOf(
-              context.pageNumber,
-              context.pagesCount,
-            ),
-            style: const pw.TextStyle(
-              fontSize: 8,
-              color: DocumentColors.secondary,
-            ),
-          ),
+          ],
         ],
       ),
     );
@@ -512,6 +572,7 @@ abstract class _Sheet {
     required List<List<String>> rows,
     required List<double> widthFractions,
     required int numericFrom,
+    List<String>? openingRow,
     List<String>? totalRow,
   }) {
     final List<int> order = _isRtl
@@ -547,12 +608,19 @@ abstract class _Sheet {
           ],
         );
 
-    pw.TableRow row(List<String> values, int index, {bool isTotal = false}) =>
+    pw.TableRow row(
+      List<String> values,
+      int index, {
+      bool isTotal = false,
+      bool isOpening = false,
+    }) =>
         pw.TableRow(
           decoration: pw.BoxDecoration(
             color: isTotal
                 ? DocumentColors.brandTint
-                : (index.isEven ? DocumentColors.rowTint : null),
+                : (isOpening
+                    ? null
+                    : (index.isEven ? DocumentColors.rowTint : null)),
             border: const pw.Border(
               bottom: pw.BorderSide(color: DocumentColors.border, width: 0.6),
             ),
@@ -563,7 +631,9 @@ abstract class _Sheet {
                 column < values.length ? values[column] : '',
                 atEnd: atEndFor(column),
                 bold: isTotal,
-                color: isTotal ? DocumentColors.brand : DocumentColors.ink,
+                color: isTotal
+                    ? DocumentColors.brand
+                    : (isOpening ? DocumentColors.secondary : DocumentColors.ink),
                 size: 9.5,
                 maxWidth: widthOf(column),
                 padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
@@ -582,6 +652,7 @@ abstract class _Sheet {
       defaultVerticalAlignment: pw.TableCellVerticalAlignment.middle,
       children: <pw.TableRow>[
         header(),
+        if (openingRow != null) row(openingRow, -1, isOpening: true),
         for (int i = 0; i < rows.length; i++) row(rows[i], i),
         if (totalRow != null)
           row(totalRow, rows.length, isTotal: true),
@@ -677,6 +748,14 @@ class StatementDocument extends _Sheet {
   /// by the other party, for whom those words point the wrong way.
   String get _name => data.personName.trim();
 
+  /// What the document calls itself.
+  ///
+  /// A statement whose every record is settled is not a statement any more: it
+  /// is the page that says the account is closed, and it says so in its title.
+  String get _documentTitle => data.isClearance
+      ? localizations.reportClearanceTitle
+      : localizations.reportStatementTitle;
+
   /// Builds the document.
   ///
   /// The footer is drawn by the page theme rather than by the body content, so a
@@ -689,9 +768,9 @@ class StatementDocument extends _Sheet {
     );
 
     final pw.Document document = pw.Document(
-      title: '${localizations.reportStatementTitle} · ${data.personName}',
+      title: '$_documentTitle · ${data.personName}',
       author: localizations.appName,
-      subject: localizations.reportStatementTitle,
+      subject: _documentTitle,
       creator: localizations.appName,
       producer: localizations.appName,
     );
@@ -774,9 +853,11 @@ class StatementDocument extends _Sheet {
   // --- Header --------------------------------------------------------------
 
   pw.Widget _header() => _headerOf(
-        title: localizations.reportStatementTitle,
+        title: _documentTitle,
         number: data.documentNumber,
         issuedAt: data.generatedAt,
+        periodFrom: data.periodFrom,
+        periodTo: data.periodTo,
       );
 
   pw.Widget _runningHeader() {
@@ -791,7 +872,7 @@ class StatementDocument extends _Sheet {
       child: _row(
         children: <pw.Widget>[
           _text(
-            '${localizations.appName} · ${localizations.reportStatementTitle}',
+            '${localizations.appName} · $_documentTitle',
             style: const pw.TextStyle(
               fontSize: 8.5,
               color: DocumentColors.secondary,
@@ -920,6 +1001,34 @@ class StatementDocument extends _Sheet {
   /// backwards for the person reading it, and this page is made to be sent.
   (String, Money) _headline() {
     final Money nothing = Money(0, data.currency);
+    // A clearance states the fact it exists to state, in one approved sentence,
+    // and not a figure: the figure is zero, and the sentence says what that
+    // means. The date is the one the records were stated through — the end of
+    // a period, or the day the document was issued.
+    if (data.isClearance) {
+      final DateTime through = data.periodTo ?? data.generatedAt;
+      return (
+        localizations.reportClearanceSentence(formatting.date(through)),
+        nothing,
+      );
+    }
+    // A period is answered with the balance the account held when it ended:
+    // the reader asked what was left at that moment, not what is left today.
+    final int? closing = data.closingBalanceMinor;
+    if (data.hasPeriod && closing != null) {
+      if (closing == 0) return (localizations.reportNothingOutstanding, nothing);
+      final bool owedByPerson = closing > 0;
+      return (
+        data.isMixed
+            ? (owedByPerson
+                ? localizations.reportNetOwedByName(_name)
+                : localizations.reportNetOwedToName(_name))
+            : (owedByPerson
+                ? localizations.reportOwedByName(_name)
+                : localizations.reportOwedToName(_name)),
+        Money(closing.abs(), data.currency),
+      );
+    }
     if (data.isMixed) {
       // Positive when the user is owed on balance, which is the person owing.
       final int net = data.net.minorUnits;
@@ -986,8 +1095,13 @@ class StatementDocument extends _Sheet {
             ),
             maxWidth: _heroWidth,
           ),
-          pw.SizedBox(height: 10),
-          _rowOnReadingSide(<pw.Widget>[_statusBadge()]),
+          // A status is today's fact; a period is read at its own end. The
+          // badge is left off rather than stating a state the period cannot
+          // have.
+          if (!data.hasPeriod) ...<pw.Widget>[
+            pw.SizedBox(height: 10),
+            _rowOnReadingSide(<pw.Widget>[_statusBadge()]),
+          ],
           if (due != null) ...<pw.Widget>[
             pw.SizedBox(height: 8),
             _summaryFact(
@@ -1133,8 +1247,15 @@ class StatementDocument extends _Sheet {
       StatementScope.all => localizations.reportScopeAllFull,
       StatementScope.selected => localizations.reportScopeSelectedFull,
     };
-    if (data.hiddenSettledCount <= 0) return scope;
-    return '$scope · '
+    final String period = data.hasPeriod
+        ? ' · ${localizations.reportPeriod}: '
+            '${localizations.reportPeriodRange(
+              formatting.date(data.periodFrom!),
+              formatting.date(data.periodTo!),
+            )}'
+        : '';
+    if (data.hiddenSettledCount <= 0) return '$scope$period';
+    return '$scope$period · '
         '${localizations.reportHiddenSettled(data.hiddenSettledCount)}';
   }
 
@@ -1143,7 +1264,11 @@ class StatementDocument extends _Sheet {
   /// The shape carries the meaning for anyone who cannot separate the colours,
   /// and the word carries it for anyone reading a greyscale printout.
   pw.Widget _statusBadge() {
-    final (PdfColor color, bool filled, String label) = switch (data.status) {
+    // A clearance always carries the closed state, whatever the individual
+    // records were filed as: the badge is part of what the document says.
+    final (PdfColor color, bool filled, String label) = data.isClearance
+        ? (DocumentColors.settled, true, localizations.statusPaid)
+        : switch (data.status) {
       DebtLifecycleStatus.paid => (
           DocumentColors.settled,
           true,
@@ -1240,6 +1365,10 @@ class StatementDocument extends _Sheet {
 
   pw.Widget _debtTable() {
     final bool mixed = data.isMixed;
+    // A status column states today's state. A period has no such state to
+    // state, so the column is left out rather than filled with a present-tense
+    // word beside figures that belong to another day.
+    final bool showStatus = !data.hasPeriod;
     final List<String> headers = <String>[
       localizations.reportColumnDebt,
       // Which side each debt is on only needs saying when there are two.
@@ -1248,7 +1377,7 @@ class StatementDocument extends _Sheet {
       localizations.reportColumnPaid,
       localizations.reportColumnRemaining,
       localizations.reportColumnDue,
-      localizations.reportColumnStatus,
+      if (showStatus) localizations.reportColumnStatus,
     ];
 
     final List<List<String>> rows = <List<String>>[
@@ -1267,16 +1396,20 @@ class StatementDocument extends _Sheet {
           line.dueAt == null ? '—' : formatting.date(line.dueAt!),
           // In words: a settled debt used to be told apart only by the zero
           // in its remaining column.
-          line.status.label(localizations),
+          if (showStatus) line.status.label(localizations),
         ],
     ];
 
     return _table(
       headers: headers,
       rows: rows,
-      widthFractions: mixed
-          ? const <double>[0.22, 0.08, 0.14, 0.13, 0.14, 0.16, 0.13]
-          : const <double>[0.24, 0.15, 0.14, 0.15, 0.17, 0.15],
+      widthFractions: showStatus
+          ? (mixed
+              ? const <double>[0.22, 0.08, 0.14, 0.13, 0.14, 0.16, 0.13]
+              : const <double>[0.24, 0.15, 0.14, 0.15, 0.17, 0.15])
+          : (mixed
+              ? const <double>[0.24, 0.09, 0.15, 0.14, 0.15, 0.23]
+              : const <double>[0.27, 0.17, 0.16, 0.18, 0.22]),
       numericFrom: mixed ? 2 : 1,
       // A total adds like to like. With debts on both sides the summary above
       // states each side and the difference, and one row adding them would not.
@@ -1288,13 +1421,16 @@ class StatementDocument extends _Sheet {
               _money(data.paid),
               _money(data.remaining),
               '',
-              '',
+              if (showStatus) '',
             ],
     );
   }
 
   pw.Widget _paymentsTable() {
-    if (data.entries.isEmpty) {
+    // Without a period an empty history is an empty box. With one it is still a
+    // table: the opening balance and the closing balance are both facts, even
+    // when nothing moved in between.
+    if (data.entries.isEmpty && !data.hasPeriod) {
       return pw.Container(
         width: double.infinity,
         padding: const pw.EdgeInsets.all(12),
@@ -1337,9 +1473,25 @@ class StatementDocument extends _Sheet {
         ],
     ];
 
+    // What the account held the morning the period began. It carries no date
+    // and no amount of its own: it is everything that came before, already
+    // summed. Printed only when a period is stated — without one the first row
+    // is the first thing that ever happened, so there is nothing before it.
+    final List<String>? openingRow = data.hasPeriod
+        ? <String>[
+            '',
+            localizations.reportOpeningBalance,
+            '',
+            '',
+            _signedBalanceLabel(data.openingBalanceMinor),
+          ]
+        : null;
+
+    final int? closing = data.closingBalanceMinor;
     return _table(
       headers: headers,
       rows: rows,
+      openingRow: openingRow,
       // A two-sided balance also names its side, and needs the room.
       widthFractions: data.isMixed
           ? const <double>[0.19, 0.26, 0.15, 0.15, 0.25]
@@ -1347,13 +1499,16 @@ class StatementDocument extends _Sheet {
       numericFrom: 2,
       // Where the account stands after the last line, set apart so nobody has
       // to find the bottom row to learn it. It is the headline figure again,
-      // reached the long way.
+      // reached the long way. Within a period it is the balance the period
+      // closed on; the last printed movement can be earlier than that.
       totalRow: <String>[
         localizations.reportClosingBalance,
         '',
         '',
         '',
-        _balanceLabel(data.entries.last),
+        data.hasPeriod && closing != null
+            ? _signedBalanceLabel(closing)
+            : _balanceLabel(data.entries.last),
       ],
     );
   }
@@ -1396,6 +1551,20 @@ class StatementDocument extends _Sheet {
     final DebtDirection? side = entry.balanceDirection;
     if (!data.isMixed || side == null) return amount;
     return '${_sideWord(side)} · $amount';
+  }
+
+  /// A balance the document computed itself, from a signed figure.
+  ///
+  /// Positive means the user is owed. A printed row carries its side and its
+  /// amount in separate places; the opening and closing rows are sums of many
+  /// rows, so the sign is the only thing that says which side they fall on.
+  String _signedBalanceLabel(int signedMinor) {
+    final String amount =
+        _money(Money(signedMinor.abs(), data.currency));
+    if (!data.isMixed || signedMinor == 0) return amount;
+    return '${_sideWord(signedMinor > 0
+        ? DebtDirection.owedToMe
+        : DebtDirection.iOwe)} · $amount';
   }
 
   pw.Widget _notesBlock(String notes) {

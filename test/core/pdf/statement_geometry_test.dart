@@ -109,6 +109,11 @@ int pngHeight(ByteData png) =>
 String visual(String logicalWord) =>
     shapeArabic(logicalWord).split('').reversed.join();
 
+/// The run text a word is drawn as: Arabic is shaped and reversed, a number or
+/// a Latin word is left as written by the renderer.
+String drawnWord(String logicalWord) =>
+    containsArabic(logicalWord) ? visual(logicalWord) : logicalWord;
+
 /// The line that draws every one of [words].
 ///
 /// A phrase is not one run — the renderer draws a run per word, in visual order
@@ -197,6 +202,187 @@ List<PdfRun> lineWithAllWords(PdfInspection page, String phrase) {
       // the page. There is no participants column for it to grow into either.
       expectInsideMargins(page, 'several records');
       expect(lineWithAllWords(page, l10n.reportColumnDebt), isNotEmpty);
+    });
+  });
+
+  group('a period', () {
+    final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
+
+    test('prints an opening row and stays inside the page', () async {
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            periodFrom: DateTime(2026, 3),
+            periodTo: DateTime(2026, 8, 31),
+            openingBalanceMinor: 412500,
+            closingBalanceMinor: 227500,
+          ),
+        ),
+      );
+      expectInsideMargins(page, 'a period');
+      // The row that says where the period began, and the dates in the header
+      // that say which days it covers.
+      expect(
+        lineWithAllWords(page, l10n.reportOpeningBalance),
+        isNotEmpty,
+        reason: 'the opening balance is the first row of the movements',
+      );
+      expect(
+        lineWithAllWords(page, l10n.reportClosingBalance),
+        isNotEmpty,
+        reason: 'and the closing balance is still the last',
+      );
+      expect(
+        lineWithAllWords(page, l10n.reportPeriod),
+        isNotEmpty,
+        reason: 'the header has to say the period it covers',
+      );
+    });
+
+    test('the period reads from its first day to its last', () async {
+      final AppFormatting formatting = AppFormatting(
+        language: AppLanguage.arabic,
+        numerals: NumeralsStyle.latin,
+        defaultCurrency: AppCurrency.inr,
+        localizations: l10n,
+      );
+      final String value = l10n.reportPeriodRange(
+        formatting.date(DateTime(2026, 8, 9)),
+        formatting.date(DateTime(2026, 11, 7)),
+      );
+      final List<String> expected =
+          value.split(' ').map(drawnWord).toList(growable: false);
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            periodFrom: DateTime(2026, 8, 9),
+            periodTo: DateTime(2026, 11, 7),
+            openingBalanceMinor: 412500,
+            closingBalanceMinor: 227500,
+          ),
+        ),
+      );
+      final List<PdfRun> line = page.lines.firstWhere(
+        (List<PdfRun> line) => expected.every(
+          (String word) =>
+              line.any((PdfRun run) => run.text == word),
+        ),
+        orElse: () => const <PdfRun>[],
+      );
+      expect(line, isNotEmpty, reason: 'the header has to state the period');
+      // The page is drawn left to right and read right to left, so the line
+      // reversed is the order a reader sees: each day in turn.
+      expect(
+        line.reversed.map((PdfRun run) => run.text).toList(),
+        expected,
+        reason: 'each day stays between the two words that bound it',
+      );
+    });
+
+    test('the English period reads the same way round', () async {
+      final AppLocalizations english =
+          lookupAppLocalizations(const Locale('en'));
+      final AppFormatting formatting = AppFormatting(
+        language: AppLanguage.english,
+        numerals: NumeralsStyle.latin,
+        defaultCurrency: AppCurrency.inr,
+        localizations: english,
+      );
+      final String value = english.reportPeriodRange(
+        formatting.date(DateTime(2026, 8, 9)),
+        formatting.date(DateTime(2026, 11, 7)),
+      );
+      final List<String> expected =
+          value.split(' ').map(drawnWord).toList(growable: false);
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            language: AppLanguage.english,
+            periodFrom: DateTime(2026, 8, 9),
+            periodTo: DateTime(2026, 11, 7),
+          ),
+          language: AppLanguage.english,
+        ),
+      );
+      final List<PdfRun> line = page.lines.firstWhere(
+        (List<PdfRun> line) => expected.every(
+          (String word) =>
+              line.any((PdfRun run) => run.text == word),
+        ),
+        orElse: () => const <PdfRun>[],
+      );
+      expect(line, isNotEmpty, reason: 'the header has to state the period');
+      expect(
+        line.map((PdfRun run) => run.text).toList(),
+        expected,
+      );
+    });
+
+    test('there is no opening row without a period', () async {
+      final PdfInspection page = inspectPdf(await render(_arabicStatement()));
+      expect(
+        lineWithAllWords(page, l10n.reportOpeningBalance),
+        isEmpty,
+        reason: 'without a period the first row is the first movement',
+      );
+      expect(
+        lineWithAllWords(page, l10n.reportPeriodUntil),
+        isNotEmpty,
+        reason: 'and the header says the statement runs to its issue date',
+      );
+    });
+
+    test('an empty period still prints both balances', () async {
+      final PdfInspection page = inspectPdf(
+        await render(
+          _arabicStatement(
+            payments: 0,
+            periodFrom: DateTime(2026, 9),
+            periodTo: DateTime(2026, 9, 20),
+            openingBalanceMinor: 6850000,
+            closingBalanceMinor: 6850000,
+          ),
+        ),
+      );
+      expectInsideMargins(page, 'an empty period');
+      expect(lineWithAllWords(page, l10n.reportOpeningBalance), isNotEmpty);
+      expect(lineWithAllWords(page, l10n.reportClosingBalance), isNotEmpty);
+    });
+
+    test('the status column and badge belong to today, so a period leaves '
+        'them out', () async {
+      final PdfInspection withPeriod = inspectPdf(
+        await render(
+          _arabicStatement(
+            extraDebts: <String>['سلفة'],
+            periodFrom: DateTime(2026, 3),
+            periodTo: DateTime(2026, 8, 31),
+            openingBalanceMinor: 412500,
+            closingBalanceMinor: 227500,
+          ),
+        ),
+      );
+      expect(
+        lineWithAllWords(withPeriod, l10n.reportColumnStatus),
+        isEmpty,
+        reason: 'a period has no status to state',
+      );
+      expect(
+        lineWithAllWords(withPeriod, l10n.statusOverdue),
+        isEmpty,
+        reason: 'and no badge stating one',
+      );
+
+      // The contrast that keeps the assertion honest: the same document without
+      // a period still states both.
+      final PdfInspection unbounded = inspectPdf(
+        await render(_arabicStatement(extraDebts: <String>['سلفة'])),
+      );
+      expect(
+        lineWithAllWords(unbounded, l10n.reportColumnStatus),
+        isNotEmpty,
+      );
+      expect(lineWithAllWords(unbounded, l10n.statusOverdue), isNotEmpty);
     });
   });
 
@@ -1011,6 +1197,10 @@ StatementData _arabicStatement({
   DebtDirection direction = DebtDirection.iOwe,
   StatementOptions options = const StatementOptions(),
   String? paymentNote,
+  DateTime? periodFrom,
+  DateTime? periodTo,
+  int openingBalanceMinor = 0,
+  int? closingBalanceMinor,
 }) {
   const AppCurrency currency = AppCurrency.inr;
   final DateTime today = DateTime(2026, 9, 23);
@@ -1066,5 +1256,9 @@ StatementData _arabicStatement({
     ],
     options: options,
     notes: notes,
+    periodFrom: periodFrom,
+    periodTo: periodTo,
+    openingBalanceMinor: openingBalanceMinor,
+    closingBalanceMinor: closingBalanceMinor,
   );
 }

@@ -34,13 +34,16 @@ import 'package:flutter/services.dart' show rootBundle;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
-
-/// Renders statement samples to `build/qa/` so the layout can be inspected as a
-/// real document. Not part of the normal test run.
+/// Renders the statement sample matrix to `build/qa/`, in both languages, so
+/// the layout can be inspected as a real document. Not part of the normal test
+/// run.
 ///
 ///   flutter test test/tool/generate_statement_samples_test.dart
-///   pdftoppm -r 110 -png build/qa/*.pdf build/qa/page
+///   for f in build/qa/*.pdf; do pdftoppm -r 110 -png "$f" "${f%.pdf}"; done
 ///
+/// Every row of `PDF-REDESIGN.md` §11 is a sample here. The signature sample is
+/// gone — the developer removed the signature box (ق13) — and `clearance` and
+/// `period` are new.
 void main() {
   // Asset loading needs the Flutter binding, and date formatting needs the
   // locale data — the app does both at startup.
@@ -51,6 +54,11 @@ void main() {
     await initializeDateFormatting('en');
     final Directory out = Directory('build/qa');
     await out.create(recursive: true);
+    // The matrix is the folder. A sample renamed in a previous run must not
+    // linger and be reviewed as if it were current.
+    for (final FileSystemEntity entity in out.listSync()) {
+      if (entity is File && entity.path.endsWith('.pdf')) entity.deleteSync();
+    }
 
     final ByteData regular =
         await rootBundle.load('assets/fonts/IBMPlexSansArabic-Regular.ttf');
@@ -62,12 +70,11 @@ void main() {
     final LedgerService service = _service(db);
     final DateTime today = dateOnly(DateTime.now());
 
-    Future<Person> person(String name, {String? phone}) =>
-        service.createPerson(PersonDraft(name: name, phone: phone));
+    Future<Person> person(String name) =>
+        service.createPerson(PersonDraft(name: name));
 
-    // --- A person with several debts and a long payment history ------------
-    final Person ahmed = await person('أحمد محمد عبد الرحمن الشامي',
-        phone: '+967 771 234 567');
+    // --- A person with several debts, a long history, and both directions --
+    final Person ahmed = await person('أحمد محمد عبد الرحمن الشامي');
 
     final Debt main = await service.createDebt(
       DebtDraft(
@@ -134,7 +141,7 @@ void main() {
       ),
     );
 
-    // A second person: a settled account with no payments at all.
+    // --- Settled: one debt, paid in full (the clearance) -------------------
     final Person settled = await person('خالد العلي');
     final Debt paid = await service.createDebt(
       DebtDraft(
@@ -150,6 +157,137 @@ void main() {
     await service.recordPayment(
       paid.id,
       PaymentDraft(amountMinor: 900000, paidAt: addDays(today, -2)),
+    );
+
+    // --- One debt, never paid ---------------------------------------------
+    final Person oneDebt = await person('نورة السالم');
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.owedToMe,
+        personIds: <String>[oneDebt.id],
+        title: 'سلفة قصيرة',
+        principalMinor: 750000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -15),
+        dueAt: addDays(today, 15),
+      ),
+    );
+
+    // --- Three debts, all the same side -----------------------------------
+    final Person three = await person('سارة الحربي');
+    const List<(String, int)> threeDebts = <(String, int)>[
+      ('إيجار المكتب', 450000),
+      ('فاتورة كهرباء', 120000),
+      ('سلفة نقدية', 300000),
+    ];
+    for (final (String title, int amount) in threeDebts) {
+      await service.createDebt(
+        DebtDraft(
+          direction: DebtDirection.owedToMe,
+          personIds: <String>[three.id],
+          title: title,
+          principalMinor: amount,
+          currency: AppCurrency.inr,
+          issuedAt: addDays(today, -40),
+          dueAt: addDays(today, 10),
+        ),
+      );
+    }
+
+    // --- Sixty movements: three pages, a repeating header ------------------
+    final Person busy = await person('مازن القاسمي');
+    final Debt busyDebt = await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[busy.id],
+        title: 'تمويل سيارة',
+        principalMinor: 3000000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -300),
+        dueAt: addDays(today, 60),
+      ),
+    );
+    for (int i = 0; i < 59; i++) {
+      await service.recordPayment(
+        busyDebt.id,
+        PaymentDraft(
+          amountMinor: 25000,
+          paidAt: addDays(today, -295 + i * 5),
+        ),
+      );
+    }
+
+    // --- A name and a title that hardly fit -------------------------------
+    final Person longNames = await person(
+      'عبد الرحمن محمد أحمد السيد الحسيني الشامي الكيلاني الجبوري',
+    );
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.owedToMe,
+        personIds: <String>[longNames.id],
+        title: 'مشاركة في مصاريف رحلة الصيف الطويلة إلى الجنوب مع العائلة والأصدقاء والزملاء',
+        principalMinor: 1234500,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -25),
+        dueAt: addDays(today, 25),
+      ),
+    );
+
+    // --- A twelve-digit amount --------------------------------------------
+    final Person big = await person('بدر العتيبي');
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.iOwe,
+        personIds: <String>[big.id],
+        title: 'قرض عقاري',
+        principalMinor: 100000000000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -500),
+        dueAt: addDays(today, 365),
+      ),
+    );
+
+    // --- A Latin name inside an Arabic document ---------------------------
+    final Person latin = await person('Michael Anderson');
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.owedToMe,
+        personIds: <String>[latin.id],
+        title: 'Consulting invoice — October',
+        principalMinor: 450000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -12),
+        dueAt: addDays(today, 12),
+      ),
+    );
+
+    // --- One open debt and one settled, so the scope hides something ------
+    final Person filtered = await person('ليلى النعيمي');
+    await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.owedToMe,
+        personIds: <String>[filtered.id],
+        title: 'سلفة مفتوحة',
+        principalMinor: 300000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -20),
+        dueAt: addDays(today, 20),
+      ),
+    );
+    final Debt hidden = await service.createDebt(
+      DebtDraft(
+        direction: DebtDirection.owedToMe,
+        personIds: <String>[filtered.id],
+        title: 'دين مسدَّد',
+        principalMinor: 100000,
+        currency: AppCurrency.inr,
+        issuedAt: addDays(today, -50),
+        dueAt: addDays(today, -10),
+      ),
+    );
+    await service.recordPayment(
+      hidden.id,
+      PaymentDraft(amountMinor: 100000, paidAt: addDays(today, -5)),
     );
 
     final LedgerQueries queries = _queries(db);
@@ -205,73 +343,87 @@ void main() {
       // ignore: avoid_print
       print('WROTE ${out.path}/$fileName  (${bytes.length} bytes) '
           'name=${data.fileName} number=${data.documentNumber} '
-          'status=${data.status.name} entries=${data.entries.length}');
+          'status=${data.status.name} entries=${data.entries.length} '
+          'clearance=${data.isClearance}');
     }
 
-    await write(
-      target: ahmed,
-      language: AppLanguage.arabic,
-      fileName: 'ar-multipage.pdf',
-      options: const StatementOptions(includeNotes: true, includePhone: true),
-    );
-    await write(
-      target: ahmed,
-      language: AppLanguage.english,
-      fileName: 'en-multipage.pdf',
-      options: const StatementOptions(includeNotes: true, includePhone: true),
-    );
-    // Every debt on one side: the breakdown gets its total row and the summary
-    // its progress bar, neither of which a two-sided statement draws.
-    final StatementOptions oneSide = StatementOptions(
-      scope: StatementScope.selected,
-      selectedDebtIds: <String>{main.id, second.id},
-    );
-    await write(
-      target: ahmed,
-      language: AppLanguage.arabic,
-      fileName: 'ar-one-side.pdf',
-      options: oneSide,
-    );
-    await write(
-      target: ahmed,
-      language: AppLanguage.english,
-      fileName: 'en-one-side.pdf',
-      options: oneSide,
+    /// Both languages of one matrix row.
+    Future<void> both({
+      required Person target,
+      required String sample,
+      StatementOptions options = const StatementOptions(scope: StatementScope.all),
+      AppCurrency currency = AppCurrency.inr,
+    }) async {
+      for (final AppLanguage language in AppLanguage.values) {
+        await write(
+          target: target,
+          language: language,
+          fileName: '${language.code}-$sample.pdf',
+          options: options,
+          currency: currency,
+        );
+      }
+    }
+
+    await both(
+      target: oneDebt,
+      sample: 'one-debt-no-payments',
+      options: const StatementOptions(),
     );
     // One debt, part paid: what a statement opened from a debt's page looks
     // like.
-    await write(
+    await both(
       target: ahmed,
-      language: AppLanguage.arabic,
-      fileName: 'ar-one-debt.pdf',
+      sample: 'one-debt-partial',
       options: StatementOptions(
         scope: StatementScope.selected,
         selectedDebtIds: <String>{second.id},
       ),
     );
+    // A settled account. With the default scope there would be no row to
+    // print; this is what the user gets after choosing "all", and it is the
+    // clearance.
+    await both(target: settled, sample: 'settled');
+    await both(target: three, sample: 'three-debts-one-side');
+    // The person with both directions: the legend, the side column, the net.
+    await both(
+      target: ahmed,
+      sample: 'mixed',
+      options: const StatementOptions(includePhone: true, includeNotes: true),
+    );
+    await both(target: busy, sample: 'sixty-movements');
+    // A bounded period: the movements inside it, and the balance the account
+    // opened it with.
+    await both(
+      target: ahmed,
+      sample: 'period',
+      options: StatementOptions(
+        scope: StatementScope.all,
+        periodFrom: addDays(today, -100),
+        periodTo: addDays(today, -10),
+      ),
+    );
+    await both(target: longNames, sample: 'long-names');
+    await both(target: big, sample: 'big-amounts');
+    // A Latin name in an Arabic document, and the reverse is covered by every
+    // English sample of an Arabic-named person (`en-mixed`).
+    await both(target: latin, sample: 'latin-in-arabic');
+    await both(
+      target: ahmed,
+      sample: 'with-issuer',
+      options: const StatementOptions(
+        includePhone: true,
+        issuerName: 'محمد السركال',
+      ),
+    );
+    // The scope hides a settled debt, and the line says so.
+    await both(
+      target: filtered,
+      sample: 'filtered-with-hidden',
+      options: const StatementOptions(),
+    );
 
-    // A statement leaves settled debts out unless asked, and this person's
-    // only debt is settled: with the default scope there would be no row to
-    // print, which is the case the screen answers with an explanation instead
-    // of a document. The sample is what the user gets after choosing "all".
-    const StatementOptions everything = StatementOptions(
-      scope: StatementScope.all,
-    );
-    await write(
-      target: settled,
-      language: AppLanguage.arabic,
-      fileName: 'ar-settled.pdf',
-      options: everything,
-    );
-    await write(
-      target: settled,
-      language: AppLanguage.english,
-      fileName: 'en-settled.pdf',
-      options: everything,
-    );
-
-    // The receipt for one payment, both ways round and in both languages: the
-    // settled person paid the user, and the user paid Ahmed.
+    // --- Receipts: one payment, both ways round and in both languages -----
     Future<void> writeReceipt({
       required Person target,
       required Debt debt,
@@ -321,25 +473,21 @@ void main() {
           'name=${data.fileName} number=${data.number}');
     }
 
-    await writeReceipt(
-      target: settled,
-      debt: paid,
-      language: AppLanguage.arabic,
-      fileName: 'ar-receipt-in.pdf',
-      issuerName: 'محمد السركال',
-    );
-    await writeReceipt(
-      target: settled,
-      debt: paid,
-      language: AppLanguage.english,
-      fileName: 'en-receipt-in.pdf',
-    );
-    await writeReceipt(
-      target: ahmed,
-      debt: second,
-      language: AppLanguage.arabic,
-      fileName: 'ar-receipt-out.pdf',
-    );
+    for (final AppLanguage language in AppLanguage.values) {
+      await writeReceipt(
+        target: settled,
+        debt: paid,
+        language: language,
+        fileName: '${language.code}-receipt-in.pdf',
+        issuerName: 'محمد السركال',
+      );
+      await writeReceipt(
+        target: ahmed,
+        debt: second,
+        language: language,
+        fileName: '${language.code}-receipt-out.pdf',
+      );
+    }
 
     await db.close();
   });

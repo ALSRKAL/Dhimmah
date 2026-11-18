@@ -993,6 +993,17 @@
       }
     }
   },
+  "shareLinePeriodBalance": "Period-end balance {period}: {amount}",
+  "@shareLinePeriodBalance": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "shareLineTotal": "Total: {amount}",
   "@shareLineTotal": {
     "placeholders": {
@@ -1558,6 +1569,32 @@
   "reportColumnDebtAmount": "Debt",
   "reportColumnPaymentAmount": "Payment",
   "reportMovementsTitle": "Movements",
+  "reportPeriod": "Period",
+  "reportPeriodRange": "{from} – {to}",
+  "@reportPeriodRange": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "reportPeriodUntil": "As of",
+  "reportOpeningBalance": "Opening balance",
+  "reportClearanceTitle": "Clearance",
+  "reportFooterNotice": "Prepared from the issuer's own records in Dhimmah; it is not an acknowledgement by the other party.",
+  "reportClearanceSentence": "Nothing is outstanding between the two parties as of {date}, according to the records kept in Dhimmah.",
+  "@reportClearanceSentence": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statementPeriodChip": "Period",
+  "statementPeriodAll": "All periods",
   "reportEntryDebt": "New debt",
   "reportEntryPayment": "Payment",
   "reportClosingBalance": "Closing balance",

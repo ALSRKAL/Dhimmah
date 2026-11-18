@@ -49,6 +49,7 @@ class ReceiptDocument extends _Sheet {
             title: _title,
             number: data.number,
             issuedAt: data.issuedAt,
+            showCoverage: false,
           ),
           pw.SizedBox(height: 20),
           _partiesBlock(),

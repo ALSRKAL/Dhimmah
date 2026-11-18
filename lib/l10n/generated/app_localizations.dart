@@ -3487,6 +3487,12 @@ abstract class AppLocalizations {
   /// **'المتبقي: {amount}'**
   String shareLineRemaining(String amount);
 
+  /// No description provided for @shareLinePeriodBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد نهاية الفترة {period}: {amount}'**
+  String shareLinePeriodBalance(String period, String amount);
+
   /// No description provided for @shareLineTotal.
   ///
   /// In ar, this message translates to:
@@ -5088,6 +5094,60 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'كشف الحركات'**
   String get reportMovementsTitle;
+
+  /// No description provided for @reportPeriod.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفترة'**
+  String get reportPeriod;
+
+  /// No description provided for @reportPeriodRange.
+  ///
+  /// In ar, this message translates to:
+  /// **'من {from} إلى {to}'**
+  String reportPeriodRange(String from, String to);
+
+  /// No description provided for @reportPeriodUntil.
+  ///
+  /// In ar, this message translates to:
+  /// **'حتى'**
+  String get reportPeriodUntil;
+
+  /// No description provided for @reportOpeningBalance.
+  ///
+  /// In ar, this message translates to:
+  /// **'رصيد سابق'**
+  String get reportOpeningBalance;
+
+  /// No description provided for @reportClearanceTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'مخالصة'**
+  String get reportClearanceTitle;
+
+  /// No description provided for @reportFooterNotice.
+  ///
+  /// In ar, this message translates to:
+  /// **'أُعدّ هذا المستند من سجلات مُصدِره في تطبيق ذِمّة، ولا يُعدّ إقرارًا من الطرف الآخر.'**
+  String get reportFooterNotice;
+
+  /// No description provided for @reportClearanceSentence.
+  ///
+  /// In ar, this message translates to:
+  /// **'لا متبقٍّ بين الطرفين حتى {date}، بحسب السجلات المسجّلة في ذِمّة.'**
+  String reportClearanceSentence(String date);
+
+  /// No description provided for @statementPeriodChip.
+  ///
+  /// In ar, this message translates to:
+  /// **'الفترة'**
+  String get statementPeriodChip;
+
+  /// No description provided for @statementPeriodAll.
+  ///
+  /// In ar, this message translates to:
+  /// **'كل الفترات'**
+  String get statementPeriodAll;
 
   /// No description provided for @reportEntryDebt.
   ///

@@ -993,6 +993,17 @@
       }
     }
   },
+  "shareLinePeriodBalance": "رصيد نهاية الفترة {period}: {amount}",
+  "@shareLinePeriodBalance": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      },
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "shareLineTotal": "إجمالي الدين: {amount}",
   "@shareLineTotal": {
     "placeholders": {
@@ -1558,6 +1569,32 @@
   "reportColumnDebtAmount": "دين",
   "reportColumnPaymentAmount": "دفعة",
   "reportMovementsTitle": "كشف الحركات",
+  "reportPeriod": "الفترة",
+  "reportPeriodRange": "من {from} إلى {to}",
+  "@reportPeriodRange": {
+    "placeholders": {
+      "from": {
+        "type": "String"
+      },
+      "to": {
+        "type": "String"
+      }
+    }
+  },
+  "reportPeriodUntil": "حتى",
+  "reportOpeningBalance": "رصيد سابق",
+  "reportClearanceTitle": "مخالصة",
+  "reportFooterNotice": "أُعدّ هذا المستند من سجلات مُصدِره في تطبيق ذِمّة، ولا يُعدّ إقرارًا من الطرف الآخر.",
+  "reportClearanceSentence": "لا متبقٍّ بين الطرفين حتى {date}، بحسب السجلات المسجّلة في ذِمّة.",
+  "@reportClearanceSentence": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "statementPeriodChip": "الفترة",
+  "statementPeriodAll": "كل الفترات",
   "reportEntryDebt": "دين جديد",
   "reportEntryPayment": "دفعة",
   "reportClosingBalance": "الرصيد الختامي",

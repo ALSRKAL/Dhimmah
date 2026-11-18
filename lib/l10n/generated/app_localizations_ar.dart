@@ -1962,6 +1962,11 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String shareLinePeriodBalance(String period, String amount) {
+    return 'رصيد نهاية الفترة $period: $amount';
+  }
+
+  @override
   String shareLineTotal(String amount) {
     return 'إجمالي الدين: $amount';
   }
@@ -3055,6 +3060,38 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportMovementsTitle => 'كشف الحركات';
+
+  @override
+  String get reportPeriod => 'الفترة';
+
+  @override
+  String reportPeriodRange(String from, String to) {
+    return 'من $from إلى $to';
+  }
+
+  @override
+  String get reportPeriodUntil => 'حتى';
+
+  @override
+  String get reportOpeningBalance => 'رصيد سابق';
+
+  @override
+  String get reportClearanceTitle => 'مخالصة';
+
+  @override
+  String get reportFooterNotice =>
+      'أُعدّ هذا المستند من سجلات مُصدِره في تطبيق ذِمّة، ولا يُعدّ إقرارًا من الطرف الآخر.';
+
+  @override
+  String reportClearanceSentence(String date) {
+    return 'لا متبقٍّ بين الطرفين حتى $date، بحسب السجلات المسجّلة في ذِمّة.';
+  }
+
+  @override
+  String get statementPeriodChip => 'الفترة';
+
+  @override
+  String get statementPeriodAll => 'كل الفترات';
 
   @override
   String get reportEntryDebt => 'دين جديد';

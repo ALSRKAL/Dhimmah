@@ -1949,6 +1949,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String shareLinePeriodBalance(String period, String amount) {
+    return 'Period-end balance $period: $amount';
+  }
+
+  @override
   String shareLineTotal(String amount) {
     return 'Total: $amount';
   }
@@ -2993,6 +2998,38 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportMovementsTitle => 'Movements';
+
+  @override
+  String get reportPeriod => 'Period';
+
+  @override
+  String reportPeriodRange(String from, String to) {
+    return '$from – $to';
+  }
+
+  @override
+  String get reportPeriodUntil => 'As of';
+
+  @override
+  String get reportOpeningBalance => 'Opening balance';
+
+  @override
+  String get reportClearanceTitle => 'Clearance';
+
+  @override
+  String get reportFooterNotice =>
+      'Prepared from the issuer\'s own records in Dhimmah; it is not an acknowledgement by the other party.';
+
+  @override
+  String reportClearanceSentence(String date) {
+    return 'Nothing is outstanding between the two parties as of $date, according to the records kept in Dhimmah.';
+  }
+
+  @override
+  String get statementPeriodChip => 'Period';
+
+  @override
+  String get statementPeriodAll => 'All periods';
 
   @override
   String get reportEntryDebt => 'New debt';
