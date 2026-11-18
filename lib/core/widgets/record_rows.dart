@@ -71,7 +71,7 @@ class DebtRowTile extends StatelessWidget {
               : localizations.debtUntitledOn(
                   formatting.date(view.debt.issuedAt),
                 ))
-        : view.displayName;
+        : formatting.recordName(view);
     final List<String> subtitleParts = <String>[
       if (!personIsKnown && view.subtitle != null) view.subtitle!,
       if (view.debt.dueAt != null)

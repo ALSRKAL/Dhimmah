@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../domain/entities/ledger_views.dart';
 import '../../domain/enums/preference_enums.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../money/currency.dart';
@@ -146,6 +147,24 @@ class AppFormatting {
 
   /// A plain count, honouring the numeral style.
   String count(int value) => money.integer(value);
+
+  /// A list of people's names in the active language.
+  ///
+  /// `أحمد، خالد` in Arabic and `Ahmed, Khalid` in English: the separator is a
+  /// translation, not a character chosen at the call site. A record linked to
+  /// several people used to join them with a plus, which read as arithmetic.
+  String names(Iterable<String> values) => values
+      .map((String value) => value.trim())
+      .where((String value) => value.isNotEmpty)
+      .join(localizations.listSeparator);
+
+  /// What to call a record in a list: its people, or its own title.
+  String recordName(DebtView view) {
+    final String people = names(
+      view.participants.map((person) => person.name),
+    );
+    return people.isNotEmpty ? people : view.debt.title.trim();
+  }
 
   String percent(double fraction) => money.percent(fraction);
 

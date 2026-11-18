@@ -94,6 +94,7 @@ abstract final class AttentionList {
     required DateTime asOf,
     int windowDays = defaultWindowDays,
     int? limit = 5,
+    String Function(DebtView view)? nameOf,
   }) {
     final List<AttentionItem> items = <AttentionItem>[];
 
@@ -106,7 +107,7 @@ abstract final class AttentionList {
       items.add(
         AttentionItem(
           reason: reason,
-          title: view.displayName,
+          title: nameOf?.call(view) ?? view.displayName,
           amountMinor: view.remainingMinor,
           direction: view.debt.direction,
           currency: view.currency,

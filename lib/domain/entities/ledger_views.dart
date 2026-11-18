@@ -42,8 +42,12 @@ class DebtView {
   /// [participants], or a shared record would be shown as one person's.
   Person? get person => participants.isEmpty ? null : participants.first;
 
-  /// `أحمد + علي + محمد`, for the surfaces that name everyone in one line.
-  String get participantNames =>
+  /// The names joined for search and sorting, not for display.
+  ///
+  /// A surface that shows people uses [AppFormatting.recordName], which takes
+  /// the separator from the active language. This getter has no locale and is
+  /// kept for the places that only compare names.
+  String get _participantNames =>
       participants.map((Person p) => p.name).join(' + ');
 
   /// Whether this record is with more than one person.
@@ -97,16 +101,15 @@ class DebtView {
     return (paidMinor / debt.principalMinor).clamp(0.0, 1.0);
   }
 
-  /// What to call this record in a list.
+  /// What to call this record when a locale-aware formatter is not at hand.
   ///
-  /// The people it is with, or — when it names nobody — the free-text title. A
-  /// record with several people names all of them, separated by a plus: on a
-  /// mixed list, showing only the first would read as a debt with one person and
-  /// hide the rest of the group. Inside one person's page use
-  /// [displayNameFor] instead.
+  /// The people it is with, or — when it names nobody — the free-text title.
+  /// This joins with a plus because the domain has no language; a surface that
+  /// shows the name uses `AppFormatting.recordName`, which uses the language's
+  /// separator. Inside one person's page use [displayNameFor] instead.
   String get displayName {
     if (participants.isNotEmpty) {
-      final String names = participantNames;
+      final String names = _participantNames;
       if (names.trim().isNotEmpty) return names;
     }
     return debt.title.trim();

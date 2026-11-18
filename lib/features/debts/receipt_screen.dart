@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../app/providers.dart';
+import '../../core/formatting/app_formatting.dart';
 import '../../core/share/share_origin.dart';
 import '../../core/theme/app_icons.dart';
 import '../../core/theme/app_palette.dart';
@@ -71,10 +72,8 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
 
   /// The person the receipt names: the one the debt is with, or every one of
   /// them for a record shared between several.
-  String get _personName {
-    final String names = widget.view.participantNames.trim();
-    return names.isNotEmpty ? names : widget.view.displayName;
-  }
+  String _personName(AppFormatting formatting) =>
+      formatting.recordName(widget.view);
 
   /// Every part of the payment this receipt is for, each with its debt.
   ///
@@ -125,9 +124,10 @@ class _ReceiptScreenState extends ConsumerState<ReceiptScreen> {
 
   Future<File> _render() async {
     final StatementService service = ref.read(statementServiceProvider);
+    final AppFormatting formatting = context.formatting;
     final List<({DebtView view, Payment payment})> parts = await _parts();
     // A split payment is from the person, not from one record's participants.
-    String personName = _personName;
+    String personName = _personName(formatting);
     if (parts.length > 1 && widget.payment.personId != null) {
       final PersonLedger? ledger = await ref
           .read(personLedgerProvider(widget.payment.personId!).future);

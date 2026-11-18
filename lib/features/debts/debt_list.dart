@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/providers.dart';
 import '../../../app/router.dart';
+import '../../../core/formatting/app_formatting.dart';
 import '../../../core/money/currency.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -484,7 +485,7 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
     // On a person's page the sheet speaks the same way the row does: about the
     // person whose page it is, not about everyone the record is linked to.
     final String heading = widget.knownPersonId == null
-        ? view.displayName
+        ? context.formatting.recordName(view)
         : view.displayNameFor(widget.knownPersonId!);
 
     await showAppSheet<void>(

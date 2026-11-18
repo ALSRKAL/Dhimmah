@@ -48,7 +48,9 @@ class DebtDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          detail.value?.view.displayName ?? localizations.recordDeleted,
+          detail.value == null
+              ? localizations.recordDeleted
+              : context.formatting.recordName(detail.value!.view),
         ),
         actions: <Widget>[
           if (detail.value != null) ...<Widget>[
@@ -403,9 +405,9 @@ class _BalanceCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: <Widget>[
                     Text(
-                      view.displayName.isEmpty
+                      context.formatting.recordName(view).isEmpty
                           ? localizations.unknownPerson
-                          : view.displayName,
+                          : context.formatting.recordName(view),
                       style: theme.textTheme.titleMedium,
                     ),
                     if (view.subtitle != null)

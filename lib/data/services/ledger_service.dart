@@ -2165,7 +2165,9 @@ class LedgerService {
         names.add(person.name.trim());
       }
     }
-    if (names.isNotEmpty) return names.join(' + ');
+    if (names.isNotEmpty) {
+      return names.join(localizations().listSeparator);
+    }
     return debt.title.trim();
   }
 

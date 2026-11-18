@@ -124,7 +124,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
 
     return AppSheet(
       title: isEditing ? localizations.paymentEditTitle : localizations.paymentTitle,
-      subtitle: widget.view.displayName,
+      subtitle: context.formatting.recordName(widget.view),
       busy: _busy,
       primaryLabel: localizations.paymentSave,
       onPrimary: _busy ? null : _save,

@@ -76,6 +76,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             asOf: asOf,
             windowDays: dueSoonWindowDays,
             limit: null,
+            nameOf: (DebtView view) => context.formatting.recordName(view),
           );
           final List<AttentionItem> attention =
               allAttention.take(5).toList(growable: false);

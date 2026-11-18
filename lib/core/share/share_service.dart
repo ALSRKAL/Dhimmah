@@ -25,7 +25,7 @@ class ShareService {
   /// this cannot rely on the colour or the context that the app provides.
   String debtSummary(DebtView view) {
     final StringBuffer buffer = StringBuffer();
-    final String name = view.displayName;
+    final String name = formatting.recordName(view);
     if (name.isNotEmpty) buffer.writeln(name);
     buffer.writeln(
       view.debt.direction.isIOwe
@@ -69,7 +69,7 @@ class ShareService {
     buffer.writeln(localizations.sharePaymentTitle);
     buffer.writeln(
       localizations.sharePaymentBody(
-        view.displayName,
+        formatting.recordName(view),
         formatting.amount(
           Money(payment.amountMinor, payment.currency),
           showCode: true,
