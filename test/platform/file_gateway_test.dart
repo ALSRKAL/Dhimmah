@@ -125,6 +125,22 @@ void _documentChannelTests() {
     });
   }
 
+  /// A save target whose write answers with [written], whatever shape it is.
+  Future<SaveTarget> targetAnswering(Object? Function() written) async {
+    answer((MethodCall call) async => switch (call.method) {
+          'createDocument' => <String, Object?>{
+              'uri': 'content://provider/doc',
+              'displayName': 'x.dhimmah',
+              'size': 1,
+            },
+          'write' => written(),
+          _ => null,
+        });
+    final SaveTarget? target = await const PlatformFileGateway()
+        .createSaveTarget(suggestedName: 'x.dhimmah');
+    return target!;
+  }
+
   setUp(calls.clear);
   tearDown(() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -173,6 +189,34 @@ void _documentChannelTests() {
           (DocumentException e) => e.failure,
           'failure',
           DocumentFailure.empty,
+        ),
+      ),
+    );
+  });
+
+  test('a write count is read when the platform returns a number', () async {
+    final SaveTarget target = await targetAnswering(() => 42);
+    expect(await target.write(const <int>[1, 2, 3]), 42);
+  });
+
+  test("the count inside Android's map is read too", () async {
+    // Kotlin has always answered `{"bytes": n}`, while Dart used to ask for an
+    // int and crash on the map. Both shapes are the same fact.
+    final SaveTarget target = await targetAnswering(
+      () => <String, Object?>{'bytes': 42},
+    );
+    expect(await target.write(const <int>[1, 2, 3]), 42);
+  });
+
+  test('a shape that is neither is an io failure, not a guessed count', () async {
+    final SaveTarget target = await targetAnswering(() => 'x');
+    await expectLater(
+      target.write(const <int>[1]),
+      throwsA(
+        isA<DocumentException>().having(
+          (DocumentException e) => e.failure,
+          'failure',
+          DocumentFailure.io,
         ),
       ),
     );

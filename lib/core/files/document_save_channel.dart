@@ -104,17 +104,28 @@ class DocumentSaveChannel {
   }
 
   /// Writes the whole document. Returns how many bytes the platform wrote.
+  ///
+  /// The platform answers in one of two shapes. Android (Kotlin) reports the
+  /// count inside a map, `{"bytes": n}`, while iOS returns it as a number. Both
+  /// are the same fact, and the channel is the one place that may know which
+  /// platform it is on, so it accepts either and refuses anything else rather
+  /// than guessing a count.
   static Future<int> write({
     required String identifier,
     required List<int> bytes,
   }) async {
     try {
-      final int written = await _channel.invokeMethod<int>('write', <String, Object?>{
+      final Object? result =
+          await _channel.invokeMethod<Object?>('write', <String, Object?>{
         'uri': identifier,
         'bytes': Uint8List.fromList(bytes),
-      }) ??
-          0;
-      return written;
+      });
+      if (result is int) return result;
+      if (result is Map<Object?, Object?>) {
+        final Object? written = result['bytes'];
+        if (written is int) return written;
+      }
+      throw const DocumentException(DocumentFailure.io);
     } on PlatformException catch (error) {
       throw _failureFor(error);
     } on MissingPluginException {
