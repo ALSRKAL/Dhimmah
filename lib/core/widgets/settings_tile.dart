@@ -112,6 +112,51 @@ class SettingsTile extends StatelessWidget {
     final Color titleColor = !enabled
         ? palette.textTertiary
         : (destructive ? palette.overdue : palette.textPrimary);
+    // A control and a value keep their own line at a large text size: the
+    // label gets the width it needs and the value is neither cut nor pushed
+    // off the row.
+    final bool stacked = MediaQuery.textScalerOf(context).scale(1) > 1.3 &&
+        (valueText != null || trailing != null);
+
+    final Widget heading = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          title,
+          style: theme.textTheme.bodyLarge?.copyWith(color: titleColor),
+        ),
+        if (subtitle != null) ...<Widget>[
+          const SizedBox(height: 2),
+          Text(
+            subtitle!,
+            style: theme.textTheme.bodySmall,
+          ),
+        ],
+      ],
+    );
+
+    final List<Widget> controls = <Widget>[
+      if (valueText != null)
+        Flexible(
+          child: Text(
+            valueText!,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: palette.textSecondary,
+            ),
+          ),
+        ),
+      ?trailing,
+      if (onTap != null && trailing == null && valueText != null)
+        const SizedBox(width: AppSpacing.sm),
+      if (onTap != null && trailing == null)
+        Icon(
+          // Mirrored automatically in RTL by the icon's own text direction.
+          AppIcons.chevronRight,
+          size: 20,
+          color: palette.textTertiary,
+        ),
+    ];
 
     return InkWell(
       onTap: enabled ? onTap : null,
@@ -121,6 +166,8 @@ class SettingsTile extends StatelessWidget {
           vertical: AppSpacing.md,
         ),
         child: Row(
+          crossAxisAlignment:
+              stacked ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: <Widget>[
             if (icon != null) ...<Widget>[
               // A plain icon rather than a tinted tile. A settings list is
@@ -134,45 +181,45 @@ class SettingsTile extends StatelessWidget {
               const SizedBox(width: AppSpacing.lg),
             ],
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    title,
-                    style: theme.textTheme.bodyLarge?.copyWith(color: titleColor),
-                  ),
-                  if (subtitle != null) ...<Widget>[
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle!,
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
-                ],
-              ),
+              child: stacked
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        heading,
+                        const SizedBox(height: AppSpacing.xs),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: controls,
+                        ),
+                      ],
+                    )
+                  : heading,
             ),
-            if (valueText != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.md),
-              Text(
-                valueText!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: palette.textSecondary,
+            if (!stacked) ...<Widget>[
+              if (valueText != null) ...<Widget>[
+                const SizedBox(width: AppSpacing.md),
+                Text(
+                  valueText!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: palette.textSecondary,
+                  ),
                 ),
-              ),
-            ],
-            if (trailing != null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              trailing!,
-            ],
-            if (onTap != null && trailing == null) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              Icon(
-                // Mirrored automatically in RTL by the icon's own text direction.
-                AppIcons.chevronRight,
-                size: 20,
-                color: palette.textTertiary,
-              ),
+              ],
+              if (trailing != null) ...<Widget>[
+                const SizedBox(width: AppSpacing.sm),
+                trailing!,
+              ],
+              if (onTap != null && trailing == null) ...<Widget>[
+                const SizedBox(width: AppSpacing.sm),
+                Icon(
+                  // Mirrored automatically in RTL by the icon's own text
+                  // direction.
+                  AppIcons.chevronRight,
+                  size: 20,
+                  color: palette.textTertiary,
+                ),
+              ],
             ],
           ],
         ),

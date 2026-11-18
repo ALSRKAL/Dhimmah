@@ -464,24 +464,42 @@ class _AmountLine extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    // The label and the figure share a line while they fit. At a large text
+    // size the figure moves under its label and keeps its full width rather
+    // than being scaled down against a wrapped label.
+    final bool stacked = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final Widget labelText = Text(
+      label,
+      style: (emphasis ? theme.textTheme.titleSmall : theme.textTheme.bodyMedium)
+          ?.copyWith(color: context.palette.textSecondary),
+    );
+    final Widget moneyText = MoneyText(
+      money,
+      color: color,
+      style: emphasis ? theme.textTheme.titleLarge : theme.textTheme.bodyLarge,
+      shrinkToFit: true,
+    );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: <Widget>[
-          Expanded(
-            child: Text(
-              label,
-              style: (emphasis ? theme.textTheme.titleSmall : theme.textTheme.bodyMedium)
-                  ?.copyWith(color: context.palette.textSecondary),
+      child: stacked
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                labelText,
+                const SizedBox(height: 2),
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: moneyText,
+                ),
+              ],
+            )
+          : Row(
+              children: <Widget>[
+                Expanded(child: labelText),
+                Flexible(child: moneyText),
+              ],
             ),
-          ),
-          MoneyText(
-            money,
-            color: color,
-            style: emphasis ? theme.textTheme.titleLarge : theme.textTheme.bodyLarge,
-          ),
-        ],
-      ),
     );
   }
 }

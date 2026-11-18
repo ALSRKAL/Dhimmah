@@ -363,6 +363,45 @@ class ActivityRowTile extends StatelessWidget {
         entry.type.isIncoming ? palette.owedToMe : palette.neutralStatus;
     final AppCurrency? currency = entry.currency;
     final int? amountMinor = entry.amountMinor;
+    // At a large text size the trailing figure and date no longer fit beside
+    // the description, so they move under it. Nothing is cut; the row grows.
+    final bool stacked = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+
+    final Widget description = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: <Widget>[
+        Text(
+          entry.type.label(localizations),
+          style: theme.textTheme.bodyMedium,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (entry.title.isNotEmpty) ...<Widget>[
+          const SizedBox(height: 2),
+          Text(
+            entry.title,
+            style: theme.textTheme.bodySmall,
+            maxLines: stacked ? 2 : 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ],
+    );
+
+    final List<Widget> trailing = <Widget>[
+      if (amountMinor != null && currency != null)
+        MoneyText(
+          Money(amountMinor, currency),
+          style: theme.textTheme.labelLarge,
+          color: accent,
+          shrinkToFit: true,
+        ),
+      Text(
+        formatting.relativeDue(entry.occurredAt, asOf),
+        style: theme.textTheme.labelSmall,
+      ),
+    ];
 
     return InkWell(
       onTap: onTap,
@@ -372,6 +411,9 @@ class ActivityRowTile extends StatelessWidget {
           vertical: AppSpacing.md,
         ),
         child: Row(
+          crossAxisAlignment: stacked
+              ? CrossAxisAlignment.start
+              : CrossAxisAlignment.center,
           children: <Widget>[
             Container(
               width: 36,
@@ -384,46 +426,34 @@ class ActivityRowTile extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Text(
-                    entry.type.label(localizations),
-                    style: theme.textTheme.bodyMedium,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  if (entry.title.isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 2),
-                    Text(
-                      entry.title,
-                      style: theme.textTheme.bodySmall,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
+              child: stacked
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        description,
+                        const SizedBox(height: AppSpacing.xs),
+                        Wrap(
+                          spacing: AppSpacing.md,
+                          runSpacing: AppSpacing.xxs,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: trailing,
+                        ),
+                      ],
+                    )
+                  : description,
             ),
-            const SizedBox(width: AppSpacing.md),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                if (amountMinor != null && currency != null)
-                  MoneyText(
-                    Money(amountMinor, currency),
-                    style: theme.textTheme.labelLarge,
-                    color: accent,
-                  ),
-                const SizedBox(height: 2),
-                Text(
-                  formatting.relativeDue(entry.occurredAt, asOf),
-                  style: theme.textTheme.labelSmall,
+            if (!stacked) ...<Widget>[
+              const SizedBox(width: AppSpacing.md),
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  spacing: 2,
+                  children: trailing,
                 ),
-              ],
-            ),
+              ),
+            ],
           ],
         ),
       ),

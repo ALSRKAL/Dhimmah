@@ -180,16 +180,17 @@ class _SummaryStrip extends StatelessWidget {
               crossAxisAlignment: WrapCrossAlignment.end,
               children: <Widget>[
                 for (final CurrencyTotals entry in totals)
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
+                  // Its own wrap: at a large text size the code and the figure
+                  // may take two lines, and the figure is never cut.
+                  Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.xxs,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: <Widget>[
                       Text(
                         entry.currency.code,
                         style: theme.textTheme.labelSmall,
                       ),
-                      const SizedBox(width: AppSpacing.sm),
                       // The side this screen is showing, not the owe-side total:
                       // the totals carry both directions, and printing `iOwe`
                       // unconditionally made the owed-to-me headline read ₹0
@@ -203,6 +204,7 @@ class _SummaryStrip extends StatelessWidget {
                         ),
                         color: accent,
                         style: theme.textTheme.titleLarge,
+                        shrinkToFit: true,
                       ),
                     ],
                   ),

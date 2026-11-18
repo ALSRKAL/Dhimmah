@@ -437,24 +437,24 @@ class _AttentionAmounts extends StatelessWidget {
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
 
-    Widget figure(String label, Money money, Color color) => Row(
-          mainAxisSize: MainAxisSize.min,
+    // Each figure is its own wrap: at a large text size the label and the
+    // figure may take two lines, but neither is cut and the amount stays whole.
+    Widget figure(String label, Money money, Color color) => Wrap(
+          spacing: AppSpacing.xs,
+          runSpacing: AppSpacing.xxs,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: <Widget>[
             Text(
-              '$label ',
+              label,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: palette.textSecondary,
               ),
             ),
-            // The label stays whole and the figure gives way: it is the figure
-            // that cannot be cut, and it is the one that grows with the ledger.
-            Flexible(
-              child: MoneyText(
-                money,
-                color: color,
-                style: theme.textTheme.titleSmall,
-                shrinkToFit: true,
-              ),
+            MoneyText(
+              money,
+              color: color,
+              style: theme.textTheme.titleSmall,
+              shrinkToFit: true,
             ),
           ],
         );
