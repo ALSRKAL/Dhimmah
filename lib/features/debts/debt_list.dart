@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -315,6 +316,15 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
                                   AppMotion.of(context, AppMotion.normal),
                               resizeDuration:
                                   AppMotion.of(context, AppMotion.normal),
+                              onUpdate: (DismissUpdateDetails details) {
+                                // The threshold arms the action once: crossing
+                                // it is the moment the gesture becomes a choice,
+                                // and dragging back below it is not another one.
+                                if (details.reached &&
+                                    !details.previousReached) {
+                                  HapticFeedback.selectionClick();
+                                }
+                              },
                               confirmDismiss: (DismissDirection direction) =>
                                   _onSwipe(context, view, direction),
                               // The list is data-driven: the write above has

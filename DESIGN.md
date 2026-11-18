@@ -350,6 +350,8 @@ use. None is bundled yet.
   gated behind a second dialog.
 * A light haptic on a successful write. It keeps meaning "that was saved". A
   payment that settles a debt in full gets the tick described above as well.
+* A selection haptic once when a swipe crosses the threshold that arms its
+  action — not on every frame, and not while the finger returns below it.
 * Errors say what the user can do, never what went wrong inside.
 
 ---

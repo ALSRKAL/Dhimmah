@@ -11,6 +11,7 @@ import 'package:dhimmah/domain/enums/preference_enums.dart';
 import 'package:dhimmah/features/debts/debt_list.dart';
 import 'package:dhimmah/features/debts/payment_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/app_harness.dart';
@@ -210,5 +211,53 @@ void main() {
     );
     expect(row.movementDuration, Duration.zero);
     expect(row.resizeDuration, Duration.zero);
+  });
+
+  testWidgets('crossing the swipe threshold clicks once, returning is silent',
+      (WidgetTester tester) async {
+    await pumpDhimmah(tester, db: db);
+    await openLedger(tester);
+
+    final List<MethodCall> calls = <MethodCall>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (MethodCall call) async {
+        calls.add(call);
+        return null;
+      },
+    );
+    addTearDown(() => tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, null));
+
+    int selectionClicks() => calls
+        .where(
+          (MethodCall call) =>
+              call.method == 'HapticFeedback.vibrate' &&
+              call.arguments == 'HapticFeedbackType.selectionClick',
+        )
+        .length;
+
+    final TestGesture gesture = await tester
+        .startGesture(tester.getCenter(find.textContaining('قرض سيارة')));
+    // In RTL, startToEnd is leftward. The test surface is 800 wide, so the
+    // 0.4 threshold sits near 320; five moves pass it, and the row reports the
+    // progress it measures rather than one jump.
+    for (int i = 0; i < 5; i++) {
+      await gesture.moveBy(const Offset(-100, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(selectionClicks(), 1, reason: 'the crossing clicks once');
+
+    // Back below the threshold: the action is disarmed silently.
+    await gesture.moveBy(const Offset(200, 0));
+    await tester.pump();
+    expect(
+      selectionClicks(),
+      1,
+      reason: 'dragging back is not another crossing',
+    );
+
+    await gesture.up();
+    await settle(tester);
   });
 }
