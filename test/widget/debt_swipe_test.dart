@@ -8,6 +8,7 @@ import 'package:dhimmah/domain/entities/drafts.dart';
 import 'package:dhimmah/domain/entities/person.dart';
 import 'package:dhimmah/domain/enums/debt_enums.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
+import 'package:dhimmah/features/debts/debt_list.dart';
 import 'package:dhimmah/features/debts/payment_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -90,6 +91,30 @@ void main() {
         paymentsBefore,
         reason: 'the swipe opens the sheet; it writes nothing itself',
       );
+    });
+
+    testWidgets('the sheet opened by a swipe lives above the tab', (
+      WidgetTester tester,
+    ) async {
+      await pumpDhimmah(tester, db: db);
+      await openLedger(tester);
+
+      // startToEnd in a right-to-left layout is a leftward drag.
+      await tester.drag(find.textContaining('قرض سيارة'), const Offset(-400, 0));
+      await settle(tester);
+
+      final BuildContext list =
+          tester.element(find.byType(DebtListBody).first);
+      final NavigatorState tabNavigator = Navigator.of(list);
+      final BuildContext sheet = tester.element(find.byType(PaymentSheet));
+      final ModalRoute<dynamic> route = ModalRoute.of(sheet)!;
+      expect(
+        route.navigator,
+        same(Navigator.of(sheet, rootNavigator: true)),
+        reason: 'the shell adds its button as a sibling of the tab navigator, '
+            'so a sheet inside the tab would have its save button covered',
+      );
+      expect(route.navigator, isNot(same(tabNavigator)));
     });
 
     testWidgets('swiping the other way archives, and undo restores',

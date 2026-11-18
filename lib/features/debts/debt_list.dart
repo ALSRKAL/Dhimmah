@@ -412,7 +412,13 @@ class _DebtListBodyState extends ConsumerState<DebtListBody> {
       // Unreachable on a settled row (its only allowed direction is the other
       // one), but the guard is the rule stated in one place.
       if (view.isSettled) return false;
-      await showPaymentSheet(context, view: view);
+      // Above the tab's navigator: the shell's floating add button is a
+      // sibling of it and paints over the sheet's save button otherwise.
+      await showPaymentSheet(
+        context,
+        view: view,
+        useRootNavigator: true,
+      );
       // The row stays where it is: a payment is recorded in the sheet, and the
       // list then rebuilds from the records.
       return false;
