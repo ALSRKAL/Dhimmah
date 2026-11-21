@@ -96,6 +96,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               SliverToBoxAdapter(
                 child: DashboardHeader(
                   totals: totals,
+                  showTotals: data.hasAnyRecord,
                   today: asOf,
                   currencies: data.totalsByCurrency
                       .map((CurrencyTotals t) => t.currency)

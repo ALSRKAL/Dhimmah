@@ -4399,6 +4399,18 @@ abstract class AppLocalizations {
   /// **'لم يُحدَّد مكان دائم للنسخ'**
   String get backupProtectionNoLocation;
 
+  /// No description provided for @backupFirstCopyPending.
+  ///
+  /// In ar, this message translates to:
+  /// **'ستُحفظ أول نسخة عند أول تغيير'**
+  String get backupFirstCopyPending;
+
+  /// No description provided for @backupKeepCopyNow.
+  ///
+  /// In ar, this message translates to:
+  /// **'احتفظ بنسخة الآن'**
+  String get backupKeepCopyNow;
+
   /// No description provided for @backupProtectionLastSuccess.
   ///
   /// In ar, this message translates to:

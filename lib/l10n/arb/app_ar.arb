@@ -1262,6 +1262,8 @@
   "backupProtectionAttention": "النسخ الاحتياطية تحتاج انتباهك",
   "backupProtectionStorage": "تعذّر الحفظ في مكان النسخ",
   "backupProtectionNoLocation": "لم يُحدَّد مكان دائم للنسخ",
+  "backupFirstCopyPending": "ستُحفظ أول نسخة عند أول تغيير",
+  "backupKeepCopyNow": "احتفظ بنسخة الآن",
   "backupProtectionLastSuccess": "آخر نسخة ناجحة · {when}",
   "@backupProtectionLastSuccess": {
     "placeholders": {

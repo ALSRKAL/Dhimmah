@@ -1254,6 +1254,8 @@
   "backupProtectionAttention": "Backups need your attention",
   "backupProtectionStorage": "Could not write to the backup location",
   "backupProtectionNoLocation": "No permanent backup location yet",
+  "backupFirstCopyPending": "Your first copy will be saved on your first change",
+  "backupKeepCopyNow": "Keep a copy now",
   "backupProtectionLastSuccess": "Last successful copy · {when}",
   "@backupProtectionLastSuccess": {
     "placeholders": {

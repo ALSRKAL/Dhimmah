@@ -2494,6 +2494,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get backupProtectionNoLocation => 'لم يُحدَّد مكان دائم للنسخ';
 
   @override
+  String get backupFirstCopyPending => 'ستُحفظ أول نسخة عند أول تغيير';
+
+  @override
+  String get backupKeepCopyNow => 'احتفظ بنسخة الآن';
+
+  @override
   String backupProtectionLastSuccess(String when) {
     return 'آخر نسخة ناجحة · $when';
   }

@@ -27,8 +27,14 @@ class DashboardHeader extends StatelessWidget {
     required this.today,
     required this.onSearch,
     required this.onSettings,
+    this.showTotals = true,
     super.key,
   });
+
+  /// An empty ledger has nothing to total. Drawing three zeroes at the top of
+  /// a first-run screen states a balance the user never entered; the empty
+  /// state below says what to do instead.
+  final bool showTotals;
 
   final CurrencyTotals totals;
   final List<AppCurrency> currencies;
@@ -69,29 +75,32 @@ class DashboardHeader extends StatelessWidget {
             onSearch: onSearch,
             onSettings: onSettings,
           ),
-          const SizedBox(height: AppSpacing.xl),
-          Text(
-            position,
-            style: theme.textTheme.bodySmall?.copyWith(color: palette.textSecondary),
-          ),
-          const SizedBox(height: 2),
-          // The one number the app exists to show, at its magnitude only: the
-          // sentence above already carries the direction, and pairing "عليك"
-          // with a minus sign reads as a double negative. The person page states
-          // the same figure the same way, so the two screens match.
-          HeroAmount(
-            Money(totals.net.minorUnits.abs(), totals.net.currency),
-            fontSize: 38,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _SideBySide(totals: totals),
-          if (currencies.length > 1) ...<Widget>[
-            const SizedBox(height: AppSpacing.md),
-            _CurrencySwitch(
-              currencies: currencies,
-              selected: selectedCurrency,
-              onSelected: onCurrencySelected,
+          if (showTotals) ...<Widget>[
+            const SizedBox(height: AppSpacing.xl),
+            Text(
+              position,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: palette.textSecondary),
             ),
+            const SizedBox(height: 2),
+            // The one number the app exists to show, at its magnitude only: the
+            // sentence above already carries the direction, and pairing "عليك"
+            // with a minus sign reads as a double negative. The person page
+            // states the same figure the same way, so the two screens match.
+            HeroAmount(
+              Money(totals.net.minorUnits.abs(), totals.net.currency),
+              fontSize: 38,
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _SideBySide(totals: totals),
+            if (currencies.length > 1) ...<Widget>[
+              const SizedBox(height: AppSpacing.md),
+              _CurrencySwitch(
+                currencies: currencies,
+                selected: selectedCurrency,
+                onSelected: onCurrencySelected,
+              ),
+            ],
           ],
         ],
       ),

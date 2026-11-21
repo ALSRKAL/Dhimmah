@@ -81,8 +81,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.text('عليّ'), findsWidgets);
-      expect(find.text('لي'), findsWidgets);
+      // An empty ledger says what to do rather than stating zero balances, so
+      // landing is proved by the Arabic empty state and the shell's tabs.
+      expect(find.text('ممتاز، لا توجد ديون مسجّلة حاليًا.'), findsOneWidget);
+      expect(find.text('الرئيسية'), findsWidgets);
     });
 
     testWidgets('it is skipped entirely once completed', (WidgetTester tester) async {
@@ -141,14 +143,16 @@ void main() {
       expect(find.text('إضافة أول دين'), findsOneWidget);
     });
 
-    testWidgets('a fresh ledger states its position and what to do next',
+    testWidgets('a fresh ledger shows what to do, not zero balances',
         (WidgetTester tester) async {
       await pumpApp(tester, onboardingCompleted: true);
 
-      // Where do I stand, what do I owe, what am I owed — no scrolling needed.
-      expect(find.text('متوازن'), findsOneWidget);
-      expect(find.text('عليّ'), findsWidgets);
-      expect(find.text('لي'), findsWidgets);
+      // A total the user never entered is not a fact about their ledger. On a
+      // first run the header keeps its identity and actions but not three
+      // zeroes, which read as a balance already recorded.
+      expect(find.text('متوازن'), findsNothing);
+      expect(find.text('عليّ'), findsNothing);
+      expect(find.text('لي'), findsNothing);
 
       // With nothing recorded there is nothing to attend to, so the screen says
       // what to do instead of showing an empty attention list.
@@ -256,8 +260,10 @@ void main() {
       );
       final BuildContext context = tester.element(find.byType(NavigationBar));
       expect(Directionality.of(context), TextDirection.ltr);
-      expect(find.text('I Owe'), findsWidgets);
-      expect(find.text('Owed to Me'), findsWidgets);
+      // The ledger is empty in this test, so the balance labels are not drawn;
+      // the shell's own labels prove the interface is the English one.
+      expect(find.text('Home'), findsWidgets);
+      expect(find.text('Ledger'), findsWidgets);
     });
 
     testWidgets('dark mode is applied from the stored setting',

@@ -254,6 +254,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     BackupProtectionReport report,
     AppLocalizations localizations,
   ) {
+    if (report.state == BackupProtection.noLocation &&
+        report.autoEnabled &&
+        report.lastSuccess == null) {
+      return localizations.backupKeepCopyNow;
+    }
     return switch (report.state) {
       // Nothing has ever been saved and there is somewhere to save it to.
       BackupProtection.neverBackedUp when report.folderConfigured =>
@@ -274,6 +279,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       AppLocalizations.of(context),
     );
     if (label == null) return null;
+    if (report.state == BackupProtection.noLocation &&
+        report.autoEnabled &&
+        report.lastSuccess == null) {
+      return _saveExternal;
+    }
     return switch (report.state) {
       BackupProtection.neverBackedUp => _saveExternal,
       _ => () => _checkFolder(deep: true),
@@ -725,8 +735,21 @@ class _ProtectionHeaderState extends State<_ProtectionHeader> {
     final ThemeData theme = Theme.of(context);
     final AppFormatting formatting = context.formatting;
     final BackupProtectionReport report = widget.report;
+    // Automatic saving is on, nothing has been written yet, and there is no
+    // permanent folder. "No location" and "saving is on" are both true, but
+    // printing them together reads as a contradiction. The single sentence
+    // says what will happen and offers the one thing the user can do now.
+    final bool firstCopyPending = report.state == BackupProtection.noLocation &&
+        report.autoEnabled &&
+        report.lastSuccess == null;
 
-    final (IconData icon, Color color, String headline) = switch (report.state) {
+    final (IconData icon, Color color, String headline) = firstCopyPending
+        ? (
+            AppIcons.schedule,
+            palette.brand,
+            localizations.backupFirstCopyPending,
+          )
+        : switch (report.state) {
       BackupProtection.protected => (
           AppIcons.verified,
           palette.settled,
@@ -792,34 +815,36 @@ class _ProtectionHeaderState extends State<_ProtectionHeader> {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          Text(
-            report.lastSuccess == null
-                ? localizations.backupProtectionNeverWorked
-                : localizations.backupProtectionLastSuccess(
-                    formatting.date(report.lastSuccess!),
-                  ),
-            // A fact, not a second heading. It was `titleSmall` — 15pt semibold,
-            // the same weight as the headline two points below it — and the card
-            // read as two titles stacked, the eye with no ladder to climb. Body
-            // weight in the secondary colour puts it where it belongs: under the
-            // state, over the counts.
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: palette.textSecondary,
+          if (!firstCopyPending) ...<Widget>[
+            const SizedBox(height: AppSpacing.md),
+            Text(
+              report.lastSuccess == null
+                  ? localizations.backupProtectionNeverWorked
+                  : localizations.backupProtectionLastSuccess(
+                      formatting.date(report.lastSuccess!),
+                    ),
+              // A fact, not a second heading. It was `titleSmall` — 15pt
+              // semibold, the same weight as the headline two points below it —
+              // and the card read as two titles stacked, the eye with no ladder
+              // to climb. Body weight in the secondary colour puts it where it
+              // belongs: under the state, over the counts.
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: palette.textSecondary,
+              ),
             ),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Text(
-            // Joined by a separator rather than a space: "5 copies inside the
-            // app 7 in your folder" reads as one long number when it is only
-            // spacing that divides them.
-            '${localizations.backupProtectionCopiesInside(report.appCopies)}'
-            ' · '
-            '${localizations.backupProtectionCopiesOutside(report.folderCopies)}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: palette.textTertiary,
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              // Joined by a separator rather than a space: "5 copies inside the
+              // app 7 in your folder" reads as one long number when it is only
+              // spacing that divides them.
+              '${localizations.backupProtectionCopiesInside(report.appCopies)}'
+              ' · '
+              '${localizations.backupProtectionCopiesOutside(report.folderCopies)}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: palette.textTertiary,
+              ),
             ),
-          ),
+          ],
           // A failure the app can still handle says the one thing the user
           // actually fears, before anything else on the screen has a chance to
           // imply the opposite.

@@ -175,6 +175,23 @@ void main() {
     );
   });
 
+  testWidgets(
+      'a first run with automatic saving on says one thing, not a contradiction',
+      (WidgetTester tester) async {
+    // Nothing seeded: this is the just-cleared install the brief describes.
+    // No folder, no copy, and automatic saving is on by default. Before this
+    // state had its own sentence the card said "no permanent location yet" and
+    // "automatic saving is on" together, and then said "no copy has been saved"
+    // twice.
+    await openScreen(tester, FakeBackupLocationRepository());
+
+    expectHeadline(l10n.backupFirstCopyPending);
+    expect(find.text(l10n.backupKeepCopyNow), findsOneWidget);
+    expect(find.text(l10n.backupProtectionNoLocation), findsNothing);
+    expect(find.text(l10n.backupProtectionNeverWorked), findsNothing);
+    expect(find.text(l10n.backupAutoStateOn), findsOneWidget);
+  });
+
   testWidgets('copies that live only inside the app are not called protection',
       (WidgetTester tester) async {
     await seedLedger();

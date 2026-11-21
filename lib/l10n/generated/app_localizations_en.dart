@@ -2479,6 +2479,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupProtectionNoLocation => 'No permanent backup location yet';
 
   @override
+  String get backupFirstCopyPending =>
+      'Your first copy will be saved on your first change';
+
+  @override
+  String get backupKeepCopyNow => 'Keep a copy now';
+
+  @override
   String backupProtectionLastSuccess(String when) {
     return 'Last successful copy · $when';
   }
