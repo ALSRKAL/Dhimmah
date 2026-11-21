@@ -153,7 +153,13 @@ void main() {
 
     final Finder backup = find.text('النسخ الاحتياطي والاستعادة');
     await reveal(tester, backup);
-    await tapAndSettle(tester, backup.last);
+    // The protection card draws a progress indicator until the folder has been
+    // read. An indeterminate indicator keeps the frame clock busy, and
+    // `pumpAndSettle` cannot let the real file read finish; pump a fixed span
+    // and then give the provider its own turn, as the statement test does.
+    await tester.tap(backup.last);
+    await tester.pump(const Duration(milliseconds: 500));
+    await settle(tester);
     expectNoOverflow(tester, 'backup');
   });
 }
