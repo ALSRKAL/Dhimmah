@@ -20,8 +20,8 @@ import '../../l10n/generated/app_localizations.dart';
 /// The "More" tab: everything that is not one of the four daily destinations.
 ///
 /// It opens with the month's movement, from the same report the Reports screen
-/// reads, then two groups: what the user follows up on, and the app itself.
-/// The backup row says when the last copy was made, because that is the
+/// reads, and that card is the way into Reports. The rows below are the app
+/// itself; the backup row says when the last copy was made, because that is the
 /// question the row is usually opened to answer.
 class MoreScreen extends ConsumerWidget {
   const MoreScreen({super.key});
@@ -106,28 +106,16 @@ class MoreScreen extends ConsumerWidget {
           ),
           const SizedBox(height: AppSpacing.xxl),
           SettingsSection(
-            // Not `navReminders`: that is the title of the row *inside* this
-            // group, so the heading named the group after one of its members and
-            // the card read as "Reminders: Reports, Reminders".
-            title: localizations.moreFollowUpSection,
+            // Reminders joined this group when Reports left it: a heading over
+            // one row read as an accident, and the card already opens Reports.
+            title: localizations.moreAppSection,
             children: <Widget>[
-              SettingsTile(
-                title: localizations.navReports,
-                subtitle: localizations.reportsSubtitle,
-                icon: AppIcons.insights,
-                onTap: () => context.push(AppRoutes.reports),
-              ),
               SettingsTile(
                 title: localizations.navReminders,
                 subtitle: localizations.remindersSubtitle,
                 icon: AppIcons.notificationsNone,
                 onTap: () => context.push(AppRoutes.reminders),
               ),
-            ],
-          ),
-          SettingsSection(
-            title: localizations.moreAppSection,
-            children: <Widget>[
               SettingsTile(
                 title: localizations.settingsTitle,
                 subtitle: localizations.settingsAppearance,

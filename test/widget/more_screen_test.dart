@@ -6,6 +6,7 @@ import 'package:dhimmah/core/formatting/app_formatting.dart';
 import 'package:dhimmah/core/money/currency.dart';
 import 'package:dhimmah/core/money/money.dart';
 import 'package:dhimmah/core/utils/dates.dart';
+import 'package:dhimmah/core/widgets/settings_tile.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/domain/entities/monthly_report.dart';
 import 'package:dhimmah/domain/enums/preference_enums.dart';
@@ -23,10 +24,11 @@ import '../support/app_harness.dart';
 import '../support/fake_backup_location.dart';
 import '../support/fake_file_gateway.dart';
 
-/// The More tab opens with the month's movement and four working rows.
+/// The More tab opens with the month's movement and three working rows.
 ///
 /// The card reads the same report the Reports screen reads — not a second sum
-/// computed here — and each row still opens the screen it names.
+/// computed here — and it is the only way into Reports on this screen. Each row
+/// still opens the screen it names.
 void main() {
   late AppDatabase db;
   late Directory backups;
@@ -95,13 +97,38 @@ void main() {
     );
   });
 
+  testWidgets('the month card opens the reports screen it names', (
+    WidgetTester tester,
+  ) async {
+    await openMore(tester);
+
+    await tester.tap(find.text('حركة الشهر'));
+    await settle(tester);
+
+    expect(find.byType(ReportsScreen), findsOneWidget);
+    final BuildContext inside = tester.element(find.byType(ReportsScreen));
+    expect(GoRouterState.of(inside).uri.path, AppRoutes.reports);
+  });
+
+  testWidgets('there is no separate reports row', (
+    WidgetTester tester,
+  ) async {
+    await openMore(tester);
+
+    expect(find.text('التقارير'), findsNothing);
+    expect(
+      find.widgetWithText(SettingsTile, 'التقارير'),
+      findsNothing,
+      reason: 'the month card is the way into Reports on this screen',
+    );
+  });
+
   testWidgets('each row opens the screen it names', (
     WidgetTester tester,
   ) async {
     await openMore(tester);
 
     final List<(String, Type, String)> rows = <(String, Type, String)>[
-      ('التقارير', ReportsScreen, AppRoutes.reports),
       ('التذكيرات', RemindersScreen, AppRoutes.reminders),
       ('الإعدادات', SettingsScreen, AppRoutes.settings),
       (
