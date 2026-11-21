@@ -42,7 +42,12 @@ void main() {
     await pumpDhimmah(tester, db: db);
     await settle(tester);
 
-    await tester.tap(find.textContaining('خالد العلي').first);
+    // The overdue group's heading can push this row under the tab bar on the
+    // default test view; a person would scroll it into view before tapping.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -250));
+    await settle(tester);
+    final Finder khalid = find.textContaining('خالد العلي').first;
+    await tester.tap(khalid);
     await settle(tester);
 
     // The device path went through an edit-save first: the edit is pushed on
@@ -79,7 +84,10 @@ void main() {
     Future<void> deleteFromTheDetail(WidgetTester tester) async {
       await pumpDhimmah(tester, db: db);
       await settle(tester);
-      await tester.tap(find.textContaining('خالد العلي').first);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -250));
+      await settle(tester);
+      final Finder khalid = find.textContaining('خالد العلي').first;
+      await tester.tap(khalid);
       await settle(tester);
       await tester.tap(find.byIcon(AppIcons.moreVert));
       await settle(tester);

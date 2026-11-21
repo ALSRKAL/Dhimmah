@@ -40,8 +40,7 @@ class MoreScreen extends ConsumerWidget {
           ),
         )
         .value;
-    final DateTime? lastBackup =
-        ref.watch(backupProtectionProvider).value?.lastSuccess;
+    final DateTime? lastBackup = ref.watch(lastBackupAtProvider).value;
 
     return Scaffold(
       appBar: AppBar(title: Text(localizations.moreTitle)),

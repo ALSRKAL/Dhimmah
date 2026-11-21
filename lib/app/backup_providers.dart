@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 
@@ -70,6 +71,23 @@ final Provider<BackupService> backupServiceProvider =
     clock: () => ref.read(clockProvider)(),
     directory: ref.watch(backupDirectoryProvider),
   );
+});
+
+/// When the newest snapshot was written, for the row that only needs the date.
+///
+/// It reads the snapshot folder directly rather than [backupStatusProvider]:
+/// the status also starts the coordinator and checks the user's external
+/// folder, work the More tab does not need to answer "when was my last copy?".
+/// A host with no path provider (a test, or a desktop build) has no app
+/// documents directory and therefore no snapshots to date.
+final FutureProvider<DateTime?> lastBackupAtProvider =
+    FutureProvider<DateTime?>((Ref ref) async {
+  try {
+    final BackupFileInfo? last = await ref.watch(backupServiceProvider).latest();
+    return last?.createdAt;
+  } on MissingPluginException {
+    return null;
+  }
 });
 
 final Provider<BackupRestoreService> backupRestoreServiceProvider =

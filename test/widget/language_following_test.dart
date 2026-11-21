@@ -94,7 +94,9 @@ void main() {
       await pumpDhimmah(tester, db: db);
       await tester.pumpAndSettle();
       expect(direction(tester), TextDirection.rtl);
-      expect(find.text('عليّ'), findsWidgets);
+      // An empty ledger draws no balance labels of its own; the shell's tabs
+      // are what prove which language this frame is in.
+      expect(find.text(ar.navHome), findsOneWidget);
 
       tester.platformDispatcher.localesTestValue = const <Locale>[
         Locale('en', 'US'),
@@ -102,7 +104,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(direction(tester), TextDirection.ltr);
-      expect(find.text('I Owe'), findsWidgets);
+      expect(find.text(en.navHome), findsOneWidget);
       expect(
         (await stored()).languagePreference,
         LanguagePreference.system,
@@ -128,7 +130,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(direction(tester), TextDirection.rtl);
-      expect(find.text('عليّ'), findsWidgets);
+      expect(find.text(ar.navHome), findsOneWidget);
     });
   });
 

@@ -537,6 +537,11 @@ class _PersonActions extends ConsumerWidget {
       (DebtView view) => view.isOpen && !view.debt.isShared,
     );
     final bool tall = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    // The statement's caption is a third label in a row that already has two.
+    // On a 320-wide phone, even at the normal text size, it left the primary
+    // button 74 wide — narrower than its own icon, gap and padding.
+    final bool narrow = MediaQuery.sizeOf(context).width < 360;
+    final bool stacked = tall || narrow;
 
     final Widget primary = FilledButton.icon(
       onPressed: canPay
@@ -616,11 +621,12 @@ class _PersonActions extends ConsumerWidget {
           AppSpacing.lg,
           AppSpacing.md,
         ),
-        child: tall
-            // At 2.0 three buttons on one line left "record payment" split
-            // mid-word and the icon stranded above it. The primary and the
-            // statement share the first line; "add debt" takes a full line of
-            // its own underneath, where its label stays whole.
+        child: stacked
+            // At 2.0, and on a 320-wide phone at any size, three buttons on one
+            // line left "record payment" split mid-word and the icon stranded
+            // above it. The primary and the statement share the first line;
+            // "add debt" takes a full line underneath, where its label stays
+            // whole.
             ? Column(
                 mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
