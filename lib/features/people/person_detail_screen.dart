@@ -536,6 +536,72 @@ class _PersonActions extends ConsumerWidget {
     final bool canPay = ledger.debts.any(
       (DebtView view) => view.isOpen && !view.debt.isShared,
     );
+    final bool tall = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+
+    final Widget primary = FilledButton.icon(
+      onPressed: canPay
+          ? () => showPersonPaymentSheet(
+                context,
+                personId: personId,
+                ledger: ledger,
+              )
+          : () => context.push(
+                '${AppRoutes.debtNew}?person=$personId',
+              ),
+      icon: Icon(
+        canPay ? AppIcons.payments : AppIcons.add,
+        size: tall ? 24 : 20,
+      ),
+      label: Text(
+        canPay
+            ? localizations.detailRecordPayment
+            : localizations.addDebtAction,
+        maxLines: tall ? 1 : 2,
+        textAlign: TextAlign.center,
+      ),
+    );
+
+    final Widget addDebt = OutlinedButton.icon(
+      onPressed: () => context.push('${AppRoutes.debtNew}?person=$personId'),
+      icon: Icon(AppIcons.add, size: tall ? 22 : 18),
+      label: Text(
+        localizations.addDebtAction,
+        maxLines: tall ? 1 : 2,
+        textAlign: TextAlign.center,
+      ),
+    );
+
+    final Widget statement = Tooltip(
+      message: localizations.reportShareStatement,
+      child: OutlinedButton(
+        // A caption under the mark, not a third full-width label: the row has
+        // two labelled actions already, and a third one would take the width
+        // the other two need at a large text size.
+        onPressed: ledger.debts.isEmpty
+            ? null
+            : () => showStatement(context, personId),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(60, 52),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.sm,
+            vertical: AppSpacing.xs,
+          ),
+          side: BorderSide(color: palette.borderStrong),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            const Icon(AppIcons.receiptLong, size: 18),
+            const SizedBox(height: 2),
+            Text(
+              localizations.reportStatementShort,
+              style: theme.textTheme.labelSmall,
+              maxLines: 1,
+            ),
+          ],
+        ),
+      ),
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -550,90 +616,47 @@ class _PersonActions extends ConsumerWidget {
           AppSpacing.lg,
           AppSpacing.md,
         ),
-        child: Row(
-          children: <Widget>[
-            // The two actions share the row between them, each one's label free
-            // to take a second line. Three parts to the primary and one to the
-            // secondary left the secondary 17 pixels narrower than its own icon
-            // and first word at the largest text size on a narrow phone, and the
-            // row was laid out past the screen.
-            Expanded(
-              child: FilledButton.icon(
-                onPressed: canPay
-                    ? () => showPersonPaymentSheet(
-                          context,
-                          personId: personId,
-                          ledger: ledger,
-                        )
-                    : () => context.push(
-                          '${AppRoutes.debtNew}?person=$personId',
-                        ),
-                icon: Icon(
-                  canPay ? AppIcons.payments : AppIcons.add,
-                  size: 20,
-                ),
-                label: Text(
-                  canPay
-                      ? localizations.detailRecordPayment
-                      : localizations.addDebtAction,
-                  maxLines: 2,
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
-            if (canPay) ...<Widget>[
-              const SizedBox(width: AppSpacing.sm),
-              // An equal share, not a quarter: two labelled buttons beside an
-              // icon need half each once the text is large. The hierarchy is
-              // carried by filled-against-outlined, which is what the eye reads
-              // anyway, and both labels stay whole.
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () =>
-                      context.push('${AppRoutes.debtNew}?person=$personId'),
-                  icon: const Icon(AppIcons.add, size: 18),
-                  label: Text(
-                    localizations.addDebtAction,
-                    maxLines: 2,
-                    textAlign: TextAlign.center,
+        child: tall
+            // At 2.0 three buttons on one line left "record payment" split
+            // mid-word and the icon stranded above it. The primary and the
+            // statement share the first line; "add debt" takes a full line of
+            // its own underneath, where its label stays whole.
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Row(
+                    children: <Widget>[
+                      Expanded(child: primary),
+                      const SizedBox(width: AppSpacing.sm),
+                      statement,
+                    ],
                   ),
-                ),
-              ),
-            ],
-            const SizedBox(width: AppSpacing.sm),
-            Tooltip(
-              message: localizations.reportShareStatement,
-              child: OutlinedButton(
-                // A caption under the mark, not a third full-width label: the
-                // row has two labelled actions already, and a third one would
-                // take the width the other two need at a large text size.
-                onPressed: ledger.debts.isEmpty
-                    ? null
-                    : () => showStatement(context, personId),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(60, 52),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.sm,
-                    vertical: AppSpacing.xs,
-                  ),
-                  side: BorderSide(color: palette.borderStrong),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    const Icon(AppIcons.receiptLong, size: 18),
-                    const SizedBox(height: 2),
-                    Text(
-                      localizations.reportStatementShort,
-                      style: theme.textTheme.labelSmall,
-                      maxLines: 1,
-                    ),
+                  if (canPay) ...<Widget>[
+                    const SizedBox(height: AppSpacing.sm),
+                    SizedBox(width: double.infinity, child: addDebt),
                   ],
-                ),
+                ],
+              )
+            : Row(
+                children: <Widget>[
+                  // The two actions share the row between them, each one's label
+                  // free to take a second line. Three parts to the primary and
+                  // one to the secondary left the secondary 17 pixels narrower
+                  // than its own icon and first word at the largest text size on
+                  // a narrow phone, and the row was laid out past the screen.
+                  Expanded(child: primary),
+                  if (canPay) ...<Widget>[
+                    const SizedBox(width: AppSpacing.sm),
+                    // An equal share, not a quarter: two labelled buttons beside
+                    // an icon need half each once the text is large. The
+                    // hierarchy is carried by filled-against-outlined, which is
+                    // what the eye reads anyway, and both labels stay whole.
+                    Expanded(child: addDebt),
+                  ],
+                  const SizedBox(width: AppSpacing.sm),
+                  statement,
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

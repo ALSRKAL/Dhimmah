@@ -734,31 +734,104 @@ class SegmentedField<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Widget segmented = SizedBox(
-      width: double.infinity,
-      child: SegmentedButton<T>(
-        segments: <ButtonSegment<T>>[
-          for (final T option in options)
-            ButtonSegment<T>(
-              value: option,
-              label: Text(labelOf(option)),
-              icon: iconOf == null ? null : Icon(iconOf!(option), size: 18),
+    final bool tall = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final AppPalette palette = context.palette;
+    // A segmented button fixes its own height, so at 2.0 a two-line option is
+    // drawn past its edge. Stacked full-width choices let the label decide the
+    // height, and there are at most a handful of options.
+    final Widget control = tall
+        ? Column(
+            children: <Widget>[
+              for (int index = 0; index < options.length; index++) ...<Widget>[
+                if (index > 0) const SizedBox(height: AppSpacing.sm),
+                _TallSegment(
+                  selected: options[index] == value,
+                  label: labelOf(options[index]),
+                  icon: iconOf?.call(options[index]),
+                  onTap: () => onChanged(options[index]),
+                  palette: palette,
+                ),
+              ],
+            ],
+          )
+        : SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<T>(
+              segments: <ButtonSegment<T>>[
+                for (final T option in options)
+                  ButtonSegment<T>(
+                    value: option,
+                    label: Text(labelOf(option)),
+                    icon:
+                        iconOf == null ? null : Icon(iconOf!(option), size: 18),
+                  ),
+              ],
+              selected: <T>{value},
+              showSelectedIcon: false,
+              onSelectionChanged: (Set<T> selection) {
+                if (selection.isNotEmpty) onChanged(selection.first);
+              },
             ),
-        ],
-        selected: <T>{value},
-        showSelectedIcon: false,
-        onSelectionChanged: (Set<T> selection) {
-          if (selection.isNotEmpty) onChanged(selection.first);
-        },
-      ),
-    );
-    if (label == null) return segmented;
+          );
+    if (label == null) return control;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         FieldLabel(label!),
-        segmented,
+        control,
       ],
+    );
+  }
+}
+
+/// One option of a [SegmentedField] when the text is too large for a joined
+/// segmented control. Full width, so its label can take the height it needs.
+class _TallSegment extends StatelessWidget {
+  const _TallSegment({
+    required this.selected,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    required this.palette,
+  });
+
+  final bool selected;
+  final String label;
+  final IconData? icon;
+  final VoidCallback onTap;
+  final AppPalette palette;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onTap,
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size(0, 52),
+          alignment: AlignmentDirectional.centerStart,
+          backgroundColor:
+              selected ? palette.brandContainer : palette.surface,
+          foregroundColor:
+              selected ? palette.onBrandContainer : palette.textPrimary,
+          side: BorderSide(
+            color: selected ? palette.brand : palette.borderStrong,
+          ),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md,
+            vertical: AppSpacing.sm,
+          ),
+        ),
+        child: Row(
+          children: <Widget>[
+            if (icon != null) ...<Widget>[
+              Icon(icon, size: 20),
+              const SizedBox(width: AppSpacing.sm),
+            ],
+            Flexible(child: Text(label, textAlign: TextAlign.start)),
+          ],
+        ),
+      ),
     );
   }
 }

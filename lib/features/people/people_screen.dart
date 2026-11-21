@@ -245,9 +245,8 @@ class _PersonRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final AppLocalizations localizations = AppLocalizations.of(context);
-    final AppPalette palette = context.palette;
-    final ThemeData theme = Theme.of(context);
+    final bool stacked =
+        MediaQuery.textScalerOf(context).scale(1) > 1.3;
 
     return InkWell(
       onTap: () => context.push(
@@ -263,6 +262,8 @@ class _PersonRow extends StatelessWidget {
           vertical: AppSpacing.md,
         ),
         child: Row(
+          crossAxisAlignment:
+              stacked ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: <Widget>[
             PersonAvatar.of(
               entry.person,
@@ -273,63 +274,119 @@ class _PersonRow extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Flexible(
-                        child: Text(
-                          entry.person.name,
-                          style: theme.textTheme.titleSmall,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (entry.hasOverdue) ...<Widget>[
-                        const SizedBox(width: AppSpacing.sm),
-                        Icon(
-                          AppIcons.error,
-                          size: 14,
-                          color: palette.overdue,
+              child: stacked
+                  // At 2.0 the name and the two-sided balance each need most of
+                  // the row, so sharing it left every one of them cut: the
+                  // person's name, the word beside each amount, and the debt
+                  // count. Stacking keeps the figures whole and lets the name
+                  // take a second line instead.
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        _PersonHeading(entry: entry, maxLines: 2),
+                        const SizedBox(height: 2),
+                        _PersonDebtCount(entry: entry, maxLines: 2),
+                        const SizedBox(height: AppSpacing.xs),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: _PersonBalances(totals: entry.totals),
                         ),
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    debtCountLabel(
-                      localizations,
-                      total: entry.debts.length,
-                      open: entry.openDebtCount,
+                    )
+                  : Row(
+                      children: <Widget>[
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: <Widget>[
+                              _PersonHeading(entry: entry, maxLines: 1),
+                              const SizedBox(height: 2),
+                              _PersonDebtCount(entry: entry, maxLines: 1),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: AppSpacing.md),
+                        // The name gives way first — it is truncated with an
+                        // ellipsis and still names the person — and the balances
+                        // give way last, by being drawn smaller rather than cut:
+                        // a shortened amount is a different amount.
+                        //
+                        // Tight, not loose. `Flexible` shares the free space and
+                        // then packs its child at the row's *start*, so the
+                        // balances began at the 50% line and the whole trailing
+                        // half of the row stood empty — the amounts floated in
+                        // the middle in Arabic. Filling the trailing half and
+                        // letting `_PersonBalances`' own `CrossAxisAlignment.end`
+                        // place the figures is what puts them on the edge, and it
+                        // still bounds them so a record-sized amount is scaled
+                        // down rather than overflowing.
+                        Expanded(
+                          child: _PersonBalances(totals: entry.totals),
+                        ),
+                      ],
                     ),
-                    style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            // The name gives way first — it is truncated with an ellipsis and
-            // still names the person — and the balances give way last, by being
-            // drawn smaller rather than cut: a shortened amount is a different
-            // amount.
-            //
-            // Tight, not loose. `Flexible` shares the free space and then packs
-            // its child at the row's *start*, so the balances began at the 50%
-            // line and the whole trailing half of the row stood empty — the
-            // amounts floated in the middle in Arabic. Filling the trailing half
-            // and letting `_PersonBalances`' own `CrossAxisAlignment.end` place
-            // the figures is what puts them on the edge, and it still bounds them
-            // so a record-sized amount is scaled down rather than overflowing.
-            Expanded(
-              child: _PersonBalances(totals: entry.totals),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PersonHeading extends StatelessWidget {
+  const _PersonHeading({required this.entry, required this.maxLines});
+
+  final PersonDirectoryEntry entry;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
+    final ThemeData theme = Theme.of(context);
+    return Row(
+      children: <Widget>[
+        Flexible(
+          child: Text(
+            entry.person.name,
+            style: theme.textTheme.titleSmall,
+            maxLines: maxLines,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (entry.hasOverdue) ...<Widget>[
+          const SizedBox(width: AppSpacing.sm),
+          Icon(
+            AppIcons.error,
+            size: 14,
+            color: palette.overdue,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PersonDebtCount extends StatelessWidget {
+  const _PersonDebtCount({required this.entry, required this.maxLines});
+
+  final PersonDirectoryEntry entry;
+  final int maxLines;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppLocalizations localizations = AppLocalizations.of(context);
+    final ThemeData theme = Theme.of(context);
+    return Text(
+      debtCountLabel(
+        localizations,
+        total: entry.debts.length,
+        open: entry.openDebtCount,
+      ),
+      style: theme.textTheme.bodySmall,
+      maxLines: maxLines,
+      overflow: TextOverflow.ellipsis,
     );
   }
 }

@@ -758,37 +758,65 @@ class _DirectionField extends StatelessWidget {
     final AppLocalizations localizations = AppLocalizations.of(context);
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
+    final bool tall = MediaQuery.textScalerOf(context).scale(1) > 1.3;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
         FieldLabel('${localizations.fieldDirection} *'),
-        SizedBox(
-          width: double.infinity,
-          child: SegmentedButton<DebtDirection>(
-            segments: <ButtonSegment<DebtDirection>>[
-              ButtonSegment<DebtDirection>(
-                value: DebtDirection.iOwe,
-                label: Text(localizations.debtFormSideIOwe),
-                icon: const Icon(AppIcons.arrowUpward, size: 18),
+        // A segmented button has one fixed height. At 2.0 its labels need two
+        // lines, and the second line was drawn below the segment's edge — cut
+        // off entirely. The tall layout trades the joined control for two
+        // choices whose height follows their own text.
+        if (tall)
+          Row(
+            children: <Widget>[
+              Expanded(
+                child: _DirectionChoice(
+                  label: localizations.debtFormSideIOwe,
+                  icon: AppIcons.arrowUpward,
+                  selected: value == DebtDirection.iOwe,
+                  onTap: () => onChanged(DebtDirection.iOwe),
+                ),
               ),
-              ButtonSegment<DebtDirection>(
-                value: DebtDirection.owedToMe,
-                label: Text(localizations.debtFormSideOwedToMe),
-                icon: const Icon(AppIcons.arrowDownward, size: 18),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: _DirectionChoice(
+                  label: localizations.debtFormSideOwedToMe,
+                  icon: AppIcons.arrowDownward,
+                  selected: value == DebtDirection.owedToMe,
+                  onTap: () => onChanged(DebtDirection.owedToMe),
+                ),
               ),
             ],
-            selected: value == null
-                ? const <DebtDirection>{}
-                : <DebtDirection>{value!},
-            // The whole point: nothing is highlighted until the user says so.
-            emptySelectionAllowed: true,
-            showSelectedIcon: false,
-            onSelectionChanged: (Set<DebtDirection> selection) {
-              if (selection.isNotEmpty) onChanged(selection.first);
-            },
+          )
+        else
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<DebtDirection>(
+              segments: <ButtonSegment<DebtDirection>>[
+                ButtonSegment<DebtDirection>(
+                  value: DebtDirection.iOwe,
+                  label: Text(localizations.debtFormSideIOwe),
+                  icon: const Icon(AppIcons.arrowUpward, size: 18),
+                ),
+                ButtonSegment<DebtDirection>(
+                  value: DebtDirection.owedToMe,
+                  label: Text(localizations.debtFormSideOwedToMe),
+                  icon: const Icon(AppIcons.arrowDownward, size: 18),
+                ),
+              ],
+              selected: value == null
+                  ? const <DebtDirection>{}
+                  : <DebtDirection>{value!},
+              // The whole point: nothing is highlighted until the user says so.
+              emptySelectionAllowed: true,
+              showSelectedIcon: false,
+              onSelectionChanged: (Set<DebtDirection> selection) {
+                if (selection.isNotEmpty) onChanged(selection.first);
+              },
+            ),
           ),
-        ),
         if (errorText != null)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.sm),
@@ -800,6 +828,71 @@ class _DirectionField extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+/// One half of the tall direction choice: a full-height target whose label
+/// wraps instead of being clipped by a fixed segment.
+class _DirectionChoice extends StatelessWidget {
+  const _DirectionChoice({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final AppPalette palette = context.palette;
+    final ThemeData theme = Theme.of(context);
+    final Color background =
+        selected ? palette.brandContainer : palette.surface;
+    final Color border = selected ? palette.brand : palette.borderStrong;
+    final Color foreground =
+        selected ? palette.onBrandContainer : palette.textPrimary;
+
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: Material(
+        color: background,
+        shape: RoundedRectangleBorder(
+          borderRadius: AppRadius.rMd,
+          side: BorderSide(color: border),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.md,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Icon(icon, size: 20, color: foreground),
+                const SizedBox(width: AppSpacing.xs),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: foreground,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
