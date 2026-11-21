@@ -536,59 +536,91 @@ class _PersonActions extends ConsumerWidget {
     final bool canPay = ledger.debts.any(
       (DebtView view) => view.isOpen && !view.debt.isShared,
     );
-    final bool tall = MediaQuery.textScalerOf(context).scale(1) > 1.3;
-    // The statement's caption is a third label in a row that already has two.
-    // On a 320-wide phone, even at the normal text size, it left the primary
-    // button 74 wide — narrower than its own icon, gap and padding.
-    final bool narrow = MediaQuery.sizeOf(context).width < 360;
-    final bool stacked = tall || narrow;
+    final double textScale = MediaQuery.textScalerOf(context).scale(1);
+    // Three labelled actions never share a line. On the 412-wide phone the
+    // primary was left 74 pixels narrower than its own icon, gap and padding at
+    // the normal size, and "record a payment" broke after its first word.
+    final bool large = textScale > 1.25;
+    // At 2.0 on a 320-wide phone, "add a debt" and "statement" together need
+    // every pixel left between the margins. Their marks give up their space
+    // before either label is allowed to wrap or shrink.
+    final bool huge = textScale > 1.5;
 
-    final Widget primary = FilledButton.icon(
-      onPressed: canPay
-          ? () => showPersonPaymentSheet(
-                context,
-                personId: personId,
-                ledger: ledger,
-              )
-          : () => context.push(
-                '${AppRoutes.debtNew}?person=$personId',
-              ),
-      icon: Icon(
-        canPay ? AppIcons.payments : AppIcons.add,
-        size: tall ? 24 : 20,
-      ),
-      label: Text(
-        canPay
-            ? localizations.detailRecordPayment
-            : localizations.addDebtAction,
-        maxLines: tall ? 1 : 2,
-        textAlign: TextAlign.center,
-      ),
-    );
+    Widget oneLine(String text) => Text(
+          text,
+          maxLines: 1,
+          softWrap: false,
+          textAlign: TextAlign.center,
+        );
 
-    final Widget addDebt = OutlinedButton.icon(
-      onPressed: () => context.push('${AppRoutes.debtNew}?person=$personId'),
-      icon: Icon(AppIcons.add, size: tall ? 22 : 18),
-      label: Text(
-        localizations.addDebtAction,
-        maxLines: tall ? 1 : 2,
-        textAlign: TextAlign.center,
-      ),
-    );
+    void openAddDebt() =>
+        context.push('${AppRoutes.debtNew}?person=$personId');
+    final VoidCallback primaryAction = canPay
+        ? () => showPersonPaymentSheet(
+              context,
+              personId: personId,
+              ledger: ledger,
+            )
+        : openAddDebt;
+
+    final Widget primary = huge
+        ? FilledButton(
+            onPressed: primaryAction,
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+            ),
+            child: oneLine(
+              canPay
+                  ? localizations.detailRecordPayment
+                  : localizations.addDebtAction,
+            ),
+          )
+        : FilledButton.icon(
+            onPressed: primaryAction,
+            icon: Icon(
+              canPay ? AppIcons.payments : AppIcons.add,
+              size: large ? 24 : 20,
+            ),
+            label: oneLine(
+              canPay
+                  ? localizations.detailRecordPayment
+                  : localizations.addDebtAction,
+            ),
+          );
+
+    final Widget addDebt = huge
+        ? OutlinedButton(
+            onPressed: openAddDebt,
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+            ),
+            child: oneLine(localizations.addDebtAction),
+          )
+        : OutlinedButton.icon(
+            onPressed: openAddDebt,
+            style: large
+                ? OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                    ),
+                  )
+                : null,
+            icon: Icon(AppIcons.add, size: large ? 22 : 18),
+            label: oneLine(localizations.addDebtAction),
+          );
 
     final Widget statement = Tooltip(
       message: localizations.reportShareStatement,
       child: OutlinedButton(
-        // A caption under the mark, not a third full-width label: the row has
-        // two labelled actions already, and a third one would take the width
-        // the other two need at a large text size.
+        // A caption under the mark keeps the third action from reading as a
+        // second primary. Its label is still one line at every tested scale.
         onPressed: ledger.debts.isEmpty
             ? null
             : () => showStatement(context, personId),
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(60, 52),
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm,
+          padding: EdgeInsets.symmetric(
+            horizontal: large ? 2 : AppSpacing.sm,
             vertical: AppSpacing.xs,
           ),
           side: BorderSide(color: palette.borderStrong),
@@ -602,6 +634,7 @@ class _PersonActions extends ConsumerWidget {
               localizations.reportStatementShort,
               style: theme.textTheme.labelSmall,
               maxLines: 1,
+              softWrap: false,
             ),
           ],
         ),
@@ -621,48 +654,26 @@ class _PersonActions extends ConsumerWidget {
           AppSpacing.lg,
           AppSpacing.md,
         ),
-        child: stacked
-            // At 2.0, and on a 320-wide phone at any size, three buttons on one
-            // line left "record payment" split mid-word and the icon stranded
-            // above it. The primary and the statement share the first line;
-            // "add debt" takes a full line underneath, where its label stays
-            // whole.
-            ? Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Row(
-                    children: <Widget>[
-                      Expanded(child: primary),
-                      const SizedBox(width: AppSpacing.sm),
-                      statement,
-                    ],
-                  ),
-                  if (canPay) ...<Widget>[
-                    const SizedBox(height: AppSpacing.sm),
-                    SizedBox(width: double.infinity, child: addDebt),
-                  ],
-                ],
-              )
-            : Row(
-                children: <Widget>[
-                  // The two actions share the row between them, each one's label
-                  // free to take a second line. Three parts to the primary and
-                  // one to the secondary left the secondary 17 pixels narrower
-                  // than its own icon and first word at the largest text size on
-                  // a narrow phone, and the row was laid out past the screen.
-                  Expanded(child: primary),
-                  if (canPay) ...<Widget>[
-                    const SizedBox(width: AppSpacing.sm),
-                    // An equal share, not a quarter: two labelled buttons beside
-                    // an icon need half each once the text is large. The
-                    // hierarchy is carried by filled-against-outlined, which is
-                    // what the eye reads anyway, and both labels stay whole.
-                    Expanded(child: addDebt),
-                  ],
-                  const SizedBox(width: AppSpacing.sm),
-                  statement,
-                ],
-              ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            primary,
+            const SizedBox(height: AppSpacing.sm),
+            // Wrapping rather than a Row is the safety valve at text sizes
+            // beyond the tested ones: the two actions move to separate lines
+            // instead of either label being clipped.
+            Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.sm,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: <Widget>[
+                if (canPay) addDebt,
+                statement,
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
