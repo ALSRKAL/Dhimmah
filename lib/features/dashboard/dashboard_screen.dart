@@ -503,7 +503,12 @@ class _AttentionAmounts extends StatelessWidget {
             )
           : Row(
               mainAxisSize: MainAxisSize.min,
-              children: <Widget>[labelText, moneyText],
+              children: <Widget>[
+                // The label may take a second line on the narrowest phone even
+                // at the normal text size; the amount beside it stays whole.
+                Flexible(child: labelText),
+                moneyText,
+              ],
             );
     }
 
