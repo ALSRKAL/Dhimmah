@@ -277,7 +277,7 @@ void main() {
 
   /// The labels the walk needs, in the script under test.
   ({String people, String ledger, String obligations, String more,
-    String reports, String payment, String filters, String manageIncome,
+    String monthMovement, String payment, String filters, String manageIncome,
     String income, String commitments, String paid, String unpaid,
     String overdue, String net}) labels(bool english) => english
       ? (
@@ -285,7 +285,7 @@ void main() {
           ledger: 'Ledger',
           obligations: 'Obligations',
           more: 'More',
-          reports: 'Reports',
+          monthMovement: 'This month\'s movement',
           payment: 'Record a payment',
           filters: 'Filters',
           manageIncome: 'Manage income',
@@ -301,7 +301,7 @@ void main() {
           ledger: 'السجل',
           obligations: 'التزامات',
           more: 'المزيد',
-          reports: 'التقارير',
+          monthMovement: 'حركة الشهر',
           payment: 'تسجيل دفعة',
           filters: 'الفلاتر',
           manageIncome: 'إدارة الدخل',
@@ -331,7 +331,7 @@ void main() {
       String ledger,
       String obligations,
       String more,
-      String reports,
+      String monthMovement,
       String payment,
       String filters,
       String manageIncome,
@@ -551,7 +551,7 @@ void main() {
 
     // ---- 7. Reports: the position card's rows. ---------------------------
     await tapTab(tester, text.more);
-    await tester.tap(find.text(text.reports));
+    await tester.tap(find.text(text.monthMovement));
     await settle(tester);
     // Let the route transition finish before dragging; a drag that lands on the
     // transition's barrier scrolls nothing and warns.

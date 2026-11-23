@@ -67,7 +67,7 @@ void main() {
     // The report lives behind the "more" tab.
     await tester.tap(find.text('المزيد').last);
     await settle(tester);
-    await tester.tap(find.text('التقارير').first);
+    await tester.tap(find.text('حركة الشهر'));
     await settle(tester);
 
     expect(find.byType(ReportsScreen), findsOneWidget);

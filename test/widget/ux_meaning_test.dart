@@ -1,6 +1,7 @@
 import 'package:dhimmah/core/theme/app_icons.dart';
 import 'package:dhimmah/data/database/app_database.dart';
 import 'package:dhimmah/domain/entities/drafts.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../support/app_harness.dart';
@@ -52,6 +53,14 @@ void main() {
     await settle(tester);
 
     expect(find.text('قرض سيارة'), findsOneWidget);
+    // The action bar is two rows now, so the third record can start below the
+    // fold on the test surface; it is still on the page, one scroll away.
+    await tester.scrollUntilVisible(
+      find.text('Transfer'),
+      220,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await settle(tester);
     expect(find.text('Transfer'), findsOneWidget);
   });
 
@@ -61,7 +70,7 @@ void main() {
     await settle(tester);
     await tester.tap(find.text('المزيد').last);
     await settle(tester);
-    await tester.tap(find.text('التقارير'));
+    await tester.tap(find.text('حركة الشهر'));
     await settle(tester);
 
     expect(find.text('إجمالي ما تم سداده'), findsNothing);
