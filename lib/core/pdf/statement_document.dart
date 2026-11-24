@@ -27,6 +27,7 @@ abstract final class DocumentColors {
   // document from a different product.
   static const PdfColor ink = PdfColor.fromInt(0xFF1C1917);
   static const PdfColor secondary = PdfColor.fromInt(0xFF6B655C);
+
   /// Decoration only. At about 3.3:1 on white it is below what small text
   /// needs, so nothing that is read is set in it: labels, the footer and the
   /// document number use [secondary].
@@ -74,11 +75,13 @@ abstract class _Sheet {
 
   /// The most pages a generated document may take.
   ///
-  /// The `pdf` package defaults to 20, which a long but ordinary history can
-  /// exceed; the user then saw «تعذّر التصدير» instead of the statement. Five
-  /// hundred A4 pages holds over ten thousand movement rows, far beyond a
-  /// person's ledger. If a document ever exceeds it, generation fails rather
-  /// than silently dropping the end, and the preview still offers retry.
+  /// This is a backstop, not the fix for a long statement. The actual limit is
+  /// that every widget the paginator is handed stays shorter than a page: the
+  /// notes are split by height below, and a payment note inside a table row is
+  /// capped. Five hundred A4 pages is far beyond a person's ledger and still
+  /// fails rather than silently dropping the end. The package's own check is
+  /// inside an `assert`, so it does not protect a release build; it is not
+  /// relied on here.
   static const int maxDocumentPages = 500;
 
   /// How much of a user string a fixed-width cell may show.
@@ -106,6 +109,97 @@ abstract class _Sheet {
           ),
         ),
     ];
+  }
+
+  /// How a note is broken so no piece is taller than a page.
+  ///
+  /// A line is at most [noteLineRunes] runes, and a piece at most
+  /// [noteLinesPerChunk] lines. At the note's 10pt type with 2pt leading that
+  /// is 32 lines (about 400pt), well inside the 755pt a page offers. A normal
+  /// note — one paragraph, or a handful of lines — is returned unchanged and
+  /// keeps its single bordered box; only a note that would be taller than a
+  /// page is split.
+  static const int noteLineRunes = 45;
+  static const int noteLinesPerChunk = 32;
+  static const int noteNaturalLines = 32;
+
+  static List<String> noteChunks(String value) {
+    final String normalized = value
+        .replaceAll('\r\n', '\n')
+        .replaceAll('\r', '\n');
+    if (normalized.trim().isEmpty) return <String>[normalized];
+    final List<String> logical = normalized.split('\n');
+    int estimatedLines = 0;
+    for (final String line in logical) {
+      final int runes = line.runes.length;
+      estimatedLines += runes == 0
+          ? 1
+          : (runes + noteLineRunes - 1) ~/ noteLineRunes;
+    }
+    if (estimatedLines <= noteNaturalLines) return <String>[normalized];
+
+    final List<String> physical = <String>[];
+    for (final String line in logical) {
+      physical.addAll(_wrapNoteLine(line));
+    }
+    final List<String> chunks = <String>[];
+    for (int start = 0; start < physical.length; start += noteLinesPerChunk) {
+      final int end = start + noteLinesPerChunk > physical.length
+          ? physical.length
+          : start + noteLinesPerChunk;
+      chunks.add(physical.sublist(start, end).join('\n'));
+    }
+    return chunks;
+  }
+
+  /// Breaks one logical line at words first, and a word that is wider than the
+  /// page at characters. Every returned string is one visual line at most.
+  static List<String> _wrapNoteLine(String line) {
+    if (line.isEmpty) return <String>[''];
+    final List<String> out = <String>[];
+    final StringBuffer buffer = StringBuffer();
+    void flush() {
+      if (buffer.isNotEmpty) {
+        out.add(buffer.toString());
+        buffer.clear();
+      }
+    }
+
+    for (final String word in line.split(' ')) {
+      if (word.isEmpty) continue;
+      final List<int> runes = word.runes.toList(growable: false);
+      if (runes.length > noteLineRunes) {
+        flush();
+        for (int start = 0; start < runes.length; start += noteLineRunes) {
+          final int end = start + noteLineRunes > runes.length
+              ? runes.length
+              : start + noteLineRunes;
+          out.add(String.fromCharCodes(runes.sublist(start, end)));
+        }
+        continue;
+      }
+      if (buffer.isEmpty) {
+        buffer.write(word);
+      } else if (buffer.length + 1 + word.length <= noteLineRunes) {
+        buffer.write(' $word');
+      } else {
+        flush();
+        buffer.write(word);
+      }
+    }
+    flush();
+    return out.isEmpty ? <String>[''] : out;
+  }
+
+  /// The inline form of a payment note: two table lines at most, with an
+  /// ellipsis. The full text is printed in the notes section.
+  static const int paymentNoteRunes = 40;
+
+  static String capPaymentNote(String value) {
+    final String oneLine = value.replaceAll(RegExp(r'\s+'), ' ').trim();
+    final List<int> runes = oneLine.runes.toList(growable: false);
+    if (runes.length <= paymentNoteRunes) return oneLine;
+    return '${String.fromCharCodes(runes.take(paymentNoteRunes - 1))}…';
   }
 
   /// The visible form of an overlong user string.
@@ -230,8 +324,7 @@ abstract class _Sheet {
     final String shaped = pdfText(logical);
     return pw.Text(
       rtl ? rightToLeftParagraphs(shaped) : shaped,
-      textDirection:
-          rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
+      textDirection: rtl ? pw.TextDirection.rtl : pw.TextDirection.ltr,
       textAlign: alignRight
           ? (rtl ? pw.TextAlign.start : pw.TextAlign.end)
           : (rtl ? pw.TextAlign.end : pw.TextAlign.start),
@@ -278,12 +371,12 @@ abstract class _Sheet {
       }
       final bool rightToLeft = readsRightToLeft(words, fallback: _isRtl);
       pw.Widget lineOf(List<String> line) => _line(
-            line,
-            style: style,
-            gap: gap,
-            alignRight: alignRight,
-            rightToLeft: rightToLeft,
-          );
+        line,
+        style: style,
+        gap: gap,
+        alignRight: alignRight,
+        rightToLeft: rightToLeft,
+      );
 
       List<String> line = <String>[];
       double width = 0;
@@ -306,8 +399,9 @@ abstract class _Sheet {
 
     final double spacing = style.lineSpacing ?? 0;
     return pw.Column(
-      crossAxisAlignment:
-          alignRight ? pw.CrossAxisAlignment.end : pw.CrossAxisAlignment.start,
+      crossAxisAlignment: alignRight
+          ? pw.CrossAxisAlignment.end
+          : pw.CrossAxisAlignment.start,
       children: <pw.Widget>[
         for (int i = 0; i < lines.length; i++) ...<pw.Widget>[
           if (i > 0 && spacing > 0) pw.SizedBox(height: spacing),
@@ -332,8 +426,9 @@ abstract class _Sheet {
     );
     return pw.Row(
       mainAxisSize: pw.MainAxisSize.min,
-      mainAxisAlignment:
-          alignRight ? pw.MainAxisAlignment.end : pw.MainAxisAlignment.start,
+      mainAxisAlignment: alignRight
+          ? pw.MainAxisAlignment.end
+          : pw.MainAxisAlignment.start,
       children: <pw.Widget>[
         for (int i = 0; i < drawn.length; i++) ...<pw.Widget>[
           if (i > 0) pw.SizedBox(width: gap),
@@ -353,7 +448,11 @@ abstract class _Sheet {
   pw.Widget _word(String word, pw.TextStyle style) {
     final String? reversed = reversedArabicWord(word);
     if (reversed != null) {
-      return pw.Text(reversed, textDirection: pw.TextDirection.ltr, style: style);
+      return pw.Text(
+        reversed,
+        textDirection: pw.TextDirection.ltr,
+        style: style,
+      );
     }
     final bool rtl = containsArabic(word);
     return pw.Text(
@@ -452,25 +551,25 @@ abstract class _Sheet {
     bool showCoverage = true,
   }) {
     pw.Widget line(String label, String value) => _row(
-          children: <pw.Widget>[
-            _text(
-              label,
-              style: const pw.TextStyle(
-                fontSize: 9,
-                color: DocumentColors.secondary,
-              ),
-            ),
-            pw.SizedBox(width: 6),
-            _text(
-              value,
-              style: pw.TextStyle(
-                fontSize: 9.5,
-                fontWeight: pw.FontWeight.bold,
-                color: DocumentColors.ink,
-              ),
-            ),
-          ],
-        );
+      children: <pw.Widget>[
+        _text(
+          label,
+          style: const pw.TextStyle(
+            fontSize: 9,
+            color: DocumentColors.secondary,
+          ),
+        ),
+        pw.SizedBox(width: 6),
+        _text(
+          value,
+          style: pw.TextStyle(
+            fontSize: 9.5,
+            fontWeight: pw.FontWeight.bold,
+            color: DocumentColors.ink,
+          ),
+        ),
+      ],
+    );
 
     final bool hasPeriod = periodFrom != null && periodTo != null;
     return pw.Column(
@@ -478,10 +577,7 @@ abstract class _Sheet {
       children: <pw.Widget>[
         line(localizations.reportDocumentNumber, number),
         pw.SizedBox(height: 3),
-        line(
-          localizations.reportIssuedOn,
-          formatting.date(issuedAt),
-        ),
+        line(localizations.reportIssuedOn, formatting.date(issuedAt)),
         // A receipt has already said when the payment happened and when it was
         // issued; repeating the issue date under "As of" would say one fact
         // twice. A statement has no other line that says what it covers.
@@ -598,6 +694,7 @@ abstract class _Sheet {
       ),
     );
   }
+
   /// One table implementation for both statements.
   ///
   /// A repeating header and a row that may not split keep a long payment history
@@ -624,64 +721,63 @@ abstract class _Sheet {
     /// Whether a column's content sits on the far side of the reading order.
     bool atEndFor(int column) => column >= numericFrom;
 
-    final double fractionTotal =
-        widthFractions.fold<double>(0, (double a, double b) => a + b);
+    final double fractionTotal = widthFractions.fold<double>(
+      0,
+      (double a, double b) => a + b,
+    );
     double widthOf(int column) =>
         _contentWidth * widthFractions[column] / fractionTotal;
 
     pw.TableRow header() => pw.TableRow(
-          repeat: true,
-          decoration: const pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: DocumentColors.brand),
-            ),
+      repeat: true,
+      decoration: const pw.BoxDecoration(
+        border: pw.Border(bottom: pw.BorderSide(color: DocumentColors.brand)),
+      ),
+      children: <pw.Widget>[
+        for (final int column in order)
+          _cell(
+            headers[column],
+            atEnd: atEndFor(column),
+            bold: true,
+            color: DocumentColors.brand,
+            size: 9,
+            maxWidth: widthOf(column),
+            padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
           ),
-          children: <pw.Widget>[
-            for (final int column in order)
-              _cell(
-                headers[column],
-                atEnd: atEndFor(column),
-                bold: true,
-                color: DocumentColors.brand,
-                size: 9,
-                maxWidth: widthOf(column),
-                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
-              ),
-          ],
-        );
+      ],
+    );
 
     pw.TableRow row(
       List<String> values,
       int index, {
       bool isTotal = false,
       bool isOpening = false,
-    }) =>
-        pw.TableRow(
-          decoration: pw.BoxDecoration(
+    }) => pw.TableRow(
+      decoration: pw.BoxDecoration(
+        color: isTotal
+            ? DocumentColors.brandTint
+            : (isOpening
+                  ? null
+                  : (index.isEven ? DocumentColors.rowTint : null)),
+        border: const pw.Border(
+          bottom: pw.BorderSide(color: DocumentColors.border, width: 0.6),
+        ),
+      ),
+      children: <pw.Widget>[
+        for (final int column in order)
+          _cell(
+            column < values.length ? values[column] : '',
+            atEnd: atEndFor(column),
+            bold: isTotal,
             color: isTotal
-                ? DocumentColors.brandTint
-                : (isOpening
-                    ? null
-                    : (index.isEven ? DocumentColors.rowTint : null)),
-            border: const pw.Border(
-              bottom: pw.BorderSide(color: DocumentColors.border, width: 0.6),
-            ),
+                ? DocumentColors.brand
+                : (isOpening ? DocumentColors.secondary : DocumentColors.ink),
+            size: 9.5,
+            maxWidth: widthOf(column),
+            padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
           ),
-          children: <pw.Widget>[
-            for (final int column in order)
-              _cell(
-                column < values.length ? values[column] : '',
-                atEnd: atEndFor(column),
-                bold: isTotal,
-                color: isTotal
-                    ? DocumentColors.brand
-                    : (isOpening ? DocumentColors.secondary : DocumentColors.ink),
-                size: 9.5,
-                maxWidth: widthOf(column),
-                padding: const pw.EdgeInsets.symmetric(vertical: 6, horizontal: 5),
-              ),
-          ],
-        );
+      ],
+    );
 
     return pw.Table(
       // The renderer keys a width by where the cell is drawn, not by which
@@ -696,8 +792,7 @@ abstract class _Sheet {
         header(),
         if (openingRow != null) row(openingRow, -1, isOpening: true),
         for (int i = 0; i < rows.length; i++) row(rows[i], i),
-        if (totalRow != null)
-          row(totalRow, rows.length, isTotal: true),
+        if (totalRow != null) row(totalRow, rows.length, isTotal: true),
       ],
     );
   }
@@ -736,7 +831,6 @@ abstract class _Sheet {
       ),
     );
   }
-
 }
 
 /// Renders a debt statement as a real document.
@@ -774,7 +868,6 @@ class StatementDocument extends _Sheet {
 
   @override
   bool get _isRtl => data.language.isRtl;
-
 
   /// The room inside the party card, inside its padding.
   static const double _partyWidth = _contentWidth - 14 * 2;
@@ -864,7 +957,8 @@ class StatementDocument extends _Sheet {
           _partyBlock(),
           pw.SizedBox(height: 18),
           _summaryBlock(),
-          if (data.options.includeDebtBreakdown && data.debts.length > 1) ...<pw.Widget>[
+          if (data.options.includeDebtBreakdown &&
+              data.debts.length > 1) ...<pw.Widget>[
             _keepWithNext(_tableLead),
             pw.SizedBox(height: 20),
             _sectionTitle(localizations.reportDebtsBreakdown),
@@ -899,7 +993,7 @@ class StatementDocument extends _Sheet {
             pw.SizedBox(height: 20),
             _sectionTitle(localizations.fieldNote),
             pw.SizedBox(height: 6),
-            _notesBlock(data.notes!),
+            ..._notesWidgets(data.notes!),
           ],
           if (_fullValues.isNotEmpty) ...<pw.Widget>[
             pw.SizedBox(height: 20),
@@ -934,12 +1028,12 @@ class StatementDocument extends _Sheet {
   // --- Header --------------------------------------------------------------
 
   pw.Widget _header() => _headerOf(
-        title: _documentTitle,
-        number: data.documentNumber,
-        issuedAt: data.generatedAt,
-        periodFrom: data.periodFrom,
-        periodTo: data.periodTo,
-      );
+    title: _documentTitle,
+    number: data.documentNumber,
+    issuedAt: data.generatedAt,
+    periodFrom: data.periodFrom,
+    periodTo: data.periodTo,
+  );
 
   pw.Widget _runningHeader() {
     return pw.Container(
@@ -975,7 +1069,8 @@ class StatementDocument extends _Sheet {
   // --- Party ---------------------------------------------------------------
 
   pw.Widget _partyBlock() {
-    final bool showPhone = data.options.includePhone &&
+    final bool showPhone =
+        data.options.includePhone &&
         data.phone != null &&
         data.phone!.trim().isNotEmpty;
 
@@ -993,7 +1088,10 @@ class StatementDocument extends _Sheet {
         children: <pw.Widget>[
           _text(
             localizations.reportStatementFor,
-            style: const pw.TextStyle(fontSize: 9, color: DocumentColors.secondary),
+            style: const pw.TextStyle(
+              fontSize: 9,
+              color: DocumentColors.secondary,
+            ),
             maxWidth: _partyWidth,
           ),
           pw.SizedBox(height: 4),
@@ -1097,16 +1195,18 @@ class StatementDocument extends _Sheet {
     // the reader asked what was left at that moment, not what is left today.
     final int? closing = data.closingBalanceMinor;
     if (data.hasPeriod && closing != null) {
-      if (closing == 0) return (localizations.reportNothingOutstanding, nothing);
+      if (closing == 0) {
+        return (localizations.reportNothingOutstanding, nothing);
+      }
       final bool owedByPerson = closing > 0;
       return (
         data.isMixed
             ? (owedByPerson
-                ? localizations.reportNetOwedByName(_name)
-                : localizations.reportNetOwedToName(_name))
+                  ? localizations.reportNetOwedByName(_name)
+                  : localizations.reportNetOwedToName(_name))
             : (owedByPerson
-                ? localizations.reportOwedByName(_name)
-                : localizations.reportOwedToName(_name)),
+                  ? localizations.reportOwedByName(_name)
+                  : localizations.reportOwedToName(_name)),
         Money(closing.abs(), data.currency),
       );
     }
@@ -1223,10 +1323,7 @@ class StatementDocument extends _Sheet {
       ];
     }
     return <pw.Widget>[
-      _factCell(
-        label: localizations.detailTotal,
-        value: _money(data.total),
-      ),
+      _factCell(label: localizations.detailTotal, value: _money(data.total)),
       pw.SizedBox(width: 10),
       _factCell(
         label: localizations.reportColumnPaid,
@@ -1281,8 +1378,9 @@ class StatementDocument extends _Sheet {
   /// and the percentage beside it says the same thing in words. Not drawn for
   /// a two-sided statement, where "paid" would add two people's payments.
   pw.Widget _progressBar() {
-    final double fraction =
-        (data.paidMinor / data.totalMinor).clamp(0.0, 1.0).toDouble();
+    final double fraction = (data.paidMinor / data.totalMinor)
+        .clamp(0.0, 1.0)
+        .toDouble();
     // A sliver stays visible: one payment on a large debt is still a payment.
     final double filled = fraction <= 0
         ? 0
@@ -1332,10 +1430,7 @@ class StatementDocument extends _Sheet {
     };
     final String period = data.hasPeriod
         ? ' · ${localizations.reportPeriod}: '
-            '${localizations.reportPeriodRange(
-              formatting.date(data.periodFrom!),
-              formatting.date(data.periodTo!),
-            )}'
+              '${localizations.reportPeriodRange(formatting.date(data.periodFrom!), formatting.date(data.periodTo!))}'
         : '';
     if (data.hiddenSettledCount <= 0) return '$scope$period';
     return '$scope$period · '
@@ -1352,42 +1447,42 @@ class StatementDocument extends _Sheet {
     final (PdfColor color, bool filled, String label) = data.isClearance
         ? (DocumentColors.settled, true, localizations.statusPaid)
         : switch (data.status) {
-      DebtLifecycleStatus.paid => (
-          DocumentColors.settled,
-          true,
-          localizations.statusPaid,
-        ),
-      DebtLifecycleStatus.overdue => (
-          DocumentColors.overdue,
-          true,
-          localizations.statusOverdue,
-        ),
-      DebtLifecycleStatus.dueToday => (
-          DocumentColors.dueSoon,
-          true,
-          localizations.statusDueToday,
-        ),
-      DebtLifecycleStatus.dueSoon => (
-          DocumentColors.dueSoon,
-          false,
-          localizations.statusDueSoon,
-        ),
-      DebtLifecycleStatus.upcoming => (
-          DocumentColors.neutral,
-          false,
-          localizations.statusUpcoming,
-        ),
-      DebtLifecycleStatus.active => (
-          DocumentColors.neutral,
-          false,
-          localizations.statusActive,
-        ),
-      DebtLifecycleStatus.archived => (
-          DocumentColors.muted,
-          false,
-          localizations.statusArchived,
-        ),
-    };
+            DebtLifecycleStatus.paid => (
+              DocumentColors.settled,
+              true,
+              localizations.statusPaid,
+            ),
+            DebtLifecycleStatus.overdue => (
+              DocumentColors.overdue,
+              true,
+              localizations.statusOverdue,
+            ),
+            DebtLifecycleStatus.dueToday => (
+              DocumentColors.dueSoon,
+              true,
+              localizations.statusDueToday,
+            ),
+            DebtLifecycleStatus.dueSoon => (
+              DocumentColors.dueSoon,
+              false,
+              localizations.statusDueSoon,
+            ),
+            DebtLifecycleStatus.upcoming => (
+              DocumentColors.neutral,
+              false,
+              localizations.statusUpcoming,
+            ),
+            DebtLifecycleStatus.active => (
+              DocumentColors.neutral,
+              false,
+              localizations.statusActive,
+            ),
+            DebtLifecycleStatus.archived => (
+              DocumentColors.muted,
+              false,
+              localizations.statusArchived,
+            ),
+          };
 
     return pw.Container(
       padding: const pw.EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -1486,11 +1581,11 @@ class StatementDocument extends _Sheet {
       rows: rows,
       widthFractions: showStatus
           ? (mixed
-              ? const <double>[0.22, 0.08, 0.14, 0.13, 0.14, 0.16, 0.13]
-              : const <double>[0.24, 0.15, 0.14, 0.15, 0.17, 0.15])
+                ? const <double>[0.22, 0.08, 0.14, 0.13, 0.14, 0.16, 0.13]
+                : const <double>[0.24, 0.15, 0.14, 0.15, 0.17, 0.15])
           : (mixed
-              ? const <double>[0.24, 0.09, 0.15, 0.14, 0.15, 0.23]
-              : const <double>[0.27, 0.17, 0.16, 0.18, 0.22]),
+                ? const <double>[0.24, 0.09, 0.15, 0.14, 0.15, 0.23]
+                : const <double>[0.27, 0.17, 0.16, 0.18, 0.22]),
       numericFrom: mixed ? 2 : 1,
       // A total adds like to like. With debts on both sides the summary above
       // states each side and the difference, and one row adding them would not.
@@ -1613,11 +1708,14 @@ class StatementDocument extends _Sheet {
     // Which debt the line belongs to, when there is more than one to tell
     // apart. A payment used to be named by nothing at all.
     final String? title = entry.debtTitle;
-    final String label =
-        title != null && data.debts.length > 1 ? '$base · $title' : base;
+    final String label = title != null && data.debts.length > 1
+        ? '$base · $title'
+        : base;
     final String? note = entry.note?.trim();
     if (!withNote || note == null || note.isEmpty) return label;
-    return '$label\n$note';
+    final String capped = _Sheet.capPaymentNote(note);
+    if (capped.isEmpty) return label;
+    return '$label\n$capped';
   }
 
   /// The balance after a line. With debts on both sides the figure alone does
@@ -1640,68 +1738,61 @@ class StatementDocument extends _Sheet {
   /// amount in separate places; the opening and closing rows are sums of many
   /// rows, so the sign is the only thing that says which side they fall on.
   String _signedBalanceLabel(int signedMinor) {
-    final String amount =
-        _money(Money(signedMinor.abs(), data.currency));
+    final String amount = _money(Money(signedMinor.abs(), data.currency));
     if (!data.isMixed || signedMinor == 0) return amount;
-    return '${_sideWord(signedMinor > 0
-        ? DebtDirection.owedToMe
-        : DebtDirection.iOwe)} · $amount';
+    return '${_sideWord(signedMinor > 0 ? DebtDirection.owedToMe : DebtDirection.iOwe)} · $amount';
   }
 
-  pw.Widget _notesBlock(String notes) {
-    final List<String> chunks = _Sheet.textChunks(notes.trim());
-    // A short note keeps the bordered box it has always had. A note too tall
-    // for one page is printed in pieces instead: one box per piece is the only
-    // shape the paginator can break between.
-    if (chunks.length == 1) {
-      return pw.Container(
-        width: double.infinity,
-        padding: const pw.EdgeInsets.all(11),
-        decoration: pw.BoxDecoration(
-          border: pw.Border.all(color: DocumentColors.border),
-          borderRadius: pw.BorderRadius.circular(6),
-        ),
-        child: _text(
-          notes,
-          style: const pw.TextStyle(
-            fontSize: 10,
-            color: DocumentColors.ink,
-            lineSpacing: 2,
+  /// The notes section, as widgets the paginator may break between.
+  ///
+  /// A short note keeps the bordered box it has always had. A note that would
+  /// be taller than a page is split into pieces of at most 32 lines, one box
+  /// each, so no single widget is taller than a page and the paginator can
+  /// break between boxes.
+  List<pw.Widget> _notesWidgets(String notes) {
+    final List<String> chunks = _Sheet.noteChunks(notes.trim());
+    if (chunks.length <= 1) {
+      return <pw.Widget>[
+        pw.Container(
+          width: double.infinity,
+          padding: const pw.EdgeInsets.all(11),
+          decoration: pw.BoxDecoration(
+            border: pw.Border.all(color: DocumentColors.border),
+            borderRadius: pw.BorderRadius.circular(6),
           ),
-          maxWidth: _contentWidth - 11 * 2,
+          child: _text(
+            chunks.single,
+            style: const pw.TextStyle(
+              fontSize: 10,
+              color: DocumentColors.ink,
+              lineSpacing: 2,
+            ),
+            maxWidth: _contentWidth - 11 * 2,
+          ),
         ),
-      );
+      ];
     }
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-      children: <pw.Widget>[
-        for (final String chunk in chunks)
-          pw.Container(
-            width: double.infinity,
-            padding: const pw.EdgeInsets.symmetric(
-              horizontal: 11,
-              vertical: 5,
-            ),
-            decoration: pw.BoxDecoration(
-              border: pw.Border(
-                bottom: pw.BorderSide(
-                  color: DocumentColors.border,
-                  width: 0.6,
-                ),
-              ),
-            ),
-            child: _text(
-              chunk,
-              style: const pw.TextStyle(
-                fontSize: 10,
-                color: DocumentColors.ink,
-                lineSpacing: 2,
-              ),
-              maxWidth: _contentWidth - 11 * 2,
+    return <pw.Widget>[
+      for (final String chunk in chunks)
+        pw.Container(
+          width: double.infinity,
+          padding: const pw.EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+          decoration: pw.BoxDecoration(
+            border: pw.Border(
+              bottom: pw.BorderSide(color: DocumentColors.border, width: 0.6),
             ),
           ),
-      ],
-    );
+          child: _text(
+            chunk,
+            style: const pw.TextStyle(
+              fontSize: 10,
+              color: DocumentColors.ink,
+              lineSpacing: 2,
+            ),
+            maxWidth: _contentWidth - 11 * 2,
+          ),
+        ),
+    ];
   }
 
   /// The full form of every value a fixed cell had to shorten.
@@ -1709,8 +1800,8 @@ class StatementDocument extends _Sheet {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.stretch,
       children: <pw.Widget>[
-        for (final ({String label, String value}) entry in _fullValues) ...<
-            pw.Widget>[
+        for (final ({String label, String value}) entry
+            in _fullValues) ...<pw.Widget>[
           _text(
             '${entry.label}:',
             style: const pw.TextStyle(

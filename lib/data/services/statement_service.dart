@@ -25,10 +25,7 @@ import '../../l10n/generated/app_localizations.dart';
 /// records belong in a statement, which of the person's currencies it is about,
 /// and what the file is called.
 class StatementService {
-  StatementService({
-    required this.localizations,
-    required this.formatting,
-  });
+  StatementService({required this.localizations, required this.formatting});
 
   final AppLocalizations localizations;
 
@@ -87,12 +84,12 @@ class StatementService {
     // the figure it held then.
     final List<DebtView> base =
         bounded && options.scope == StatementScope.openOnly
-            ? debtsInScope(
-                ledger: ledger,
-                currency: currency,
-                options: options.copyWith(scope: StatementScope.all),
-              )
-            : inCurrency;
+        ? debtsInScope(
+            ledger: ledger,
+            currency: currency,
+            options: options.copyWith(scope: StatementScope.all),
+          )
+        : inCurrency;
 
     // The history is built from every debt that could matter inside the period,
     // including one settled today, so its payments up to the period's end are
@@ -143,12 +140,14 @@ class StatementService {
     // always printed and are used unchanged.
     final int paid = covered.fold<int>(
       0,
-      (int sum, DebtView view) => sum +
+      (int sum, DebtView view) =>
+          sum +
           (bounded ? (history.paidAtEnd[view.debt.id] ?? 0) : view.paidMinor),
     );
     final int remaining = covered.fold<int>(
       0,
-      (int sum, DebtView view) => sum +
+      (int sum, DebtView view) =>
+          sum +
           (bounded
               ? (history.remainingAtEnd[view.debt.id] ?? 0)
               : view.remainingMinor),
@@ -181,8 +180,8 @@ class StatementService {
       // statement of one debt the date can only be that debt's.
       dueDebtTitle:
           covered.length > 1 && dueTitle != null && dueTitle.isNotEmpty
-              ? dueTitle
-              : null,
+          ? dueTitle
+          : null,
       debts: <StatementDebtLine>[
         for (final DebtView view in covered)
           StatementDebtLine(
@@ -203,7 +202,7 @@ class StatementService {
       entries: history.entries,
       options: options,
       notes: options.includeNotes
-          ? _collectedNotes(covered)
+          ? _collectedNotes(covered, history.entries)
           : null,
       hiddenSettledCount: hidden.settled,
       hiddenArchivedCount: hidden.archived,
@@ -225,11 +224,7 @@ class StatementService {
     required List<DebtView>? covered,
   }) {
     if (covered == null) {
-      return hiddenCounts(
-        ledger: ledger,
-        currency: currency,
-        options: options,
-      );
+      return hiddenCounts(ledger: ledger, currency: currency, options: options);
     }
     final Set<String> shown = <String>{
       for (final DebtView view in covered) view.debt.id,
@@ -458,8 +453,8 @@ class StatementService {
     };
     final String? note =
         includeNote && notes.length == 1 && notes.single.isNotEmpty
-            ? notes.single
-            : null;
+        ? notes.single
+        : null;
     String titleOf(DebtView view) {
       final String title = view.debt.title.trim();
       return title.isEmpty ? localizations.reportUntitledDebt : title;
@@ -469,7 +464,8 @@ class StatementService {
     return ReceiptData(
       // From the first part's id, so every part of one payment gives the same
       // number however the receipt was opened.
-      number: 'RCP-$day-${two(now.hour)}${two(now.minute)}-'
+      number:
+          'RCP-$day-${two(now.hour)}${two(now.minute)}-'
           '${StatementData.stableCode(first.id)}',
       issuedAt: now,
       language: formatting.language,
@@ -479,7 +475,9 @@ class StatementService {
       amount: Money(total, currency),
       paidAt: first.paidAt,
       remainingNow: Money(remaining, currency),
-      debtTitle: parts.length == 1 && singleTitle.isNotEmpty ? singleTitle : null,
+      debtTitle: parts.length == 1 && singleTitle.isNotEmpty
+          ? singleTitle
+          : null,
       note: note,
       lines: parts.length < 2
           ? const <ReceiptLine>[]
@@ -554,13 +552,16 @@ class StatementService {
     int removed = 0;
     try {
       final Directory base = root ?? await getApplicationDocumentsDirectory();
-      final Directory statements =
-          Directory(p.join(base.path, generatedFolder));
+      final Directory statements = Directory(
+        p.join(base.path, generatedFolder),
+      );
       if (!await statements.exists()) return 0;
-      final DateTime? cutoff =
-          olderThan == null ? null : (now ?? DateTime.now()).subtract(olderThan);
-      await for (final FileSystemEntity entity
-          in statements.list(followLinks: false)) {
+      final DateTime? cutoff = olderThan == null
+          ? null
+          : (now ?? DateTime.now()).subtract(olderThan);
+      await for (final FileSystemEntity entity in statements.list(
+        followLinks: false,
+      )) {
         if (entity is! File) continue;
         if (p.extension(entity.path).toLowerCase() != '.pdf') continue;
         try {
@@ -647,13 +648,30 @@ class StatementService {
     return earliest;
   }
 
-  /// Notes from the debts, joined so one block carries them all.
-  static String? _collectedNotes(List<DebtView> views) {
+  /// Notes from the debts and from payments, joined so one block carries them
+  /// all. The table prints only a capped form of a payment note; this is where
+  /// its full text survives.
+  static String? _collectedNotes(
+    List<DebtView> views,
+    List<StatementEntry> entries,
+  ) {
     final List<String> notes = <String>[];
     for (final DebtView view in views) {
       final String? note = view.debt.note?.trim();
       if (note == null || note.isEmpty) continue;
       final String label = view.debt.title.trim();
+      notes.add(label.isEmpty ? note : '$label: $note');
+    }
+    final Set<String> seenPayments = <String>{};
+    for (final StatementEntry entry in entries) {
+      if (entry.kind != StatementEntryKind.payment) continue;
+      final String? note = entry.note?.trim();
+      if (note == null || note.isEmpty) continue;
+      final String key =
+          '${entry.date.toIso8601String()}|'
+          '${entry.amountMinor}|$note';
+      if (!seenPayments.add(key)) continue;
+      final String label = entry.debtTitle?.trim() ?? '';
       notes.add(label.isEmpty ? note : '$label: $note');
     }
     if (notes.isEmpty) return null;

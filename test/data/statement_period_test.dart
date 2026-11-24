@@ -44,28 +44,27 @@ void main() {
     required DateTime issuedAt,
     DebtDirection direction = DebtDirection.owedToMe,
     DateTime? dueAt,
-  }) =>
-      Debt(
-        id: id,
-        personIds: const <String>['p1'],
-        direction: direction,
-        title: id,
-        principalMinor: principal,
-        currency: AppCurrency.inr,
-        issuedAt: issuedAt,
-        dueAt: dueAt,
-        createdAt: issuedAt,
-        updatedAt: issuedAt,
-      );
+  }) => Debt(
+    id: id,
+    personIds: const <String>['p1'],
+    direction: direction,
+    title: id,
+    principalMinor: principal,
+    currency: AppCurrency.inr,
+    issuedAt: issuedAt,
+    dueAt: dueAt,
+    createdAt: issuedAt,
+    updatedAt: issuedAt,
+  );
 
   Payment payment(String id, Debt on, int amount, DateTime paidAt) => Payment(
-        id: id,
-        debtId: on.id,
-        amountMinor: amount,
-        currency: on.currency,
-        paidAt: paidAt,
-        createdAt: paidAt,
-      );
+    id: id,
+    debtId: on.id,
+    amountMinor: amount,
+    currency: on.currency,
+    paidAt: paidAt,
+    createdAt: paidAt,
+  );
 
   // One debt on each side, so a period can be asked of a mixed account, and a
   // third debt opened inside the period whose payments only partly settle it.
@@ -117,10 +116,7 @@ void main() {
     );
   }
 
-  final PersonLedger mixed = ledgerOf(
-    <Debt>[first, second, third],
-    payments,
-  );
+  final PersonLedger mixed = ledgerOf(<Debt>[first, second, third], payments);
 
   final AppLocalizations l10n = lookupAppLocalizations(const Locale('ar'));
   final AppFormatting formatting = AppFormatting(
@@ -138,14 +134,13 @@ void main() {
     StatementOptions options, {
     PersonLedger? ledger,
     List<Payment>? all,
-  }) =>
-      service.buildData(
-        ledger: ledger ?? mixed,
-        payments: all ?? payments,
-        currency: AppCurrency.inr,
-        now: today,
-        options: options,
-      );
+  }) => service.buildData(
+    ledger: ledger ?? mixed,
+    payments: all ?? payments,
+    currency: AppCurrency.inr,
+    now: today,
+    options: options,
+  );
 
   /// A movement's effect on the signed balance: a debt on the user's owing side
   /// subtracts, a payment on that side adds back. The two words in the balance
@@ -169,15 +164,21 @@ void main() {
       expect(data.periodFrom, isNull);
       expect(data.periodTo, isNull);
       expect(data.openingBalanceMinor, 0);
-      expect(data.closingBalanceMinor, isNull,
-          reason: 'without a period the closing row reads the last movement');
+      expect(
+        data.closingBalanceMinor,
+        isNull,
+        reason: 'without a period the closing row reads the last movement',
+      );
 
       // Every figure the document printed before this feature, unchanged.
       expect(data.totalMinor, 200000);
       expect(data.paidMinor, 65000);
       expect(data.remainingMinor, 135000);
-      expect(data.entries.length, 7,
-          reason: 'every movement of every debt in the currency');
+      expect(
+        data.entries.length,
+        7,
+        reason: 'every movement of every debt in the currency',
+      );
       final List<StatementEntry> unbounded = buildStatementEntries(
         debts: <Debt>[first, second, third],
         payments: payments,
@@ -192,10 +193,7 @@ void main() {
           data.entries[i].balanceAfterMinor,
           unbounded[i].balanceAfterMinor,
         );
-        expect(
-          data.entries[i].balanceDirection,
-          unbounded[i].balanceDirection,
-        );
+        expect(data.entries[i].balanceDirection, unbounded[i].balanceDirection);
       }
     });
   });
@@ -261,8 +259,11 @@ void main() {
           StatementEntryKind.payment,
         ],
       );
-      expect(data.openingBalanceMinor, 100000,
-          reason: 'the January debt, before the period began');
+      expect(
+        data.openingBalanceMinor,
+        100000,
+        reason: 'the January debt, before the period began',
+      );
       expectBalanced(data);
     });
 
@@ -306,9 +307,13 @@ void main() {
         ),
         ledger: oneSide,
       );
-      expect(data.closingBalanceMinor, data.remainingMinor,
-          reason: 'everything is owed to the user, so the signed figure is '
-              'the same size and the same side');
+      expect(
+        data.closingBalanceMinor,
+        data.remainingMinor,
+        reason:
+            'everything is owed to the user, so the signed figure is '
+            'the same size and the same side',
+      );
     });
 
     test('the owing side: the closing figure is negative and as large', () {
@@ -351,8 +356,9 @@ void main() {
     });
 
     test('one end alone is not a period', () {
-      final StatementOptions half = const StatementOptions(
-      ).copyWith(periodFrom: DateTime(2026));
+      final StatementOptions half = const StatementOptions().copyWith(
+        periodFrom: DateTime(2026),
+      );
       expect(half.hasPeriod, isFalse);
     });
   });
@@ -368,25 +374,28 @@ void main() {
       (DateTime(2026), today),
     ];
 
-    test('the two side cells add up to the closing balance, in every period',
-        () {
-      for (final (DateTime from, DateTime to) in periods) {
-        final StatementData data = build(
-          StatementOptions(
-            scope: StatementScope.all,
-            periodFrom: from,
-            periodTo: to,
-          ),
-        );
-        expect(
-          data.owedToMe.minorUnits - data.iOwe.minorUnits,
-          data.closingBalanceMinor,
-          reason: '$from..$to: the cells and the closing figure are the '
-              'same position, not two different days',
-        );
-        expect(data.net.minorUnits, data.closingBalanceMinor);
-      }
-    });
+    test(
+      'the two side cells add up to the closing balance, in every period',
+      () {
+        for (final (DateTime from, DateTime to) in periods) {
+          final StatementData data = build(
+            StatementOptions(
+              scope: StatementScope.all,
+              periodFrom: from,
+              periodTo: to,
+            ),
+          );
+          expect(
+            data.owedToMe.minorUnits - data.iOwe.minorUnits,
+            data.closingBalanceMinor,
+            reason:
+                '$from..$to: the cells and the closing figure are the '
+                'same position, not two different days',
+          );
+          expect(data.net.minorUnits, data.closingBalanceMinor);
+        }
+      },
+    );
 
     test('the breakdown remaining column adds up to each side cell', () {
       final StatementData data = build(
@@ -397,9 +406,7 @@ void main() {
         ),
       );
       int sumFor({required bool owedToMe}) => data.debts
-          .where(
-            (StatementDebtLine line) => line.direction.isIOwe != owedToMe,
-          )
+          .where((StatementDebtLine line) => line.direction.isIOwe != owedToMe)
           .fold<int>(
             0,
             (int sum, StatementDebtLine line) =>
@@ -409,25 +416,34 @@ void main() {
       expect(sumFor(owedToMe: false), data.iOwe.minorUnits);
     });
 
-    test('a debt opened after the period is in neither the table nor the cells',
-        () {
-      final StatementData data = build(
-        StatementOptions(
-          scope: StatementScope.all,
-          periodFrom: DateTime(2026),
-          periodTo: DateTime(2026, 6, 30),
-        ),
-      );
-      expect(data.debts.map((StatementDebtLine line) => line.title),
-          isNot(contains('third')));
-      expect(
-        data.entries.any((StatementEntry entry) => entry.debtTitle == 'third'),
-        isFalse,
-      );
-      expect(data.debts.length, 2);
-      expect(data.totalMinor, 160000,
-          reason: 'the November debt is not in the period total');
-    });
+    test(
+      'a debt opened after the period is in neither the table nor the cells',
+      () {
+        final StatementData data = build(
+          StatementOptions(
+            scope: StatementScope.all,
+            periodFrom: DateTime(2026),
+            periodTo: DateTime(2026, 6, 30),
+          ),
+        );
+        expect(
+          data.debts.map((StatementDebtLine line) => line.title),
+          isNot(contains('third')),
+        );
+        expect(
+          data.entries.any(
+            (StatementEntry entry) => entry.debtTitle == 'third',
+          ),
+          isFalse,
+        );
+        expect(data.debts.length, 2);
+        expect(
+          data.totalMinor,
+          160000,
+          reason: 'the November debt is not in the period total',
+        );
+      },
+    );
 
     test('a payment after the period is not in the paid column', () {
       final StatementData data = build(
@@ -437,10 +453,14 @@ void main() {
           periodTo: DateTime(2026, 6, 30),
         ),
       );
-      final StatementDebtLine firstLine = data.debts
-          .firstWhere((StatementDebtLine line) => line.title == 'first');
-      expect(firstLine.paid.minorUnits, 30000,
-          reason: 'only the February payment happened by the end of June');
+      final StatementDebtLine firstLine = data.debts.firstWhere(
+        (StatementDebtLine line) => line.title == 'first',
+      );
+      expect(
+        firstLine.paid.minorUnits,
+        30000,
+        reason: 'only the February payment happened by the end of June',
+      );
       expect(firstLine.remaining.minorUnits, 70000);
       expect(data.paidMinor, 40000);
     });
@@ -477,60 +497,70 @@ void main() {
       expect(data.closingBalanceMinor, 100000);
     });
 
-    test('a period that closed at zero is a clearance though a debt opened today',
-        () {
-      final Debt old = debt(
-        'old',
-        principal: 150000,
-        issuedAt: DateTime(2026),
-      );
-      final Debt fresh = debt(
-        'fresh',
-        principal: 50000,
-        issuedAt: today,
-        direction: DebtDirection.iOwe,
-      );
-      final List<Payment> all = <Payment>[
-        payment('old-paid', old, 150000, DateTime(2026, 2)),
-      ];
-      final StatementData data = build(
-        const StatementOptions().copyWith(
-          periodFrom: DateTime(2026),
-          periodTo: DateTime(2026, 2, 28),
-        ),
-        ledger: ledgerOf(<Debt>[old, fresh], all),
-        all: all,
-      );
-      expect(data.closingBalanceMinor, 0);
-      expect(data.isClearance, isTrue);
-      expect(data.fileName, startsWith('Dhimmah_Clearance_'));
-      expect(data.debts.length, 1,
-          reason: 'the debt opened today is not part of the period');
-    });
+    test(
+      'a period that closed at zero is a clearance though a debt opened today',
+      () {
+        final Debt old = debt(
+          'old',
+          principal: 150000,
+          issuedAt: DateTime(2026),
+        );
+        final Debt fresh = debt(
+          'fresh',
+          principal: 50000,
+          issuedAt: today,
+          direction: DebtDirection.iOwe,
+        );
+        final List<Payment> all = <Payment>[
+          payment('old-paid', old, 150000, DateTime(2026, 2)),
+        ];
+        final StatementData data = build(
+          const StatementOptions().copyWith(
+            periodFrom: DateTime(2026),
+            periodTo: DateTime(2026, 2, 28),
+          ),
+          ledger: ledgerOf(<Debt>[old, fresh], all),
+          all: all,
+        );
+        expect(data.closingBalanceMinor, 0);
+        expect(data.isClearance, isTrue);
+        expect(data.fileName, startsWith('Dhimmah_Clearance_'));
+        expect(
+          data.debts.length,
+          1,
+          reason: 'the debt opened today is not part of the period',
+        );
+      },
+    );
 
-    test('a period that ended with a balance is a statement though today is settled',
-        () {
-      final Debt old = debt(
-        'old',
-        principal: 150000,
-        issuedAt: DateTime(2026),
-      );
-      final List<Payment> all = <Payment>[
-        payment('old-paid', old, 150000, today),
-      ];
-      final StatementData data = build(
-        const StatementOptions().copyWith(
-          periodFrom: DateTime(2026),
-          periodTo: DateTime(2026, 2, 28),
-        ),
-        ledger: ledgerOf(<Debt>[old], all),
-        all: all,
-      );
-      expect(data.closingBalanceMinor, 150000,
-          reason: 'the payment came after the period ended');
-      expect(data.isClearance, isFalse);
-      expect(data.fileName, isNot(startsWith('Dhimmah_Clearance')));
-    });
+    test(
+      'a period that ended with a balance is a statement though today is settled',
+      () {
+        final Debt old = debt(
+          'old',
+          principal: 150000,
+          issuedAt: DateTime(2026),
+        );
+        final List<Payment> all = <Payment>[
+          payment('old-paid', old, 150000, today),
+        ];
+        final StatementData data = build(
+          const StatementOptions().copyWith(
+            periodFrom: DateTime(2026),
+            periodTo: DateTime(2026, 2, 28),
+          ),
+          ledger: ledgerOf(<Debt>[old], all),
+          all: all,
+        );
+        expect(
+          data.closingBalanceMinor,
+          150000,
+          reason: 'the payment came after the period ended',
+        );
+        expect(data.isClearance, isFalse);
+        expect(data.fileName, isNot(startsWith('Dhimmah_Clearance')));
+      },
+    );
 
     test('the shared caption states the period and its closing balance', () {
       final Debt owed = debt(
@@ -558,9 +588,10 @@ void main() {
         Money(100000, AppCurrency.inr),
         showCode: true,
       );
-      final String caption =
-          ShareService(localizations: l10n, formatting: formatting)
-              .statementCaption(data);
+      final String caption = ShareService(
+        localizations: l10n,
+        formatting: formatting,
+      ).statementCaption(data);
       expect(
         caption,
         '${l10n.shareStatementFor('أحمد')}\n'
@@ -574,15 +605,45 @@ void main() {
     });
 
     test('without a period the shared caption is unchanged', () {
-      final StatementData data =
-          build(const StatementOptions(scope: StatementScope.all));
-      final String caption =
-          ShareService(localizations: l10n, formatting: formatting)
-              .statementCaption(data);
+      final StatementData data = build(
+        const StatementOptions(scope: StatementScope.all),
+      );
+      final String caption = ShareService(
+        localizations: l10n,
+        formatting: formatting,
+      ).statementCaption(data);
       expect(
         caption,
         '${l10n.shareStatementFor('أحمد')}\n'
         '${l10n.shareLineRemaining(formatting.amount(data.remaining, showCode: true))}',
+      );
+    });
+  });
+  group('payment notes', () {
+    test('a payment note is carried in full to the notes section', () {
+      final String note = List<String>.filled(70, 'p').join('\n');
+      final Payment noted = Payment(
+        id: 'noted',
+        debtId: first.id,
+        amountMinor: 1000,
+        currency: first.currency,
+        paidAt: DateTime(2026, 7),
+        createdAt: DateTime(2026, 7),
+        note: note,
+      );
+      final StatementData data = build(
+        const StatementOptions(scope: StatementScope.all, includeNotes: true),
+        all: <Payment>[noted],
+      );
+      expect(data.notes, contains(note));
+      expect(
+        data.entries
+            .singleWhere(
+              (StatementEntry entry) =>
+                  entry.kind == StatementEntryKind.payment,
+            )
+            .note,
+        note,
       );
     });
   });
