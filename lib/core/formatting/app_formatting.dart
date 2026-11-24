@@ -84,6 +84,19 @@ class DateFormatter {
     return localizations.dateInDays(days);
   }
 
+  /// The compact wording used inside a dashboard attention row.
+  ///
+  /// English abbreviates the duration so the record kind and amount still have
+  /// room. Arabic keeps its full plural forms; the row may wrap instead of cut.
+  String compactAttentionLabel(DateTime dueAt, DateTime asOf) {
+    final int days = daysBetween(asOf, dueAt);
+    if (days == 0) return localizations.dateToday;
+    if (days == 1) return localizations.dateTomorrow;
+    if (days == -1) return localizations.dateYesterday;
+    if (days < 0) return localizations.dateOverdueByCompact(-days);
+    return localizations.dateInDaysCompact(days);
+  }
+
   /// How late something is, or an empty string when it is not late.
   String overdueBy(DateTime dueAt, DateTime asOf) {
     final int days = daysBetween(asOf, dueAt);

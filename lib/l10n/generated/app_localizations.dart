@@ -866,6 +866,12 @@ abstract class AppLocalizations {
   /// **'{days, plural, =1{خلال يوم واحد} =2{خلال يومين} few{خلال {days} أيام} other{خلال {days} يومًا}}'**
   String dateInDays(int days);
 
+  /// No description provided for @dateInDaysCompact.
+  ///
+  /// In ar, this message translates to:
+  /// **'{days, plural, =1{خلال يوم واحد} =2{خلال يومين} few{خلال {days} أيام} other{خلال {days} يومًا}}'**
+  String dateInDaysCompact(int days);
+
   /// No description provided for @dateNoDueDate.
   ///
   /// In ar, this message translates to:
@@ -877,6 +883,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'{days, plural, =1{متأخر يومًا واحدًا} =2{متأخر يومين} few{متأخر {days} أيام} other{متأخر {days} يومًا}}'**
   String dateOverdueBy(int days);
+
+  /// No description provided for @dateOverdueByCompact.
+  ///
+  /// In ar, this message translates to:
+  /// **'{days, plural, =1{متأخر يومًا واحدًا} =2{متأخر يومين} few{متأخر {days} أيام} other{متأخر {days} يومًا}}'**
+  String dateOverdueByCompact(int days);
 
   /// No description provided for @dateToday.
   ///
@@ -5095,6 +5107,12 @@ abstract class AppLocalizations {
   /// **'له'**
   String get reportSideIsOwed;
 
+  /// No description provided for @reportSideTableOwed.
+  ///
+  /// In ar, this message translates to:
+  /// **'له'**
+  String get reportSideTableOwed;
+
   /// No description provided for @reportSideLegend.
   ///
   /// In ar, this message translates to:
@@ -5220,6 +5238,12 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'أقرب استحقاق'**
   String get reportNextDue;
+
+  /// No description provided for @reportWasDue.
+  ///
+  /// In ar, this message translates to:
+  /// **'أقرب استحقاق'**
+  String get reportWasDue;
 
   /// No description provided for @detailPaymentsHeader.
   ///

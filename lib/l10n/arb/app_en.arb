@@ -190,9 +190,25 @@
       }
     }
   },
+  "dateInDaysCompact": "{days, plural, =1{In 1d} other{In {days}d}}",
+  "@dateInDaysCompact": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "dateNoDueDate": "No due date",
   "dateOverdueBy": "{days, plural, =1{1 day late} other{{days} days late}}",
   "@dateOverdueBy": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dateOverdueByCompact": "{days, plural, =1{1d late} other{{days}d late}}",
+  "@dateOverdueByCompact": {
     "placeholders": {
       "days": {
         "type": "int"
@@ -1569,6 +1585,7 @@
   "reportNothingOutstanding": "Nothing outstanding",
   "reportSideOwes": "Owes",
   "reportSideIsOwed": "Is owed",
+  "reportSideTableOwed": "Owed",
   "reportSideLegend": "Owes: owed by {name} · Is owed: owed to {name}",
   "@reportSideLegend": {
     "placeholders": {
@@ -1621,6 +1638,7 @@
     }
   },
   "reportNextDue": "Next due",
+  "reportWasDue": "Was due",
   "detailPaymentsHeader": "Payments",
   "paymentRowTitle": "Payment",
   "reportIssuerLabel": "From",

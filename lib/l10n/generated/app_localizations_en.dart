@@ -437,6 +437,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String dateInDaysCompact(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'In ${days}d',
+      one: 'In 1d',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get dateNoDueDate => 'No due date';
 
   @override
@@ -446,6 +457,17 @@ class AppLocalizationsEn extends AppLocalizations {
       locale: localeName,
       other: '$days days late',
       one: '1 day late',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dateOverdueByCompact(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: '${days}d late',
+      one: '1d late',
     );
     return '$_temp0';
   }
@@ -3003,6 +3025,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reportSideIsOwed => 'Is owed';
 
   @override
+  String get reportSideTableOwed => 'Owed';
+
+  @override
   String reportSideLegend(String name) {
     return 'Owes: owed by $name · Is owed: owed to $name';
   }
@@ -3073,6 +3098,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportNextDue => 'Next due';
+
+  @override
+  String get reportWasDue => 'Was due';
 
   @override
   String get detailPaymentsHeader => 'Payments';

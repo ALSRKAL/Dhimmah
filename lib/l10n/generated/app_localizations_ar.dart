@@ -440,10 +440,36 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String dateInDaysCompact(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'خلال $days يومًا',
+      few: 'خلال $days أيام',
+      two: 'خلال يومين',
+      one: 'خلال يوم واحد',
+    );
+    return '$_temp0';
+  }
+
+  @override
   String get dateNoDueDate => 'بدون استحقاق';
 
   @override
   String dateOverdueBy(int days) {
+    String _temp0 = intl.Intl.pluralLogic(
+      days,
+      locale: localeName,
+      other: 'متأخر $days يومًا',
+      few: 'متأخر $days أيام',
+      two: 'متأخر يومين',
+      one: 'متأخر يومًا واحدًا',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String dateOverdueByCompact(int days) {
     String _temp0 = intl.Intl.pluralLogic(
       days,
       locale: localeName,
@@ -3064,6 +3090,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reportSideIsOwed => 'له';
 
   @override
+  String get reportSideTableOwed => 'له';
+
+  @override
   String reportSideLegend(String name) {
     return 'عليه: مستحق على $name · له: مستحق لصالح $name';
   }
@@ -3134,6 +3163,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportNextDue => 'أقرب استحقاق';
+
+  @override
+  String get reportWasDue => 'أقرب استحقاق';
 
   @override
   String get detailPaymentsHeader => 'الدفعات';

@@ -605,10 +605,9 @@ class _AttentionRow extends StatelessWidget {
                     // line past the edge on a 360 phone; the debt's own page
                     // still carries the date.
                     '${kind(localizations)}'
-                    ' · ${context.formatting.dates.attentionLabel(item.dueAt, asOf)}',
+                    ' · ${context.formatting.dates.compactAttentionLabel(item.dueAt, asOf)}',
                     style: theme.textTheme.bodySmall,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    softWrap: true,
                   ),
                 ],
               ),

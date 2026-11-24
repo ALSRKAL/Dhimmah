@@ -197,9 +197,25 @@
       }
     }
   },
+  "dateInDaysCompact": "{days, plural, =1{خلال يوم واحد} =2{خلال يومين} few{خلال {days} أيام} other{خلال {days} يومًا}}",
+  "@dateInDaysCompact": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "dateNoDueDate": "بدون استحقاق",
   "dateOverdueBy": "{days, plural, =1{متأخر يومًا واحدًا} =2{متأخر يومين} few{متأخر {days} أيام} other{متأخر {days} يومًا}}",
   "@dateOverdueBy": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "dateOverdueByCompact": "{days, plural, =1{متأخر يومًا واحدًا} =2{متأخر يومين} few{متأخر {days} أيام} other{متأخر {days} يومًا}}",
+  "@dateOverdueByCompact": {
     "placeholders": {
       "days": {
         "type": "int"
@@ -1576,6 +1592,7 @@
   "reportNothingOutstanding": "لا مبالغ متبقية بين الطرفين",
   "reportSideOwes": "عليه",
   "reportSideIsOwed": "له",
+  "reportSideTableOwed": "له",
   "reportSideLegend": "عليه: مستحق على {name} · له: مستحق لصالح {name}",
   "@reportSideLegend": {
     "placeholders": {
@@ -1628,6 +1645,7 @@
     }
   },
   "reportNextDue": "أقرب استحقاق",
+  "reportWasDue": "أقرب استحقاق",
   "detailPaymentsHeader": "الدفعات",
   "paymentRowTitle": "دفعة",
   "reportIssuerLabel": "من",

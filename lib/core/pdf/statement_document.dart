@@ -9,6 +9,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../brand/brand_mark.dart';
 import '../formatting/app_formatting.dart';
 import '../money/money.dart';
+import '../utils/dates.dart';
 import 'pdf_text.dart';
 import 'statement_models.dart';
 
@@ -989,10 +990,7 @@ class StatementDocument extends _Sheet {
           if (data.options.includeNotes &&
               data.notes != null &&
               data.notes!.trim().isNotEmpty) ...<pw.Widget>[
-            _keepWithNext(_notesLead),
             pw.SizedBox(height: 20),
-            _sectionTitle(localizations.fieldNote),
-            pw.SizedBox(height: 6),
             ..._notesWidgets(data.notes!),
           ],
           if (_fullValues.isNotEmpty) ...<pw.Widget>[
@@ -1011,9 +1009,6 @@ class StatementDocument extends _Sheet {
   /// The room a table needs to start on a page: its heading, the line under
   /// it, the column header, and two rows.
   static const double _tableLead = 115;
-
-  /// The room the notes need to start: the heading and a couple of lines.
-  static const double _notesLead = 70;
 
   /// Starts a new page unless [room] points are still free on this one.
   ///
@@ -1292,6 +1287,8 @@ class StatementDocument extends _Sheet {
               // named; with one it can only be that debt's.
               dueTitle == null
                   ? localizations.detailDueOn
+                  : dateOnly(due).isBefore(dateOnly(data.generatedAt))
+                  ? localizations.reportWasDue
                   : localizations.reportNextDue,
               dueTitle == null
                   ? formatting.date(due)
@@ -1541,6 +1538,12 @@ class StatementDocument extends _Sheet {
       ? localizations.reportSideIsOwed
       : localizations.reportSideOwes;
 
+  /// The compact form for the narrow Side column. The longer wording remains
+  /// above the movements and in balance cells, where it has room to explain.
+  String _sideTableWord(DebtDirection direction) => direction.isIOwe
+      ? localizations.reportSideTableOwed
+      : localizations.reportSideOwes;
+
   pw.Widget _debtTable() {
     final bool mixed = data.isMixed;
     // A status column states today's state. A period has no such state to
@@ -1562,7 +1565,7 @@ class StatementDocument extends _Sheet {
       for (final StatementDebtLine line in data.debts)
         <String>[
           _displayTitle(line.title),
-          if (mixed) _sideWord(line.direction),
+          if (mixed) _sideTableWord(line.direction),
           _money(line.principal),
           _money(line.paid),
           _money(line.remaining),
@@ -1743,55 +1746,71 @@ class StatementDocument extends _Sheet {
     return '${_sideWord(signedMinor > 0 ? DebtDirection.owedToMe : DebtDirection.iOwe)} · $amount';
   }
 
-  /// The notes section, as widgets the paginator may break between.
+  /// The notes section, as indivisible pieces the paginator can move together.
   ///
-  /// A short note keeps the bordered box it has always had. A note that would
-  /// be taller than a page is split into pieces of at most 32 lines, one box
-  /// each, so no single widget is taller than a page and the paginator can
-  /// break between boxes.
+  /// A short note keeps its bordered box. The heading and first box are one
+  /// widget, so the heading cannot be stranded at the end of a page. Every box
+  /// is itself indivisible: a spanning container can paint its border at the
+  /// bottom of a page before the Arabic text column lays out on the next one.
+  /// A note taller than a page is split into pieces of at most 32 lines first.
   List<pw.Widget> _notesWidgets(String notes) {
-    final List<String> chunks = _Sheet.noteChunks(notes.trim());
-    if (chunks.length <= 1) {
-      return <pw.Widget>[
-        pw.Container(
-          width: double.infinity,
-          padding: const pw.EdgeInsets.all(11),
-          decoration: pw.BoxDecoration(
-            border: pw.Border.all(color: DocumentColors.border),
-            borderRadius: pw.BorderRadius.circular(6),
-          ),
-          child: _text(
-            chunks.single,
-            style: const pw.TextStyle(
-              fontSize: 10,
-              color: DocumentColors.ink,
-              lineSpacing: 2,
+    final List<String> chunks = _Sheet.noteChunks(
+      notes.trim(),
+    ).where((String chunk) => chunk.trim().isNotEmpty).toList(growable: false);
+    if (chunks.isEmpty) return const <pw.Widget>[];
+
+    pw.Widget noteBox(String chunk, {required bool first}) {
+      return pw.Inseparable(
+        child: pw.Column(
+          mainAxisSize: pw.MainAxisSize.min,
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: <pw.Widget>[
+            pw.Container(
+              width: double.infinity,
+              padding: first
+                  ? const pw.EdgeInsets.all(11)
+                  : const pw.EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+              decoration: first
+                  ? pw.BoxDecoration(
+                      border: pw.Border.all(color: DocumentColors.border),
+                      borderRadius: pw.BorderRadius.circular(6),
+                    )
+                  : pw.BoxDecoration(
+                      border: pw.Border(
+                        bottom: pw.BorderSide(
+                          color: DocumentColors.border,
+                          width: 0.6,
+                        ),
+                      ),
+                    ),
+              child: _text(
+                chunk,
+                style: const pw.TextStyle(
+                  fontSize: 10,
+                  color: DocumentColors.ink,
+                  lineSpacing: 2,
+                ),
+                maxWidth: _contentWidth - 11 * 2,
+              ),
             ),
-            maxWidth: _contentWidth - 11 * 2,
-          ),
+          ],
         ),
-      ];
+      );
     }
+
     return <pw.Widget>[
-      for (final String chunk in chunks)
-        pw.Container(
-          width: double.infinity,
-          padding: const pw.EdgeInsets.symmetric(horizontal: 11, vertical: 5),
-          decoration: pw.BoxDecoration(
-            border: pw.Border(
-              bottom: pw.BorderSide(color: DocumentColors.border, width: 0.6),
-            ),
-          ),
-          child: _text(
-            chunk,
-            style: const pw.TextStyle(
-              fontSize: 10,
-              color: DocumentColors.ink,
-              lineSpacing: 2,
-            ),
-            maxWidth: _contentWidth - 11 * 2,
-          ),
+      pw.Inseparable(
+        child: pw.Column(
+          mainAxisSize: pw.MainAxisSize.min,
+          crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+          children: <pw.Widget>[
+            _sectionTitle(localizations.fieldNote),
+            pw.SizedBox(height: 6),
+            noteBox(chunks.first, first: true),
+          ],
         ),
+      ),
+      for (final String chunk in chunks.skip(1)) noteBox(chunk, first: false),
     ];
   }
 

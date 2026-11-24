@@ -245,6 +245,38 @@ void main() {
       );
       expect(formatter.attentionLabel(DateTime(2026, 10, 15), today).contains('Oct'), isFalse);
     });
+
+    test('compact attention durations leave general date wording alone', () {
+      expect(
+        formatter.compactAttentionLabel(DateTime(2026, 7), today),
+        '83d late',
+      );
+      expect(
+        formatter.compactAttentionLabel(DateTime(2026, 9, 28), today),
+        'In 6d',
+      );
+      expect(
+        formatter.attentionLabel(DateTime(2026, 7), today),
+        '83 days late',
+      );
+      expect(formatter.relativeDue(DateTime(2026, 9, 28), today), 'In 6 days');
+
+      final AppLocalizations arabic = lookupAppLocalizations(
+        const Locale('ar'),
+      );
+      final DateFormatter arabicFormatter = DateFormatter(
+        language: AppLanguage.arabic,
+        localizations: arabic,
+      );
+      expect(
+        arabicFormatter.compactAttentionLabel(DateTime(2026, 7), today),
+        'متأخر 83 يومًا',
+      );
+      expect(
+        arabicFormatter.compactAttentionLabel(DateTime(2026, 9, 23), today),
+        'غدًا',
+      );
+    });
   });
 
   group('glyph coverage', () {
