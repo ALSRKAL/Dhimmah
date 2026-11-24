@@ -759,6 +759,16 @@ class _DirectionField extends StatelessWidget {
     final AppPalette palette = context.palette;
     final ThemeData theme = Theme.of(context);
     final bool tall = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    // The English description made the segment too wide for its half at the
+    // normal size. The short key keeps the choice to its name; Arabic keeps
+    // its own phrasing.
+    final bool english = Localizations.localeOf(context).languageCode == 'en';
+    final String iOwe = english
+        ? localizations.debtFormSideIOweShort
+        : localizations.debtFormSideIOwe;
+    final String owedToMe = english
+        ? localizations.debtFormSideOwedToMeShort
+        : localizations.debtFormSideOwedToMe;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -773,7 +783,7 @@ class _DirectionField extends StatelessWidget {
             children: <Widget>[
               Expanded(
                 child: _DirectionChoice(
-                  label: localizations.debtFormSideIOwe,
+                  label: iOwe,
                   icon: AppIcons.arrowUpward,
                   selected: value == DebtDirection.iOwe,
                   onTap: () => onChanged(DebtDirection.iOwe),
@@ -782,7 +792,7 @@ class _DirectionField extends StatelessWidget {
               const SizedBox(width: AppSpacing.sm),
               Expanded(
                 child: _DirectionChoice(
-                  label: localizations.debtFormSideOwedToMe,
+                  label: owedToMe,
                   icon: AppIcons.arrowDownward,
                   selected: value == DebtDirection.owedToMe,
                   onTap: () => onChanged(DebtDirection.owedToMe),
@@ -797,12 +807,12 @@ class _DirectionField extends StatelessWidget {
               segments: <ButtonSegment<DebtDirection>>[
                 ButtonSegment<DebtDirection>(
                   value: DebtDirection.iOwe,
-                  label: Text(localizations.debtFormSideIOwe),
+                  label: Text(iOwe),
                   icon: const Icon(AppIcons.arrowUpward, size: 18),
                 ),
                 ButtonSegment<DebtDirection>(
                   value: DebtDirection.owedToMe,
-                  label: Text(localizations.debtFormSideOwedToMe),
+                  label: Text(owedToMe),
                   icon: const Icon(AppIcons.arrowDownward, size: 18),
                 ),
               ],
