@@ -72,13 +72,25 @@ class DebtRowTile extends StatelessWidget {
                   formatting.date(view.debt.issuedAt),
                 ))
         : formatting.recordName(view);
-    final List<String> subtitleParts = <String>[
-      if (!personIsKnown && view.subtitle != null) view.subtitle!,
-      if (view.debt.dueAt != null)
-        formatting.relativeDue(view.debt.dueAt!, asOf)
-      else
-        localizations.dateNoDueDate,
-    ];
+    final String? userTitle = personIsKnown ? null : view.subtitle;
+    final String timing = view.debt.dueAt != null
+        ? formatting.relativeDue(view.debt.dueAt!, asOf)
+        : localizations.dateNoDueDate;
+    // The timing comes first in English and the title first in Arabic, so the
+    // line reads in the order the language reads. The title is isolated so its
+    // own direction cannot pull the timing's digits across it.
+    final List<String> subtitleParts = formatting.language.isRtl
+        ? <String>[?userTitle, timing]
+        : <String>[timing, ?userTitle];
+    final String drawnSubtitle = formatting.language.isRtl
+        ? <String>[
+            if (userTitle != null) formatting.isolateDirection(userTitle),
+            timing,
+          ].join(' · ')
+        : <String>[
+            timing,
+            if (userTitle != null) formatting.isolateDirection(userTitle),
+          ].join(' · ');
 
     return Semantics(
       button: true,
@@ -119,7 +131,7 @@ class DebtRowTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      subtitleParts.join(' · '),
+                      drawnSubtitle,
                       style: theme.textTheme.bodySmall,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

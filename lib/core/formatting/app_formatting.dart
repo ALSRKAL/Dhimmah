@@ -158,6 +158,14 @@ class AppFormatting {
       .where((String value) => value.isNotEmpty)
       .join(localizations.listSeparator);
 
+  /// Keeps a user's text from dragging the words beside it to another side.
+  ///
+  /// A Latin sentence holding an Arabic title without an isolate reads
+  /// `11 · قرض سيارة days late`: the digits and the Arabic run are reordered
+  /// around each other. FSI/PDI give the run its own direction inside the
+  /// sentence. They are invisible and only affect ordering.
+  String isolateDirection(String value) => '\u2068$value\u2069';
+
   /// What to call a record in a list: its people, or its own title.
   String recordName(DebtView view) {
     final String people = names(
