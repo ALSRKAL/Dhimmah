@@ -600,13 +600,12 @@ class _AttentionRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    // What the row is, how long there is, then the date. The
-                    // kind comes first because the amounts are coloured by side
-                    // for debts and plain for obligations, and one list mixing
-                    // the two needed to say which was which.
+                    // What the row is, then how long there is. The absolute
+                    // date used to follow the relative phrase and pushed the
+                    // line past the edge on a 360 phone; the debt's own page
+                    // still carries the date.
                     '${kind(localizations)}'
-                    ' · ${context.formatting.dates.attentionLabel(item.dueAt, asOf)}'
-                    ' · ${context.formatting.date(item.dueAt)}',
+                    ' · ${context.formatting.dates.attentionLabel(item.dueAt, asOf)}',
                     style: theme.textTheme.bodySmall,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
