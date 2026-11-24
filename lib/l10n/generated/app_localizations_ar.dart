@@ -3327,6 +3327,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get debtFormSideOwedToMe => 'لي · سأستلمه';
 
   @override
+  String get debtFormSideIOweShort => 'عليّ';
+
+  @override
+  String get debtFormSideOwedToMeShort => 'لي';
+
+  @override
   String get peopleSearchHint => 'ابحث بالاسم أو الرقم';
 
   @override
@@ -3372,6 +3378,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get personMoreActions => 'خيارات الشخص';
+
+  @override
+  String get reportAppendixTitle => 'قيم كاملة';
+
+  @override
+  String get reportAppendixName => 'الاسم الكامل';
+
+  @override
+  String get reportAppendixDebtTitle => 'عنوان الدين كاملاً';
 
   @override
   String get listSeparator => '، ';

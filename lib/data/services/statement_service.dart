@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show debugPrint, kDebugMode;
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -364,11 +365,23 @@ class StatementService {
       mark: await _mark(),
     );
 
-    final Uint8List bytes = await document.build().save();
-    final Directory directory = await _outputDirectory();
-    final File file = File(p.join(directory.path, data.fileName));
-    await file.writeAsBytes(bytes, flush: true);
-    return file;
+    try {
+      final Uint8List bytes = await document.build().save();
+      final Directory directory = await _outputDirectory();
+      final File file = File(p.join(directory.path, data.fileName));
+      await file.writeAsBytes(bytes, flush: true);
+      return file;
+    } on Object catch (error) {
+      _logFailure(error);
+      rethrow;
+    }
+  }
+
+  /// The exception type only: no name, amount or record ever reaches a log.
+  static void _logFailure(Object error) {
+    if (kDebugMode) {
+      debugPrint('Dhimmah documents: render failed: ${error.runtimeType}');
+    }
   }
 
   /// The parts of the payment [payment] belongs to, among [personPayments].
@@ -485,18 +498,23 @@ class StatementService {
   ///
   /// Into the same folder as statements, so the same clean-up removes it.
   Future<File> renderReceipt(ReceiptData data) async {
-    final Uint8List bytes = await ReceiptDocument(
-      data: data,
-      localizations: localizations,
-      formatting: formatting,
-      regularFont: await _regularFont(),
-      semiBoldFont: await _semiBoldFont(),
-      mark: await _mark(),
-    ).build().save();
-    final Directory directory = await _outputDirectory();
-    final File file = File(p.join(directory.path, data.fileName));
-    await file.writeAsBytes(bytes, flush: true);
-    return file;
+    try {
+      final Uint8List bytes = await ReceiptDocument(
+        data: data,
+        localizations: localizations,
+        formatting: formatting,
+        regularFont: await _regularFont(),
+        semiBoldFont: await _semiBoldFont(),
+        mark: await _mark(),
+      ).build().save();
+      final Directory directory = await _outputDirectory();
+      final File file = File(p.join(directory.path, data.fileName));
+      await file.writeAsBytes(bytes, flush: true);
+      return file;
+    } on Object catch (error) {
+      _logFailure(error);
+      rethrow;
+    }
   }
 
   /// The folder, inside the app's documents directory, that generated

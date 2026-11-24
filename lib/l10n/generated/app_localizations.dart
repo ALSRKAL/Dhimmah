@@ -5467,6 +5467,18 @@ abstract class AppLocalizations {
   /// **'لي · سأستلمه'**
   String get debtFormSideOwedToMe;
 
+  /// No description provided for @debtFormSideIOweShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'عليّ'**
+  String get debtFormSideIOweShort;
+
+  /// No description provided for @debtFormSideOwedToMeShort.
+  ///
+  /// In ar, this message translates to:
+  /// **'لي'**
+  String get debtFormSideOwedToMeShort;
+
   /// No description provided for @peopleSearchHint.
   ///
   /// In ar, this message translates to:
@@ -5556,6 +5568,24 @@ abstract class AppLocalizations {
   /// In ar, this message translates to:
   /// **'خيارات الشخص'**
   String get personMoreActions;
+
+  /// No description provided for @reportAppendixTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'قيم كاملة'**
+  String get reportAppendixTitle;
+
+  /// No description provided for @reportAppendixName.
+  ///
+  /// In ar, this message translates to:
+  /// **'الاسم الكامل'**
+  String get reportAppendixName;
+
+  /// No description provided for @reportAppendixDebtTitle.
+  ///
+  /// In ar, this message translates to:
+  /// **'عنوان الدين كاملاً'**
+  String get reportAppendixDebtTitle;
 
   /// No description provided for @listSeparator.
   ///

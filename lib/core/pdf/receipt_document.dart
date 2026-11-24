@@ -42,6 +42,7 @@ class ReceiptDocument extends _Sheet {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         theme: pw.ThemeData.withFont(base: _regular, bold: _semiBold),
+        maxPages: _Sheet.maxDocumentPages,
         margin: const pw.EdgeInsets.fromLTRB(38, 34, 38, 52),
         footer: (pw.Context context) => _footerOf(context, data.number),
         build: (pw.Context context) => <pw.Widget>[

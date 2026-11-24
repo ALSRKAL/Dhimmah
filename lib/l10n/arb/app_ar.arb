@@ -1763,6 +1763,8 @@
   "debtFormNewTitle": "دين جديد",
   "debtFormSideIOwe": "عليّ · سأدفعه",
   "debtFormSideOwedToMe": "لي · سأستلمه",
+  "debtFormSideIOweShort": "عليّ",
+  "debtFormSideOwedToMeShort": "لي",
   "peopleSearchHint": "ابحث بالاسم أو الرقم",
   "peopleSortActiveFirst": "من له ديون مفتوحة أولًا",
   "peopleSortLargest": "الأعلى مبلغًا",
@@ -1785,6 +1787,9 @@
   "personPhoneHint": "رقم هاتفه، إن أردت",
   "receiptShareAction": "إيصال",
   "personMoreActions": "خيارات الشخص",
+  "reportAppendixTitle": "قيم كاملة",
+  "reportAppendixName": "الاسم الكامل",
+  "reportAppendixDebtTitle": "عنوان الدين كاملاً",
   "listSeparator": "، ",
   "shareStatementFor": "كشف حساب {name}",
   "@shareStatementFor": {

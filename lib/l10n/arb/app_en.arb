@@ -1756,6 +1756,8 @@
   "debtFormNewTitle": "New debt",
   "debtFormSideIOwe": "I owe · I'll pay",
   "debtFormSideOwedToMe": "Owed to me · I'll get it",
+  "debtFormSideIOweShort": "I owe",
+  "debtFormSideOwedToMeShort": "To me",
   "peopleSearchHint": "Search by name or number",
   "peopleSortActiveFirst": "Open balances first",
   "peopleSortLargest": "Largest amount",
@@ -1778,6 +1780,9 @@
   "personPhoneHint": "Their phone number, if you like",
   "receiptShareAction": "Receipt",
   "personMoreActions": "Person options",
+  "reportAppendixTitle": "Full values",
+  "reportAppendixName": "Full name",
+  "reportAppendixDebtTitle": "Full debt title",
   "listSeparator": ", ",
   "shareStatementFor": "Statement for {name}",
   "@shareStatementFor": {

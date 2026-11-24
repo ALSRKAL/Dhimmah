@@ -72,6 +72,48 @@ abstract class _Sheet {
   /// Whether the document reads right to left: its language, not its content.
   bool get _isRtl;
 
+  /// The most pages a generated document may take.
+  ///
+  /// The `pdf` package defaults to 20, which a long but ordinary history can
+  /// exceed; the user then saw «تعذّر التصدير» instead of the statement. Five
+  /// hundred A4 pages holds over ten thousand movement rows, far beyond a
+  /// person's ledger. If a document ever exceeds it, generation fails rather
+  /// than silently dropping the end, and the preview still offers retry.
+  static const int maxDocumentPages = 500;
+
+  /// How much of a user string a fixed-width cell may show.
+  static const int displayNameLimit = 80;
+  static const int displayTitleLimit = 80;
+
+  /// Breaks a pathologically long string into page-sized pieces.
+  ///
+  /// A single unbroken word in a narrow table cell or a note becomes one line
+  /// per character, and a widget taller than a page cannot be split by the PDF
+  /// paginator. The full value is still printed, in the document's appendix.
+  static List<String> textChunks(String value) {
+    final List<int> runes = value.runes.toList(growable: false);
+    if (runes.length <= 300) return <String>[value];
+    final bool hasLongWord = value
+        .split(RegExp(r'\s+'))
+        .any((String word) => word.runes.length > 60);
+    final int size = hasLongWord ? 40 : 200;
+    return <String>[
+      for (int start = 0; start < runes.length; start += size)
+        String.fromCharCodes(
+          runes.sublist(
+            start,
+            start + size > runes.length ? runes.length : start + size,
+          ),
+        ),
+    ];
+  }
+
+  /// The visible form of an overlong user string.
+  static String shortened(String value, int limit) {
+    final List<int> runes = value.runes.toList(growable: false);
+    if (runes.length <= limit) return value;
+    return '${String.fromCharCodes(runes.take(limit - 1))}…';
+  }
 
   /// The fonts in use.
   late final pw.Font _regular = pw.Font.ttf(regularFont);
@@ -746,7 +788,39 @@ class StatementDocument extends _Sheet {
   /// The person the statement is about. Every sentence on the page that says
   /// who owes whom names them, rather than saying "I" or "me": the page is read
   /// by the other party, for whom those words point the wrong way.
-  String get _name => data.personName.trim();
+  String get _name =>
+      _Sheet.shortened(data.personName.trim(), _Sheet.displayNameLimit);
+
+  /// A debt title as a fixed-width cell can show it. The full title, when it
+  /// was shortened, is printed again in the appendix.
+  String _displayTitle(String value) {
+    final String title = value.trim();
+    return title.isEmpty
+        ? localizations.reportUntitledDebt
+        : _Sheet.shortened(title, _Sheet.displayTitleLimit);
+  }
+
+  /// Values whose full form is printed in the appendix because a fixed cell
+  /// could only show their beginning.
+  List<({String label, String value})> get _fullValues {
+    final List<({String label, String value})> values =
+        <({String label, String value})>[];
+    if (data.personName.runes.length > _Sheet.displayNameLimit) {
+      values.add((
+        label: localizations.reportAppendixName,
+        value: data.personName,
+      ));
+    }
+    for (final StatementDebtLine line in data.debts) {
+      if (line.title.trim().runes.length > _Sheet.displayTitleLimit) {
+        values.add((
+          label: localizations.reportAppendixDebtTitle,
+          value: line.title.trim(),
+        ));
+      }
+    }
+    return values;
+  }
 
   /// What the document calls itself.
   ///
@@ -779,6 +853,7 @@ class StatementDocument extends _Sheet {
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
         theme: theme,
+        maxPages: _Sheet.maxDocumentPages,
         margin: const pw.EdgeInsets.fromLTRB(38, 34, 38, 52),
         header: (pw.Context context) =>
             context.pageNumber == 1 ? pw.SizedBox() : _runningHeader(),
@@ -825,6 +900,12 @@ class StatementDocument extends _Sheet {
             _sectionTitle(localizations.fieldNote),
             pw.SizedBox(height: 6),
             _notesBlock(data.notes!),
+          ],
+          if (_fullValues.isNotEmpty) ...<pw.Widget>[
+            pw.SizedBox(height: 20),
+            _sectionTitle(localizations.reportAppendixTitle),
+            pw.SizedBox(height: 6),
+            _fullValuesBlock(),
           ],
         ],
       ),
@@ -880,7 +961,7 @@ class StatementDocument extends _Sheet {
           ),
           pw.Spacer(),
           _text(
-            data.personName,
+            _name,
             style: const pw.TextStyle(
               fontSize: 8.5,
               color: DocumentColors.secondary,
@@ -917,7 +998,7 @@ class StatementDocument extends _Sheet {
           ),
           pw.SizedBox(height: 4),
           _text(
-            data.personName,
+            _name,
             style: pw.TextStyle(
               fontSize: 13,
               fontWeight: pw.FontWeight.bold,
@@ -983,7 +1064,7 @@ class StatementDocument extends _Sheet {
           pw.SizedBox(height: 4),
           _summaryFact(
             localizations.reportColumnDebt,
-            data.debts.single.title.trim(),
+            _displayTitle(data.debts.single.title),
           ),
         ],
         // What the statement covers, stated on the page. A filtered statement
@@ -1066,7 +1147,9 @@ class StatementDocument extends _Sheet {
   pw.Widget _heroBlock() {
     final (String sentence, Money amount) = _headline();
     final DateTime? due = data.dueAt;
-    final String? dueTitle = data.dueDebtTitle;
+    final String? dueTitle = data.dueDebtTitle == null
+        ? null
+        : _displayTitle(data.dueDebtTitle!);
     return pw.Container(
       width: double.infinity,
       padding: const pw.EdgeInsets.all(16),
@@ -1383,9 +1466,7 @@ class StatementDocument extends _Sheet {
     final List<List<String>> rows = <List<String>>[
       for (final StatementDebtLine line in data.debts)
         <String>[
-          line.title.trim().isEmpty
-              ? localizations.reportUntitledDebt
-              : line.title,
+          _displayTitle(line.title),
           if (mixed) _sideWord(line.direction),
           _money(line.principal),
           _money(line.paid),
@@ -1568,22 +1649,88 @@ class StatementDocument extends _Sheet {
   }
 
   pw.Widget _notesBlock(String notes) {
-    return pw.Container(
-      width: double.infinity,
-      padding: const pw.EdgeInsets.all(11),
-      decoration: pw.BoxDecoration(
-        border: pw.Border.all(color: DocumentColors.border),
-        borderRadius: pw.BorderRadius.circular(6),
-      ),
-      child: _text(
-        notes,
-        style: const pw.TextStyle(
-          fontSize: 10,
-          color: DocumentColors.ink,
-          lineSpacing: 2,
+    final List<String> chunks = _Sheet.textChunks(notes.trim());
+    // A short note keeps the bordered box it has always had. A note too tall
+    // for one page is printed in pieces instead: one box per piece is the only
+    // shape the paginator can break between.
+    if (chunks.length == 1) {
+      return pw.Container(
+        width: double.infinity,
+        padding: const pw.EdgeInsets.all(11),
+        decoration: pw.BoxDecoration(
+          border: pw.Border.all(color: DocumentColors.border),
+          borderRadius: pw.BorderRadius.circular(6),
         ),
-        maxWidth: _contentWidth - 11 * 2,
-      ),
+        child: _text(
+          notes,
+          style: const pw.TextStyle(
+            fontSize: 10,
+            color: DocumentColors.ink,
+            lineSpacing: 2,
+          ),
+          maxWidth: _contentWidth - 11 * 2,
+        ),
+      );
+    }
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: <pw.Widget>[
+        for (final String chunk in chunks)
+          pw.Container(
+            width: double.infinity,
+            padding: const pw.EdgeInsets.symmetric(
+              horizontal: 11,
+              vertical: 5,
+            ),
+            decoration: pw.BoxDecoration(
+              border: pw.Border(
+                bottom: pw.BorderSide(
+                  color: DocumentColors.border,
+                  width: 0.6,
+                ),
+              ),
+            ),
+            child: _text(
+              chunk,
+              style: const pw.TextStyle(
+                fontSize: 10,
+                color: DocumentColors.ink,
+                lineSpacing: 2,
+              ),
+              maxWidth: _contentWidth - 11 * 2,
+            ),
+          ),
+      ],
+    );
+  }
+
+  /// The full form of every value a fixed cell had to shorten.
+  pw.Widget _fullValuesBlock() {
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+      children: <pw.Widget>[
+        for (final ({String label, String value}) entry in _fullValues) ...<
+            pw.Widget>[
+          _text(
+            '${entry.label}:',
+            style: const pw.TextStyle(
+              fontSize: 8.5,
+              color: DocumentColors.secondary,
+            ),
+            maxWidth: _contentWidth,
+          ),
+          for (final String chunk in _Sheet.textChunks(entry.value))
+            _text(
+              chunk,
+              style: const pw.TextStyle(
+                fontSize: 9.5,
+                color: DocumentColors.ink,
+              ),
+              maxWidth: _contentWidth,
+            ),
+          pw.SizedBox(height: 6),
+        ],
+      ],
     );
   }
 

@@ -3255,6 +3255,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get debtFormSideOwedToMe => 'Owed to me · I\'ll get it';
 
   @override
+  String get debtFormSideIOweShort => 'I owe';
+
+  @override
+  String get debtFormSideOwedToMeShort => 'To me';
+
+  @override
   String get peopleSearchHint => 'Search by name or number';
 
   @override
@@ -3300,6 +3306,15 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get personMoreActions => 'Person options';
+
+  @override
+  String get reportAppendixTitle => 'Full values';
+
+  @override
+  String get reportAppendixName => 'Full name';
+
+  @override
+  String get reportAppendixDebtTitle => 'Full debt title';
 
   @override
   String get listSeparator => ', ';
