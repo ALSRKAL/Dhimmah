@@ -163,6 +163,18 @@ void main() {
               greaterThan(primaryRect.bottom),
               reason: 'the second row starts below the primary',
             );
+            // The row is full: the statement keeps its content width and
+            // adding a debt takes the rest, with the 4-pixel gap between them.
+            expect(
+              addDebtRect.width + statementRect.width + 4,
+              closeTo(width - 32, 0.5),
+              reason: 'the second row leaves no empty strip',
+            );
+            expect(
+              addDebtRect.width,
+              greaterThan(statementRect.width),
+              reason: 'the wider action is the one that can flex',
+            );
           },
         );
       }

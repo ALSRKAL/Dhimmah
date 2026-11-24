@@ -660,15 +660,15 @@ class _PersonActions extends ConsumerWidget {
           children: <Widget>[
             primary,
             const SizedBox(height: AppSpacing.sm),
-            // Wrapping rather than a Row is the safety valve at text sizes
-            // beyond the tested ones: the two actions move to separate lines
-            // instead of either label being clipped.
-            Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.sm,
-              crossAxisAlignment: WrapCrossAlignment.center,
+            // The two actions fill the row: adding a debt takes what the
+            // statement's own width leaves. The outer Column is stretched, so
+            // no empty strip is left on either side.
+            Row(
               children: <Widget>[
-                if (canPay) addDebt,
+                if (canPay) ...<Widget>[
+                  Expanded(child: addDebt),
+                  const SizedBox(width: AppSpacing.xs),
+                ],
                 statement,
               ],
             ),
